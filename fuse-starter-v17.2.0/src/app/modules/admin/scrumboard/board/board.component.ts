@@ -110,7 +110,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         });
 
         // Save the list
-        this._scrumboardService.createList(this.board.id, list).subscribe();
+        this._scrumboardService.createList(this.board.id, list).subscribe(() => {
+            this.reloadBoard();
+        });
     }
 
     /**
@@ -139,7 +141,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         list.title = element.value = newTitle.trim();
 
         // Update the list
-        this._scrumboardService.updateList(list.id, list).subscribe();
+        this._scrumboardService.updateList(list.id, list).subscribe(() => {
+            this.reloadBoard();
+        });
     }
 
     /**
@@ -168,7 +172,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
             {
 
                 // Delete the list
-                this._scrumboardService.deleteList(id).subscribe();
+                this._scrumboardService.deleteList(id).subscribe(() => {
+                    this.reloadBoard();
+                });
             }
         });
     }
@@ -187,7 +193,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         });
 
         // Save the card
-        this._scrumboardService.createCard(list.id, card).subscribe();
+        this._scrumboardService.createCard(list.id, card).subscribe(() => {
+            this.reloadBoard();
+        });
     }
 
     /**
@@ -205,7 +213,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
 
         // Update the lists
         updated.forEach(list => {
-            this._scrumboardService.updateList(list.id, list).subscribe();
+            this._scrumboardService.updateList(list.id, list).subscribe(() => {
+                this.reloadBoard();
+            });
         });
     }
 
@@ -236,7 +246,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
 
         // Update the cards
         updated.forEach(card => {
-            this._scrumboardService.updateCard(card.id, card).subscribe();
+            this._scrumboardService.updateCard(card.id, card).subscribe(() => {
+                this.reloadBoard();
+            });
         });
     }
 
@@ -319,5 +331,12 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
 
         // Return currentItem
         return [currentItem];
+    }
+
+    private reloadBoard(): void {
+        this._scrumboardService.getBoard(this.board.id).subscribe(board => {
+            this.board = board;
+            this._changeDetectorRef.markForCheck();
+        });
     }
 }

@@ -22,7 +22,7 @@
         <mat-form-field
             class="w-full"
             [subscriptSizing]="'dynamic'">
-            <mat-label>Title</mat-label>
+            <mat-label>Tiêu đề card</mat-label>
             <textarea
                 matInput
                 [formControlName]="'title'"
@@ -36,7 +36,7 @@
         <mat-form-field
             class="w-full"
             [subscriptSizing]="'dynamic'">
-            <mat-label>Description</mat-label>
+            <mat-label>Mô tả công việc</mat-label>
             <textarea
                 matInput
                 [formControlName]="'description'"
@@ -48,7 +48,7 @@
 
         <!-- Due date -->
         <div>
-            <div class="font-medium">Due date</div>
+            <div class="font-medium">Ngày hết hạn</div>
             <div
                 class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
                 [ngClass]="{'text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700': !card.dueDate,
@@ -91,7 +91,7 @@
 
         <!-- Labels -->
         <div class="w-full">
-            <div class="font-medium">Labels</div>
+            <div class="font-medium">Nhãn Công Việc</div>
             <div class="mt-1 rounded-md border border-gray-300 shadow-sm overflow-hidden">
                 <!-- Header -->
                 <div class="flex items-center my-2 mx-3">
@@ -122,6 +122,39 @@
                     </ng-container>
                 </div>
             </div>
+        </div>
+
+        <!-- Checklist -->
+        <div>
+            <div class="font-medium mb-2">Checklist</div>
+            <div formArrayName="checklistItems" *ngIf="checklistItems">
+                <div *ngFor="let item of checklistItems.controls; let i = index" [formGroupName]="i">
+                    <mat-checkbox formControlName="checked">{{item.get('text').value}}</mat-checkbox>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <input [(ngModel)]="newChecklistText" placeholder="Thêm mục..." class="flex-1 mr-2 mat-input-element" [ngModelOptions]="{standalone: true}">
+                <button mat-mini-fab color="primary" (click)="addChecklistItem()" type="button">
+                    <mat-icon>add</mat-icon>
+                </button>
+            </div>
+        </div>
+
+        <!-- Member -->
+        <mat-form-field class="w-full">
+            <mat-label>Member (email)</mat-label>
+            <input matInput [(ngModel)]="member" name="member">
+        </mat-form-field>
+
+        <!-- Label: nhập mới -->
+        <mat-form-field class="w-full">
+            <mat-label>Thêm nhãn mới (phân cách bằng dấu phẩy)</mat-label>
+            <input matInput [(ngModel)]="newLabels" name="newLabels">
+        </mat-form-field>
+
+        <div class="flex gap-2 justify-end mt-4">
+            <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
+            <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
         </div>
 
     </form>

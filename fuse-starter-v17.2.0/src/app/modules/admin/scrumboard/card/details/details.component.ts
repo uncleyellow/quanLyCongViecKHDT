@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormGroup, Validators, FormArray, FormControl } from '@angular/forms';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatDialogRef } from '@angular/material/dialog';
 import { debounceTime, Subject, takeUntil, tap } from 'rxjs';
@@ -22,6 +22,10 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     cardForm: UntypedFormGroup;
     labels: Label[];
     filteredLabels: Label[];
+    // checklistItems: {text: string, checked: boolean}[] = [];
+    newChecklistText: string = '';
+    member: string = '';
+    newLabels: string = '';
 
     // Private
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -64,6 +68,9 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((card) => {
                 this.card = card;
+                // this.checklistItems = card.checklistItems || [];
+                this.member = card.member || '';
+                this.newLabels = ''; // reset khi mở
             });
 
         // Prepare the card form
@@ -72,7 +79,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             title      : ['', Validators.required],
             description: [''],
             labels     : [[]],
-            dueDate    : [null]
+            dueDate    : [null],
+            checklistItems: this._formBuilder.array([])
         });
 
         // Fill the form
@@ -81,7 +89,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             title      : this.card.title,
             description: this.card.description,
             labels     : this.card.labels,
-            dueDate    : this.card.dueDate
+            dueDate    : this.card.dueDate,
+            checklistItems: []
         });
 
         // Update card when there is a value change on the card form
@@ -103,6 +112,18 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
             });
+
+        // Khi load card:
+        const checklistFormArray = this.cardForm.get('checklistItems') as FormArray;
+        checklistFormArray.clear();
+        if (this.card && this.card.checklistItems) {
+            this.card.checklistItems.forEach(item => {
+                checklistFormArray.push(this._formBuilder.group({
+                    text: [item.text],
+                    checked: [item.checked]
+                }));
+            });
+        }
     }
 
     /**
@@ -249,6 +270,48 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+    get checklistItems(): FormArray {
+        return this.cardForm.get('checklistItems') as FormArray;
+    }
+
+    addChecklistItem() {
+        if (this.newChecklistText && this.newChecklistText.trim()) {
+            this.checklistItems.push(this._formBuilder.group({
+                text: [this.newChecklistText],
+                checked: [false]
+            }));
+            this.newChecklistText = '';
+        }
+    }
+
+    removeChecklistItem(i: number) {
+        this.checklistItems.removeAt(i);
+    }
+
+    // Khi lưu (update card)
+    saveDetails() {
+        const formValue = this.cardForm.value;
+        const updateData = {
+            ...formValue,
+            checklistItems: formValue.checklistItems,
+            member: this.member,
+            labels: [
+                ...this.card.labels,
+                ...this.newLabels.split(',').map(l => ({ title: l.trim() })).filter(l => l.title)
+            ]
+        };
+        this._scrumboardService.updateCard(this.card.id, updateData).subscribe();
+    }
+
+    onSave() {
+        this.saveDetails(); // Đã có sẵn logic lưu
+        this.matDialogRef.close(true); // Đóng dialog, có thể truyền dữ liệu nếu muốn
+    }
+
+    onCancel() {
+        this.matDialogRef.close(false); // Đóng dialog, không lưu
     }
 
     // -----------------------------------------------------------------------------------------------------

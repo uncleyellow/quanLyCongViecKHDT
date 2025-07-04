@@ -123,7 +123,7 @@ export class Card implements Required<ICard>
     checklistItems: {text: string, checked: boolean}[];
     startDate: string;
     endDate: string;
-
+    member: string;
     /**
      * Constructor
      */

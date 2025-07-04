@@ -90,6 +90,7 @@ def init_database():
             checklist_items TEXT,
             start_date TEXT,
             end_date TEXT,
+            member TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
             FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
@@ -389,17 +390,14 @@ def delete_list(list_id):
 def create_card(list_id):
     data = request.get_json()
     card_id = generate_id()
-    
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     # Get board_id
     cursor.execute('SELECT board_id FROM lists WHERE id = ?', (list_id,))
     board_id = cursor.fetchone()[0]
-    
     cursor.execute('''
-        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date, member)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         card_id,
         board_id,
@@ -411,12 +409,11 @@ def create_card(list_id):
         data.get('type', 'normal'),
         json.dumps(data.get('checklist_items', [])),
         data.get('start_date'),
-        data.get('end_date')
+        data.get('end_date'),
+        data.get('member')
     ))
-    
     conn.commit()
     conn.close()
-    
     update_board_activity(board_id)
     return jsonify({'id': card_id, 'message': 'Card created successfully'}), 201
 
@@ -444,7 +441,7 @@ def update_card(card_id):
     board_id = board_id_row[0]
     cursor.execute('''
         UPDATE cards 
-        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?, type = ?, checklist_items = ?, start_date = ?, end_date = ?
+        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?, type = ?, checklist_items = ?, start_date = ?, end_date = ?, member = ?
         WHERE id = ?
     ''', (
         data['title'],
@@ -456,6 +453,7 @@ def update_card(card_id):
         json.dumps(data.get('checklist_items', [])),
         data.get('start_date'),
         data.get('end_date'),
+        data.get('member'),
         card_id
     ))
     conn.commit()

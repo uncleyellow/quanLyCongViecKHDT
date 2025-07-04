@@ -33,6 +33,7 @@ export interface ICard
     checklistItems?: {text: string, checked: boolean}[];
     startDate?: string;
     endDate?: string;
+    member?: string;
 }
 
 export interface IMember
