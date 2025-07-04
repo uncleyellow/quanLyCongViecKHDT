@@ -1,3 +1,4 @@
+import { cards } from './../../../../../mock-api/apps/scrumboard/data';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, Validators, FormArray, FormControl } from '@angular/forms';
 import { MatCheckboxChange } from '@angular/material/checkbox';
@@ -68,6 +69,18 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((card) => {
                 this.card = card;
+                let foundListId = undefined;
+                for (let i = 0; i < this.board.lists.length; i++) {
+                    const list = this.board.lists[i];
+                    for (let r = 0; r < list.cards.length; r++) {
+                        if (this.card.id === list.cards[r].id) {
+                            foundListId = list.id;
+                            break;
+                        }
+                    }
+                    if (foundListId) break;
+                }
+                this.card.listId = foundListId;
                 // this.checklistItems = card.checklistItems || [];
                 this.member = card.member || '';
                 this.newLabels = ''; // reset khi mở
@@ -80,7 +93,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             description: [''],
             labels     : [[]],
             dueDate    : [null],
-            checklistItems: this._formBuilder.array([])
+            checklistItems: this._formBuilder.array([]),
+            list_id: this.card.listId
         });
 
         // Fill the form
@@ -90,7 +104,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             description: this.card.description,
             labels     : this.card.labels,
             dueDate    : this.card.dueDate,
-            checklistItems: []
+            checklistItems: [],
+            list_id: this.card.listId
         });
 
         // Update card when there is a value change on the card form
@@ -300,7 +315,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             labels: [
                 ...this.card.labels,
                 ...this.newLabels.split(',').map(l => ({ title: l.trim() })).filter(l => l.title)
-            ]
+            ],
+            list_id: this.card.listId
         };
         this._scrumboardService.updateCard(this.card.id, updateData).subscribe();
     }

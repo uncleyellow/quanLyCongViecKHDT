@@ -429,6 +429,8 @@ def options_card(card_id):
 def update_card(card_id):
     data = request.get_json()
     list_id = data.get('list_id') or data.get('listId')
+    # Thêm dòng này để kiểm tra
+    print('DEBUG list_id:', list_id)
     if not list_id:
         return make_response(jsonify({'error': 'list_id is required'}), 400)
     conn = get_db_connection()
