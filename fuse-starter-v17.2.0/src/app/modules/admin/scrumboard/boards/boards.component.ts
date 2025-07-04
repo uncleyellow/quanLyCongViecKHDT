@@ -1,8 +1,12 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, take } from 'rxjs';
 import { DateTime } from 'luxon';
-import { Board } from 'app/modules/admin/apps/scrumboard/scrumboard.models';
-import { ScrumboardService } from 'app/modules/admin/apps/scrumboard/scrumboard.service';
+import { Board } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
+import { UserService } from 'app/core/user/user.service';
+import { MatDialog } from '@angular/material/dialog';
+import { AddBoardDialogComponent } from './add-board-dialog.compoment';
+import { ShareBoardDialogComponent } from './share-board-dialog.compoment';
 
 @Component({
     selector       : 'scrumboard-boards',
@@ -22,7 +26,9 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
      */
     constructor(
         private _changeDetectorRef: ChangeDetectorRef,
-        private _scrumboardService: ScrumboardService
+        private _scrumboardService: ScrumboardService,
+        private _userService: UserService,
+        private dialog: MatDialog
     )
     {
     }
@@ -36,17 +42,26 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
-        // Get the boards
-        this._scrumboardService.boards$
-            .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((boards: Board[]) => {
-                this.boards = boards;
-
-                // Mark for check
-                this._changeDetectorRef.markForCheck();
-            });
+        const userStr = localStorage.getItem('user');
+        let email = '';
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            email = user.email;
+        }
+        this.fetch(email);
     }
-
+    fetch(userEmail?: string) {
+        // Gọi API lấy boards theo userEmail
+        this._scrumboardService.getBoards(userEmail).subscribe(() => {
+            // Sau khi lấy xong, subscribe vào boards$ để cập nhật UI
+            this._scrumboardService.boards$
+                .pipe(takeUntil(this._unsubscribeAll))
+                .subscribe((boards: Board[]) => {
+                    this.boards = boards;
+                    this._changeDetectorRef.markForCheck();
+                });
+        });
+    }
     /**
      * On destroy
      */
@@ -80,5 +95,54 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+    createNewBoard() {
+        this._userService.user$.pipe(take(1)).subscribe(user => {
+            const dialogRef = this.dialog.open(AddBoardDialogComponent, {
+                width: '400px'
+            });
+
+            dialogRef.afterClosed().subscribe(result => {
+                if (result && user) {
+                    this._scrumboardService.createBoard({
+                        id: null,
+                        title: result.title,
+                        description: result.description,
+                        icon: result.icon,
+                        lastActivity: null,
+                        lists: [],
+                        labels: [],
+                        members: []
+                    }, user.email).subscribe((newBoard) => {
+                        if(newBoard){
+                            this.fetch(user.email);
+                        }
+                        // Thêm trực tiếp vào danh sách để hiển thị ngay
+                        // this.boards = [newBoard, ...(this.boards || [])];
+                        // this._changeDetectorRef.markForCheck();
+                        // Nếu muốn đồng bộ hoàn toàn với backend, gọi lại fetch:
+
+                        this.fetch(user.email);
+                    });
+                }
+            });
+        });
+    }
+
+    openShareDialog(board: Board) {
+        const dialogRef = this.dialog.open(ShareBoardDialogComponent, { width: '400px' });
+        dialogRef.afterClosed().subscribe(result => {
+            if (result && result.email) {
+                // Gọi API để lấy memberId từ email, rồi gọi addMemberToBoard
+                this._scrumboardService.getMemberByEmail(result.email).subscribe(member => {
+                    if (member && member.id) {
+                        this._scrumboardService.addMemberToBoard(board.id, member.id).subscribe(() => {
+                            // Thông báo thành công, reload UI nếu cần
+                        });
+                    }
+                });
+            }
+        });
     }
 }

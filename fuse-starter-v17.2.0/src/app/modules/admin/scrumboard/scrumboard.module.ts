@@ -4,7 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
-import { MAT_DATE_FORMATS } from '@angular/material/core';
+import { MAT_DATE_FORMATS, MatOptionModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,14 +13,17 @@ import { MatLuxonDateModule, MAT_LUXON_DATE_FORMATS } from '@angular/material-lu
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SharedModule } from 'app/shared/shared.module';
-import { ScrumboardComponent } from 'app/modules/admin/apps/scrumboard/scrumboard.component';
-import { ScrumboardBoardsComponent } from 'app/modules/admin/apps/scrumboard/boards/boards.component';
-import { ScrumboardBoardComponent } from 'app/modules/admin/apps/scrumboard/board/board.component';
-import { ScrumboardBoardAddCardComponent } from 'app/modules/admin/apps/scrumboard/board/add-card/add-card.component';
-import { ScrumboardBoardAddListComponent } from 'app/modules/admin/apps/scrumboard/board/add-list/add-list.component';
-import { ScrumboardCardComponent } from 'app/modules/admin/apps/scrumboard/card/card.component';
-import { ScrumboardCardDetailsComponent } from 'app/modules/admin/apps/scrumboard/card/details/details.component';
-import { scrumboardRoutes } from 'app/modules/admin/apps/scrumboard/scrumboard.routing';
+import { ScrumboardBoardAddCardComponent } from './board/add-card/add-card.component';
+import { ScrumboardBoardAddListComponent } from './board/add-list/add-list.component';
+import { ScrumboardBoardComponent } from './board/board.component';
+import { ScrumboardBoardsComponent } from './boards/boards.component';
+import { ScrumboardCardComponent } from './card/card.component';
+import { ScrumboardCardDetailsComponent } from './card/details/details.component';
+import { ScrumboardComponent } from './scrumboard.component';
+import { scrumboardRoutes } from './scrumboard.routing';
+import { AddBoardDialogComponent } from './boards/add-board-dialog.compoment';
+import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment';
+
 
 @NgModule({
     declarations: [
@@ -30,7 +33,9 @@ import { scrumboardRoutes } from 'app/modules/admin/apps/scrumboard/scrumboard.r
         ScrumboardBoardAddCardComponent,
         ScrumboardBoardAddListComponent,
         ScrumboardCardComponent,
-        ScrumboardCardDetailsComponent
+        ScrumboardCardDetailsComponent,
+        AddBoardDialogComponent,
+        ShareBoardDialogComponent
     ],
     imports     : [
         RouterModule.forChild(scrumboardRoutes),
@@ -45,7 +50,8 @@ import { scrumboardRoutes } from 'app/modules/admin/apps/scrumboard/scrumboard.r
         MatLuxonDateModule,
         MatMenuModule,
         MatProgressBarModule,
-        SharedModule
+        SharedModule,
+        MatOptionModule
     ],
     providers   : [
         {

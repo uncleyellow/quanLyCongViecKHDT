@@ -1,8 +1,43 @@
 /* eslint-disable */
-export const user = {
-    id    : 'cfaad35d-07a3-4447-a6c3-d8c3d54fd5df',
-    name  : 'Brian Hughes',
-    email : 'hughes.brian@company.com',
-    avatar: 'assets/images/avatars/brian-hughes.jpg',
-    status: 'online'
-};
+export const users = [
+    {
+        id    : '1',
+        name  : 'Jerry Kiniembo',
+        email : 'kiniemboquenjerry@gmail.com',
+        avatar: 'assets/images/avatars/male-01.jpg',
+        status: 'online',
+        role: 'admin'
+    },
+    {
+        id    : '2',
+        name  : 'Tuan Anh',
+        email : 'tuananh@gmail.com',
+        avatar: 'assets/images/avatars/male-02.jpg',
+        status: 'online',
+        role: 'staff'
+    },
+    {
+        id    : '3',
+        name  : 'Giang IT',
+        email : 'giangit@gmail.com',
+        avatar: 'assets/images/avatars/male-03.jpg',
+        status: 'online',
+        role: 'staff'
+    },
+    {
+        id    : '4',
+        name  : 'Huyen',
+        email : 'huyen@gmail.com',
+        avatar: 'assets/images/avatars/female-01.jpg',
+        status: 'online',
+        role: 'staff'
+    },
+    {
+        id    : '5',
+        name  : 'Giang Truong Phong',
+        email : 'giangtruongphong@gmail.com',
+        avatar: 'assets/images/avatars/male-04.jpg',
+        status: 'online',
+        role: 'manager'
+    },
+];

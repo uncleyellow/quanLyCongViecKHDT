@@ -4,8 +4,8 @@ import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/dr
 import { Subject, takeUntil } from 'rxjs';
 import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
-import { ScrumboardService } from 'app/modules/admin/apps/scrumboard/scrumboard.service';
-import { Board, Card, List } from 'app/modules/admin/apps/scrumboard/scrumboard.models';
+import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
+import { Board, Card, List } from 'app/modules/admin/scrumboard/scrumboard.models';
 
 @Component({
     selector       : 'scrumboard-board',
@@ -110,7 +110,7 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         });
 
         // Save the list
-        this._scrumboardService.createList(list).subscribe();
+        this._scrumboardService.createList(this.board.id, list).subscribe();
     }
 
     /**
@@ -139,7 +139,7 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         list.title = element.value = newTitle.trim();
 
         // Update the list
-        this._scrumboardService.updateList(list).subscribe();
+        this._scrumboardService.updateList(list.id, list).subscribe();
     }
 
     /**
@@ -187,7 +187,7 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         });
 
         // Save the card
-        this._scrumboardService.createCard(card).subscribe();
+        this._scrumboardService.createCard(list.id, card).subscribe();
     }
 
     /**
@@ -204,7 +204,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         const updated = this._calculatePositions(event);
 
         // Update the lists
-        this._scrumboardService.updateLists(updated).subscribe();
+        updated.forEach(list => {
+            this._scrumboardService.updateList(list.id, list).subscribe();
+        });
     }
 
     /**
@@ -233,7 +235,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         const updated = this._calculatePositions(event);
 
         // Update the cards
-        this._scrumboardService.updateCards(updated).subscribe();
+        updated.forEach(card => {
+            this._scrumboardService.updateCard(card.id, card).subscribe();
+        });
     }
 
     /**

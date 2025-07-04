@@ -5,8 +5,8 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { debounceTime, Subject, takeUntil, tap } from 'rxjs';
 import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
-import { ScrumboardService } from 'app/modules/admin/apps/scrumboard/scrumboard.service';
-import { Board, Card, Label } from 'app/modules/admin/apps/scrumboard/scrumboard.models';
+import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
+import { Board, Card, Label } from 'app/modules/admin/scrumboard/scrumboard.models';
 
 @Component({
     selector       : 'scrumboard-card-details',

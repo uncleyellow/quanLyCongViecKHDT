@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from '@angular/router';
 import { catchError, Observable, throwError } from 'rxjs';
-import { Board, Card } from 'app/modules/admin/apps/scrumboard/scrumboard.models';
-import { ScrumboardService } from 'app/modules/admin/apps/scrumboard/scrumboard.service';
+import { Board, Card } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 
 @Injectable({
     providedIn: 'root'
@@ -30,7 +30,9 @@ export class ScrumboardBoardsResolver implements Resolve<any>
      */
     resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<Board[]>
     {
-        return this._scrumboardService.getBoards();
+        // Lấy email user từ localStorage/session hoặc route/query tuỳ app
+        const email = localStorage.getItem('userEmail') || '';
+        return this._scrumboardService.getBoards(email);
     }
 }
 

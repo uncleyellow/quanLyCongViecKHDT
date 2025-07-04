@@ -4,7 +4,7 @@ import HmacSHA256 from 'crypto-js/hmac-sha256';
 import Utf8 from 'crypto-js/enc-utf8';
 import { cloneDeep } from 'lodash-es';
 import { FuseMockApiService } from '@fuse/lib/mock-api';
-import { user as userData } from 'app/mock-api/common/user/data';
+import { users as userData, users } from 'app/mock-api/common/user/data';
 
 @Injectable({
     providedIn: 'root'
@@ -13,6 +13,7 @@ export class AuthMockApi
 {
     private readonly _secret: any;
     private _user: any = userData;
+    private _users: any = users;
 
     /**
      * Constructor
@@ -67,12 +68,15 @@ export class AuthMockApi
             .reply(({request}) => {
 
                 // Sign in successful
-                if ( request.body.email === 'hughes.brian@company.com' && request.body.password === 'admin' )
-                {
+
+                //ADMIN
+                const foundUser = this._users.find((u: any) => u.email === request.body.email && request.body.password === 'admin');
+                if (foundUser) {
+                    localStorage.setItem('user', JSON.stringify(foundUser));
                     return [
                         200,
                         {
-                            user       : cloneDeep(this._user),
+                            user       : cloneDeep(foundUser),
                             accessToken: this._generateJWTToken(),
                             tokenType  : 'bearer'
                         }

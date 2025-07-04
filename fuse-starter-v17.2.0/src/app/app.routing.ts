@@ -73,10 +73,10 @@ export const appRoutes: Route[] = [
         children: [
             {path: 'example', loadChildren: () => import('app/modules/admin/example/example.module').then(m => m.ExampleModule)},
             
-            // Apps
-            {path: 'apps', children: [
-                {path: 'scrumboard', loadChildren: () => import('app/modules/admin/scrumboard/scrumboard.module').then(m => m.ScrumboardModule)},
-            ]},
+            
+            
+            {path: 'scrumboard', loadChildren: () => import('app/modules/admin/scrumboard/scrumboard.module').then(m => m.ScrumboardModule)},
+          
         ]
     }
 ];

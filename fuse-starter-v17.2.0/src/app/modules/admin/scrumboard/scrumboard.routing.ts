@@ -1,8 +1,8 @@
 import { Route } from '@angular/router';
-import { ScrumboardBoardsComponent } from 'app/modules/admin/apps/scrumboard/boards/boards.component';
-import { ScrumboardBoardResolver, ScrumboardBoardsResolver, ScrumboardCardResolver } from 'app/modules/admin/apps/scrumboard/scrumboard.resolvers';
-import { ScrumboardBoardComponent } from 'app/modules/admin/apps/scrumboard/board/board.component';
-import { ScrumboardCardComponent } from 'app/modules/admin/apps/scrumboard/card/card.component';
+import { ScrumboardBoardsComponent } from 'app/modules/admin/scrumboard/boards/boards.component';
+import { ScrumboardBoardResolver, ScrumboardBoardsResolver, ScrumboardCardResolver } from 'app/modules/admin/scrumboard/scrumboard.resolvers';
+import { ScrumboardBoardComponent } from 'app/modules/admin/scrumboard/board/board.component';
+import { ScrumboardCardComponent } from 'app/modules/admin/scrumboard/card/card.component';
 
 export const scrumboardRoutes: Route[] = [
     {

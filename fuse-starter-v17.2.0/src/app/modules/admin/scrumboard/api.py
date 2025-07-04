@@ -3,8 +3,9 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, asdict
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import uuid
+from flask_cors import CORS
 
 # Database setup
 DATABASE = 'scrumboard.db'
@@ -26,7 +27,10 @@ def init_database():
             description TEXT,
             icon TEXT,
             last_activity TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            owner_id TEXT,
+            is_public INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (owner_id) REFERENCES members(id) ON DELETE SET NULL
         )
     ''')
     
@@ -34,6 +38,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS members (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
+            email TEXT,
             avatar TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -81,6 +86,10 @@ def init_database():
             description TEXT,
             position INTEGER NOT NULL DEFAULT 0,
             due_date TEXT,
+            type TEXT DEFAULT 'normal',
+            checklist_items TEXT,
+            start_date TEXT,
+            end_date TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
             FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
@@ -103,6 +112,15 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_cards_board_id ON cards(board_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_labels_board_id ON labels(board_id)')
     
+    # Sau khi tạo bảng boards
+    cursor.execute('SELECT id FROM boards WHERE title = ?', ('Daily Tasks',))
+    if not cursor.fetchone():
+        board_id = str(uuid.uuid4())
+        cursor.execute('''
+            INSERT INTO boards (id, title, description, icon, last_activity, is_public)
+            VALUES (?, ?, ?, ?, ?, 1)
+        ''', (board_id, 'Daily Tasks', 'Công việc hàng ngày cho mọi người', 'heroicons_outline:calendar', datetime.now().isoformat()))
+    
     conn.commit()
     conn.close()
 
@@ -114,9 +132,10 @@ class Board:
     description: Optional[str] = None
     icon: Optional[str] = None
     last_activity: Optional[str] = None
-    lists: List[Dict] = None
-    labels: List[Dict] = None
-    members: List[Dict] = None
+    owner_id: Optional[str] = None
+    lists: Optional[List[Dict[str, Any]]] = None
+    labels: Optional[List[Dict[str, Any]]] = None
+    members: Optional[List[Dict[str, Any]]] = None
 
 @dataclass
 class Member:
@@ -132,12 +151,12 @@ class Label:
     color: str = "#808080"
 
 @dataclass
-class List:
+class ScrumList:
     id: Optional[str] = None
     board_id: str = ""
     title: str = ""
     position: int = 0
-    cards: List[Dict] = None
+    cards: Optional[List[Dict[str, Any]]] = None
 
 @dataclass
 class Card:
@@ -148,10 +167,11 @@ class Card:
     description: Optional[str] = None
     position: int = 0
     due_date: Optional[str] = None
-    labels: List[Dict] = None
+    labels: Optional[List[Dict[str, Any]]] = None
 
 # Flask app setup
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Utility functions
 def generate_id():
@@ -170,10 +190,23 @@ def update_board_activity(board_id: str):
 # Board API endpoints
 @app.route('/api/boards', methods=['GET'])
 def get_boards():
+    email = request.args.get('email')
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM boards ORDER BY last_activity DESC')
-    boards = [dict(row) for row in cursor.fetchall()]
+    if email:
+        cursor.execute('SELECT id FROM members WHERE name = ? OR email = ?', (email, email))
+        member = cursor.fetchone()
+        member_id = member['id'] if member else None
+        cursor.execute('''
+            SELECT DISTINCT b.* FROM boards b
+            LEFT JOIN board_members bm ON b.id = bm.board_id
+            WHERE b.is_public = 1 OR b.owner_id = ? OR bm.member_id = ?
+            ORDER BY b.last_activity DESC
+        ''', (member_id, member_id))
+        boards = [dict(row) for row in cursor.fetchall()]
+    else:
+        cursor.execute('SELECT * FROM boards WHERE is_public = 1 ORDER BY last_activity DESC')
+        boards = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return jsonify(boards)
 
@@ -181,17 +214,31 @@ def get_boards():
 def create_board():
     data = request.get_json()
     board_id = generate_id()
-    
+    owner_email = data.get('owner_email')
+    owner_id = None
+    if owner_email:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM members WHERE name = ? OR email = ?', (owner_email, owner_email))
+        member = cursor.fetchone()
+        if member:
+            owner_id = member['id']
+        conn.close()
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO boards (id, title, description, icon, last_activity)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO boards (id, title, description, icon, last_activity, owner_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     ''', (board_id, data['title'], data.get('description'), 
-          data.get('icon'), datetime.now().isoformat()))
+          data.get('icon'), datetime.now().isoformat(), owner_id))
+    # Thêm owner vào board_members
+    if owner_id:
+        cursor.execute('''
+            INSERT INTO board_members (board_id, member_id)
+            VALUES (?, ?)
+        ''', (board_id, owner_id))
     conn.commit()
     conn.close()
-    
     return jsonify({'id': board_id, 'message': 'Board created successfully'}), 201
 
 @app.route('/api/boards/<board_id>', methods=['GET'])
@@ -218,6 +265,10 @@ def get_board(board_id):
         cards = []
         for card_row in cursor.fetchall():
             card_data = dict(card_row)
+            if card_data.get('checklist_items'):
+                card_data['checklist_items'] = json.loads(card_data['checklist_items'])
+            else:
+                card_data['checklist_items'] = []
             
             # Get labels for this card
             cursor.execute('''
@@ -347,10 +398,21 @@ def create_card(list_id):
     board_id = cursor.fetchone()[0]
     
     cursor.execute('''
-        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (card_id, board_id, list_id, data['title'], 
-          data.get('description'), data.get('position', 0), data.get('due_date')))
+        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        card_id,
+        board_id,
+        list_id,
+        data['title'],
+        data.get('description'),
+        data.get('position', 0),
+        data.get('due_date'),
+        data.get('type', 'normal'),
+        json.dumps(data.get('checklist_items', [])),
+        data.get('start_date'),
+        data.get('end_date')
+    ))
     
     conn.commit()
     conn.close()
@@ -358,28 +420,52 @@ def create_card(list_id):
     update_board_activity(board_id)
     return jsonify({'id': card_id, 'message': 'Card created successfully'}), 201
 
+@app.route('/api/cards/<card_id>', methods=['OPTIONS'])
+def options_card(card_id):
+    response = make_response()
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response, 200
+
 @app.route('/api/cards/<card_id>', methods=['PUT'])
 def update_card(card_id):
     data = request.get_json()
+    list_id = data.get('list_id') or data.get('listId')
+    if not list_id:
+        return make_response(jsonify({'error': 'list_id is required'}), 400)
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Get board_id for activity update
     cursor.execute('SELECT board_id FROM cards WHERE id = ?', (card_id,))
-    board_id = cursor.fetchone()[0]
-    
+    board_id_row = cursor.fetchone()
+    if not board_id_row:
+        conn.close()
+        return make_response(jsonify({'error': 'Card not found'}), 404)
+    board_id = board_id_row[0]
     cursor.execute('''
         UPDATE cards 
-        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?
+        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?, type = ?, checklist_items = ?, start_date = ?, end_date = ?
         WHERE id = ?
-    ''', (data['title'], data.get('description'), data.get('position', 0),
-          data.get('due_date'), data.get('list_id'), card_id))
-    
+    ''', (
+        data['title'],
+        data.get('description'),
+        data.get('position', 0),
+        data.get('due_date'),
+        list_id,
+        data.get('type', 'normal'),
+        json.dumps(data.get('checklist_items', [])),
+        data.get('start_date'),
+        data.get('end_date'),
+        card_id
+    ))
     conn.commit()
     conn.close()
-    
     update_board_activity(board_id)
-    return jsonify({'message': 'Card updated successfully'})
+    response = make_response(jsonify({'message': 'Card updated successfully'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 @app.route('/api/cards/<card_id>', methods=['DELETE'])
 def delete_card(card_id):
@@ -467,9 +553,9 @@ def create_member():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO members (id, name, avatar)
-        VALUES (?, ?, ?)
-    ''', (member_id, data['name'], data.get('avatar')))
+        INSERT INTO members (id, name, email, avatar)
+        VALUES (?, ?, ?, ?)
+    ''', (member_id, data['name'], data.get('email'), data.get('avatar')))
     conn.commit()
     conn.close()
     
@@ -506,6 +592,28 @@ def remove_member_from_board(board_id, member_id):
     
     update_board_activity(board_id)
     return jsonify({'message': 'Member removed from board successfully'})
+
+@app.route('/api/members/by-email')
+def get_member_by_email():
+    email = request.args.get('email')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM members WHERE email = ?', (email,))
+    member = cursor.fetchone()
+    conn.close()
+    if member:
+        return jsonify(dict(member))
+    else:
+        return jsonify({'error': 'Member not found'}), 404
+
+@app.route('/api/members', methods=['GET'])
+def get_all_members():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM members')
+    members = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(members)
 
 # Initialize database and run app
 if __name__ == '__main__':

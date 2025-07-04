@@ -7,7 +7,7 @@
 
         <!-- Title -->
         <div class="mt-4 md:mt-24 text-3xl md:text-6xl font-extrabold tracking-tight leading-7 sm:leading-10">
-            Scrumboard Boards
+            Các bảng công việc hàng ngày 
         </div>
 
         <!-- Boards -->
@@ -49,10 +49,13 @@
                         <div class="text-secondary">Edited:</div>
                         <div class="ml-1">{{formatDateAsRelative(board.lastActivity)}}</div>
                     </div>
+                    <button mat-stroked-button color="primary" (click)="openShareDialog(board)">
+                        <mat-icon>share</mat-icon> Chia sẻ
+                    </button>
                 </a>
             </ng-container>
             <!-- New board -->
-            <div class="flex flex-col items-center justify-center w-56 rounded-lg cursor-pointer border-2 border-gray-300 border-dashed hover:bg-hover transition-colors duration-150 ease-in-out">
+            <div class="flex flex-col items-center justify-center w-56 rounded-lg cursor-pointer border-2 border-gray-300 border-dashed hover:bg-hover transition-colors duration-150 ease-in-out" (click)="createNewBoard()">
                 <mat-icon
                     class="icon-size-12 text-hint"
                     [svgIcon]="'heroicons_outline:plus'"></mat-icon>

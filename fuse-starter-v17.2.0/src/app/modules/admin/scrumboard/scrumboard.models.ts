@@ -1,4 +1,4 @@
-import { IBoard, ICard, ILabel, IList, IMember } from 'app/modules/admin/apps/scrumboard/scrumboard.types';
+import { IBoard, ICard, ILabel, IList, IMember } from 'app/modules/admin/scrumboard/scrumboard.types';
 
 // -----------------------------------------------------------------------------------------------------
 // @ Board
@@ -119,6 +119,10 @@ export class Card implements Required<ICard>
     description: string | null;
     labels: Label[];
     dueDate: string | null;
+    type: 'normal' | 'checklist';
+    checklistItems: {text: string, checked: boolean}[];
+    startDate: string;
+    endDate: string;
 
     /**
      * Constructor
@@ -133,6 +137,10 @@ export class Card implements Required<ICard>
         this.description = card.description || null;
         this.labels = [];
         this.dueDate = card.dueDate || null;
+        this.type = card.type || 'normal';
+        this.checklistItems = card.checklistItems || [];
+        this.startDate = card.startDate || '';
+        this.endDate = card.endDate || '';
 
         // Labels
         if ( card.labels )
