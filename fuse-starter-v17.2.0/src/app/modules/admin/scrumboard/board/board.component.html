@@ -149,6 +149,17 @@
                                                 </div>
                                             </div>
                                         </ng-container>
+                                        <!-- Members -->
+                                        <ng-container *ngIf="card.members && card.members.length">
+                                            <div class="flex items-center mt-2">
+                                                <ng-container *ngFor="let memberId of card.members">
+                                                    <img
+                                                        class="w-6 h-6 rounded-full mr-1 border-2 border-white"
+                                                        [src]="getMemberAvatar(memberId)"
+                                                        [alt]="getMemberName(memberId)">
+                                                </ng-container>
+                                            </div>
+                                        </ng-container>
                                     </a>
                                 </ng-container>
                             </div>

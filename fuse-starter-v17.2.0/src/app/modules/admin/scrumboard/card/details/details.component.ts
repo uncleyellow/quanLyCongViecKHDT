@@ -7,7 +7,7 @@ import { debounceTime, Subject, takeUntil, tap } from 'rxjs';
 import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
-import { Board, Card, Label } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { Board, Card, Label, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
 
 @Component({
     selector       : 'scrumboard-card-details',
@@ -23,9 +23,9 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     cardForm: UntypedFormGroup;
     labels: Label[];
     filteredLabels: Label[];
-    // checklistItems: {text: string, checked: boolean}[] = [];
+    members: Member[] = [];
     newChecklistText: string = '';
-    member: string = '';
+    selectedMember: string = '';
     newLabels: string = '';
 
     // Private
@@ -52,6 +52,12 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
+        // Lấy danh sách members từ mock data
+        this._scrumboardService.getMembers().subscribe(members => {
+            this.members = members;
+            this._changeDetectorRef.markForCheck();
+        });
+
         // Get the board
         this._scrumboardService.board$
             .pipe(takeUntil(this._unsubscribeAll))
@@ -81,8 +87,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                     if (foundListId) break;
                 }
                 this.card.listId = foundListId;
-                // this.checklistItems = card.checklistItems || [];
-                this.member = card.member || '';
+                this.selectedMember = card.member || '';
                 this.newLabels = ''; // reset khi mở
             });
 
@@ -293,25 +298,62 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
 
     addChecklistItem() {
         if (this.newChecklistText && this.newChecklistText.trim()) {
-            this.checklistItems.push(this._formBuilder.group({
-                text: [this.newChecklistText],
-                checked: [false]
-            }));
+            // Sử dụng API checklist mới
+            this._scrumboardService.addChecklistItem(this.card.id, this.newChecklistText.trim()).subscribe(() => {
+                // Reload card để lấy checklist mới
+                this._scrumboardService.getCard(this.card.id).subscribe(updatedCard => {
+                    this.card = updatedCard;
+                    this._changeDetectorRef.markForCheck();
+                });
+            });
             this.newChecklistText = '';
         }
     }
 
     removeChecklistItem(i: number) {
-        this.checklistItems.removeAt(i);
+        if (this.card.checklistItems && this.card.checklistItems[i]) {
+            // Sử dụng API checklist mới
+            const itemId = this.card.checklistItems[i].id;
+            if (itemId) {
+                this._scrumboardService.deleteChecklistItem(this.card.id, itemId).subscribe(() => {
+                    // Reload card để lấy checklist mới
+                    this._scrumboardService.getCard(this.card.id).subscribe(updatedCard => {
+                        this.card = updatedCard;
+                        this._changeDetectorRef.markForCheck();
+                    });
+                });
+            }
+        }
     }
 
     // Khi lưu (update card)
     saveDetails() {
         const formValue = this.cardForm.value;
+        // Lấy user hiện tại từ localStorage
+        let creatorId = '';
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                creatorId = user.id;
+            } catch {}
+        }
+        // Nếu card chưa có members, set người tạo là member đầu tiên
+        let members = this.card.members && this.card.members.length ? [...this.card.members] : [];
+        if (members.length === 0 && creatorId) {
+            members = [creatorId];
+        }
+        // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp, không xóa creator)
+        if (this.selectedMember && !members.includes(this.selectedMember)) {
+            members.push(this.selectedMember);
+        }
+        // Không cho xóa creator (phần tử đầu tiên)
+        // (Nếu có UI xóa member, cần kiểm tra index > 0 mới cho xóa)
         const updateData = {
             ...formValue,
             checklistItems: formValue.checklistItems,
-            member: this.member,
+            member: this.selectedMember,
+            members: members,
             labels: [
                 ...this.card.labels,
                 ...this.newLabels.split(',').map(l => ({ title: l.trim() })).filter(l => l.title)

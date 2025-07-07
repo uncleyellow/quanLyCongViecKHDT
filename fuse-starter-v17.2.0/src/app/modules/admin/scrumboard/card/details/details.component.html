@@ -141,10 +141,21 @@
         </div>
 
         <!-- Member -->
-        <mat-form-field class="w-full">
-            <mat-label>Member (email)</mat-label>
-            <input matInput [(ngModel)]="member" name="member">
-        </mat-form-field>
+        <div class="w-full">
+            <div class="font-medium">Thành viên phụ trách</div>
+            <mat-form-field class="w-full">
+                <mat-label>Chọn thành viên</mat-label>
+                <mat-select [(ngModel)]="selectedMember" name="selectedMember">
+                    <mat-option value="">Không có</mat-option>
+                    <mat-option *ngFor="let member of members" [value]="member.id">
+                        <div class="flex items-center">
+                            <img [src]="member.avatar" [alt]="member.name" class="w-6 h-6 rounded-full mr-2">
+                            {{ member.name }}
+                        </div>
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
 
         <!-- Label: nhập mới -->
         <mat-form-field class="w-full">

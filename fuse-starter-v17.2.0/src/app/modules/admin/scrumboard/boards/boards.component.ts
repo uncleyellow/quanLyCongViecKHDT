@@ -133,16 +133,42 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
     openShareDialog(board: Board) {
         const dialogRef = this.dialog.open(ShareBoardDialogComponent, { width: '400px' });
         dialogRef.afterClosed().subscribe(result => {
-            if (result && result.email) {
-                // Gọi API để lấy memberId từ email, rồi gọi addMemberToBoard
-                this._scrumboardService.getMemberByEmail(result.email).subscribe(member => {
-                    if (member && member.id) {
-                        this._scrumboardService.addMemberToBoard(board.id, member.id).subscribe(() => {
-                            // Thông báo thành công, reload UI nếu cần
-                        });
-                    }
-                });
+            if (result) {
+                if (result.memberId) {
+                    // Nếu chọn member từ danh sách
+                    const member = this._scrumboardService.getMembers().subscribe(members => {
+                        const selectedMember = members.find(m => m.id === result.memberId);
+                        if (selectedMember) {
+                            this.addMemberToBoard(board, selectedMember);
+                        }
+                    });
+                } else if (result.email) {
+                    // Nếu nhập email
+                    this._scrumboardService.getMemberByEmail(result.email).subscribe(member => {
+                        if (member && member.id) {
+                            this.addMemberToBoard(board, member);
+                        }
+                    });
+                }
             }
+        });
+    }
+
+    private addMemberToBoard(board: Board, member: any) {
+        // Thêm member vào board (FE tự xử lý)
+        if (!board.members) {
+            board.members = [];
+        }
+        const existingMember = board.members.find(m => m.id === member.id);
+        if (!existingMember) {
+            board.members.push(member);
+            // Cập nhật UI
+            this._changeDetectorRef.markForCheck();
+        }
+        // Gọi service mock để thông báo thành công
+        this._scrumboardService.addMemberToBoard(board.id, member.id).subscribe(() => {
+            // Thông báo thành công
+            console.log('Member added to board successfully');
         });
     }
 }

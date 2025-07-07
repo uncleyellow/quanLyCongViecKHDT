@@ -120,10 +120,12 @@ export class Card implements Required<ICard>
     labels: Label[];
     dueDate: string | null;
     type: 'normal' | 'checklist';
-    checklistItems: {text: string, checked: boolean}[];
+    checklistItems: {id?: string, text: string, checked: boolean}[];
     startDate: string;
     endDate: string;
     member: string;
+    members: string[];
+
     /**
      * Constructor
      */
@@ -141,6 +143,8 @@ export class Card implements Required<ICard>
         this.checklistItems = card.checklistItems || [];
         this.startDate = card.startDate || '';
         this.endDate = card.endDate || '';
+        this.member = card.member || '';
+        this.members = card.members || [];
 
         // Labels
         if ( card.labels )

@@ -5,7 +5,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
-import { Board, Card, List } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { Board, Card, List, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
 
 @Component({
     selector       : 'scrumboard-board',
@@ -18,6 +18,7 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
 {
     board: Board;
     listTitleForm: UntypedFormGroup;
+    members: Member[] = [];
 
     // Private
     private readonly _positionStep: number = 65536;
@@ -46,6 +47,12 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
+        // Lấy danh sách members từ mock data
+        this._scrumboardService.getMembers().subscribe(members => {
+            this.members = members;
+            this._changeDetectorRef.markForCheck();
+        });
+
         // Initialize the list title form
         this.listTitleForm = this._formBuilder.group({
             title: ['']
@@ -208,14 +215,10 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
         // Move the item
         moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
 
-        // Calculate the positions
-        const updated = this._calculatePositions(event);
-
-        // Update the lists
-        updated.forEach(list => {
-            this._scrumboardService.updateList(list.id, list).subscribe(() => {
-                this.reloadBoard();
-            });
+        // Sử dụng API reorder mới thay vì update từng list
+        const listIds = event.container.data.map(list => list.id);
+        this._scrumboardService.reorderLists(this.board.id, listIds).subscribe(() => {
+            this.reloadBoard();
         });
     }
 
@@ -237,18 +240,14 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
             // Transfer the item
             transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
 
-            // Update the card's list it
+            // Update the card's list id
             event.container.data[event.currentIndex].listId = event.container.id;
         }
 
-        // Calculate the positions
-        const updated = this._calculatePositions(event);
-
-        // Update the cards
-        updated.forEach(card => {
-            this._scrumboardService.updateCard(card.id, card).subscribe(() => {
-                this.reloadBoard();
-            });
+        // Sử dụng API reorder mới thay vì update từng card
+        const cardIds = event.container.data.map(card => card.id);
+        this._scrumboardService.reorderCards(event.container.id, cardIds).subscribe(() => {
+            this.reloadBoard();
         });
     }
 
@@ -271,6 +270,26 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+    /**
+     * Get member avatar by member id
+     *
+     * @param memberId
+     */
+    getMemberAvatar(memberId: string): string {
+        const member = this.members.find(m => m.id === memberId);
+        return member ? member.avatar : 'assets/images/avatars/default.jpg';
+    }
+
+    /**
+     * Get member name by member id
+     *
+     * @param memberId
+     */
+    getMemberName(memberId: string): string {
+        const member = this.members.find(m => m.id === memberId);
+        return member ? member.name : 'Unknown';
     }
 
     // -----------------------------------------------------------------------------------------------------

@@ -30,10 +30,11 @@ export interface ICard
     labels?: ILabel[];
     dueDate?: string | null;
     type?: 'normal' | 'checklist';
-    checklistItems?: {text: string, checked: boolean}[];
+    checklistItems?: {id?: string, text: string, checked: boolean}[];
     startDate?: string;
     endDate?: string;
     member?: string;
+    members?: string[];
 }
 
 export interface IMember

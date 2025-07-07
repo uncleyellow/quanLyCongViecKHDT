@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
 import { Board, Card, Label, List, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
 import { environment } from 'app/modules/admin/scrumboard/environments/environment';
+import { users as mockUsers } from 'app/mock-api/common/user/data';
 
 @Injectable({
     providedIn: 'root'
@@ -231,25 +232,34 @@ export class ScrumboardService
     }
 
     /**
-     * Add member to board
-     *
-     * @param boardId
-     * @param memberId
+     * Lấy danh sách member (mock)
      */
-    addMemberToBoard(boardId: string, memberId: string): Observable<any>
-    {
-        return this._httpClient.post(`${environment.apiUrl}/api/boards/${boardId}/members/${memberId}`, {});
+    getMembers(): Observable<Member[]> {
+        return of(mockUsers.map(u => new Member({ id: u.id, name: u.name, avatar: u.avatar })));
     }
 
     /**
-     * Remove member from board
-     *
-     * @param boardId
-     * @param memberId
+     * Lấy member theo email (mock)
      */
-    removeMemberFromBoard(boardId: string, memberId: string): Observable<any>
-    {
-        return this._httpClient.delete(`${environment.apiUrl}/api/boards/${boardId}/members/${memberId}`);
+    getMemberByEmail(email: string): Observable<Member | undefined> {
+        const found = mockUsers.find(u => u.email === email);
+        return of(found ? new Member({ id: found.id, name: found.name, avatar: found.avatar }) : undefined);
+    }
+
+    /**
+     * Thêm member vào board (mock, chỉ trả về thành công)
+     */
+    addMemberToBoard(boardId: string, memberId: string): Observable<any> {
+        // FE tự xử lý, backend không lưu trạng thái
+        return of({ message: 'Member added to board (mock)' });
+    }
+
+    /**
+     * Xóa member khỏi board (mock, chỉ trả về thành công)
+     */
+    removeMemberFromBoard(boardId: string, memberId: string): Observable<any> {
+        // FE tự xử lý, backend không lưu trạng thái
+        return of({ message: 'Member removed from board (mock)' });
     }
 
     /**
@@ -299,7 +309,124 @@ export class ScrumboardService
         return this._httpClient.get<Card[] | null>(`${environment.apiUrl}/api/apps/scrumboard/board/search`, {params: {query}});
     }
 
-    getMemberByEmail(email: string) {
-        return this._httpClient.get<any>(`${environment.apiUrl}/api/members/by-email?email=${encodeURIComponent(email)}`);
+    /**
+     * Reorder lists
+     *
+     * @param boardId
+     * @param listIds
+     */
+    reorderLists(boardId: string, listIds: string[]): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/boards/${boardId}/lists/reorder`, {
+            list_ids: listIds
+        });
+    }
+
+    /**
+     * Reorder cards
+     *
+     * @param listId
+     * @param cardIds
+     */
+    reorderCards(listId: string, cardIds: string[]): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/lists/${listId}/cards/reorder`, {
+            card_ids: cardIds
+        });
+    }
+
+    /**
+     * Copy card
+     *
+     * @param cardId
+     * @param destListId
+     * @param destBoardId
+     */
+    copyCard(cardId: string, destListId: string, destBoardId: string): Observable<any> {
+        return this._httpClient.post(`${environment.apiUrl}/api/cards/${cardId}/copy`, {
+            list_id: destListId,
+            board_id: destBoardId
+        });
+    }
+
+    /**
+     * Move card
+     *
+     * @param cardId
+     * @param destListId
+     * @param destBoardId
+     */
+    moveCard(cardId: string, destListId: string, destBoardId: string): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/cards/${cardId}/move`, {
+            list_id: destListId,
+            board_id: destBoardId
+        });
+    }
+
+    /**
+     * Archive list
+     *
+     * @param listId
+     */
+    archiveList(listId: string): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/lists/${listId}/archive`, {});
+    }
+
+    /**
+     * Restore list
+     *
+     * @param listId
+     */
+    restoreList(listId: string): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/lists/${listId}/restore`, {});
+    }
+
+    /**
+     * Archive card
+     *
+     * @param cardId
+     */
+    archiveCard(cardId: string): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/cards/${cardId}/archive`, {});
+    }
+
+    /**
+     * Restore card
+     *
+     * @param cardId
+     */
+    restoreCard(cardId: string): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/cards/${cardId}/restore`, {});
+    }
+
+    /**
+     * Add checklist item
+     *
+     * @param cardId
+     * @param text
+     */
+    addChecklistItem(cardId: string, text: string): Observable<any> {
+        return this._httpClient.post(`${environment.apiUrl}/api/cards/${cardId}/checklist`, {
+            text: text
+        });
+    }
+
+    /**
+     * Update checklist item
+     *
+     * @param cardId
+     * @param itemId
+     * @param data
+     */
+    updateChecklistItem(cardId: string, itemId: string, data: {text?: string, checked?: boolean}): Observable<any> {
+        return this._httpClient.put(`${environment.apiUrl}/api/cards/${cardId}/checklist/${itemId}`, data);
+    }
+
+    /**
+     * Delete checklist item
+     *
+     * @param cardId
+     * @param itemId
+     */
+    deleteChecklistItem(cardId: string, itemId: string): Observable<any> {
+        return this._httpClient.delete(`${environment.apiUrl}/api/cards/${cardId}/checklist/${itemId}`);
     }
 }
