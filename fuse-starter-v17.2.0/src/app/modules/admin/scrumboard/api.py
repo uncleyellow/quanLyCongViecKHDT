@@ -125,6 +125,22 @@ def init_database():
     conn.commit()
     conn.close()
 
+def migrate_database():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Thêm trường archived cho lists nếu chưa có
+    cursor.execute("PRAGMA table_info(lists)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'archived' not in columns:
+        cursor.execute('ALTER TABLE lists ADD COLUMN archived INTEGER DEFAULT 0')
+    # Thêm trường archived cho cards nếu chưa có
+    cursor.execute("PRAGMA table_info(cards)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'archived' not in columns:
+        cursor.execute('ALTER TABLE cards ADD COLUMN archived INTEGER DEFAULT 0')
+    conn.commit()
+    conn.close()
+
 # Data models
 @dataclass
 class Board:
@@ -214,6 +230,8 @@ def get_boards():
 @app.route('/api/boards', methods=['POST'])
 def create_board():
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'Board title is required'}), 400
     board_id = generate_id()
     owner_email = data.get('owner_email')
     owner_id = None
@@ -246,23 +264,19 @@ def create_board():
 def get_board(board_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     # Get board info
     cursor.execute('SELECT * FROM boards WHERE id = ?', (board_id,))
     board = cursor.fetchone()
     if not board:
         return jsonify({'error': 'Board not found'}), 404
-    
     board_data = dict(board)
-    
-    # Get lists with cards
-    cursor.execute('SELECT * FROM lists WHERE board_id = ? ORDER BY position', (board_id,))
+    # Get lists with cards (chỉ lấy list chưa archived)
+    cursor.execute('SELECT * FROM lists WHERE board_id = ? AND (archived IS NULL OR archived = 0) ORDER BY position', (board_id,))
     lists = []
     for list_row in cursor.fetchall():
         list_data = dict(list_row)
-        
-        # Get cards for this list
-        cursor.execute('SELECT * FROM cards WHERE list_id = ? ORDER BY position', (list_data['id'],))
+        # Get cards for this list (chỉ lấy card chưa archived)
+        cursor.execute('SELECT * FROM cards WHERE list_id = ? AND (archived IS NULL OR archived = 0) ORDER BY position', (list_data['id'],))
         cards = []
         for card_row in cursor.fetchall():
             card_data = dict(card_row)
@@ -270,7 +284,6 @@ def get_board(board_id):
                 card_data['checklist_items'] = json.loads(card_data['checklist_items'])
             else:
                 card_data['checklist_items'] = []
-            
             # Get labels for this card
             cursor.execute('''
                 SELECT l.* FROM labels l
@@ -279,16 +292,12 @@ def get_board(board_id):
             ''', (card_data['id'],))
             card_data['labels'] = [dict(label) for label in cursor.fetchall()]
             cards.append(card_data)
-        
         list_data['cards'] = cards
         lists.append(list_data)
-    
     board_data['lists'] = lists
-    
     # Get board labels
     cursor.execute('SELECT * FROM labels WHERE board_id = ?', (board_id,))
     board_data['labels'] = [dict(row) for row in cursor.fetchall()]
-    
     # Get board members
     cursor.execute('''
         SELECT m.* FROM members m
@@ -296,23 +305,22 @@ def get_board(board_id):
         WHERE bm.board_id = ?
     ''', (board_id,))
     board_data['members'] = [dict(row) for row in cursor.fetchall()]
-    
     conn.close()
     return jsonify(board_data)
 
 @app.route('/api/boards/<board_id>', methods=['PUT'])
 def update_board(board_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'Board title is required'}), 400
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     cursor.execute('''
         UPDATE boards 
         SET title = ?, description = ?, icon = ?, last_activity = ?
         WHERE id = ?
     ''', (data['title'], data.get('description'), data.get('icon'),
           datetime.now().isoformat(), board_id))
-    
     conn.commit()
     conn.close()
     return jsonify({'message': 'Board updated successfully'})
@@ -330,8 +338,9 @@ def delete_board(board_id):
 @app.route('/api/boards/<board_id>/lists', methods=['POST'])
 def create_list(board_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'List title is required'}), 400
     list_id = generate_id()
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -340,29 +349,26 @@ def create_list(board_id):
     ''', (list_id, board_id, data['title'], data.get('position', 0)))
     conn.commit()
     conn.close()
-    
     update_board_activity(board_id)
     return jsonify({'id': list_id, 'message': 'List created successfully'}), 201
 
 @app.route('/api/lists/<list_id>', methods=['PUT'])
 def update_list(list_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'List title is required'}), 400
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     # Get board_id for activity update
     cursor.execute('SELECT board_id FROM lists WHERE id = ?', (list_id,))
     board_id = cursor.fetchone()[0]
-    
     cursor.execute('''
         UPDATE lists 
         SET title = ?, position = ?
         WHERE id = ?
     ''', (data['title'], data.get('position', 0), list_id))
-    
     conn.commit()
     conn.close()
-    
     update_board_activity(board_id)
     return jsonify({'message': 'List updated successfully'})
 
@@ -385,10 +391,30 @@ def delete_list(list_id):
     conn.close()
     return jsonify({'error': 'List not found'}), 404
 
+@app.route('/api/lists/<list_id>/archive', methods=['PUT'])
+def archive_list(list_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE lists SET archived = 1 WHERE id = ?', (list_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'List archived successfully'})
+
+@app.route('/api/lists/<list_id>/restore', methods=['PUT'])
+def restore_list(list_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE lists SET archived = 0 WHERE id = ?', (list_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'List restored successfully'})
+
 # Card API endpoints
 @app.route('/api/lists/<list_id>/cards', methods=['POST'])
 def create_card(list_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'Card title is required'}), 400
     card_id = generate_id()
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -428,11 +454,13 @@ def options_card(card_id):
 @app.route('/api/cards/<card_id>', methods=['PUT'])
 def update_card(card_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return make_response(jsonify({'error': 'Card title is required'}), 400)
     list_id = data.get('list_id') or data.get('listId')
-    # Thêm dòng này để kiểm tra
-    print('DEBUG list_id:', list_id)
     if not list_id:
         return make_response(jsonify({'error': 'list_id is required'}), 400)
+    # Thêm dòng này để kiểm tra
+    print('DEBUG list_id:', list_id)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT board_id FROM cards WHERE id = ?', (card_id,))
@@ -486,12 +514,94 @@ def delete_card(card_id):
     conn.close()
     return jsonify({'error': 'Card not found'}), 404
 
+@app.route('/api/cards/<card_id>/archive', methods=['PUT'])
+def archive_card(card_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE cards SET archived = 1 WHERE id = ?', (card_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Card archived successfully'})
+
+@app.route('/api/cards/<card_id>/restore', methods=['PUT'])
+def restore_card(card_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE cards SET archived = 0 WHERE id = ?', (card_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Card restored successfully'})
+
+@app.route('/api/cards/<card_id>/copy', methods=['POST'])
+def copy_card(card_id):
+    data = request.get_json()
+    dest_list_id = data.get('list_id')
+    dest_board_id = data.get('board_id')
+    if not dest_list_id or not dest_board_id:
+        return jsonify({'error': 'list_id and board_id are required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM cards WHERE id = ?', (card_id,))
+    card = cursor.fetchone()
+    if not card:
+        conn.close()
+        return jsonify({'error': 'Card not found'}), 404
+    new_card_id = generate_id()
+    cursor.execute('''
+        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date, member, created_at, archived)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        new_card_id,
+        dest_board_id,
+        dest_list_id,
+        card['title'],
+        card['description'],
+        card['position'],
+        card['due_date'],
+        card['type'],
+        card['checklist_items'],
+        card['start_date'],
+        card['end_date'],
+        card['member'],
+        datetime.now().isoformat(),
+        0
+    ))
+    # Copy labels
+    cursor.execute('SELECT label_id FROM card_labels WHERE card_id = ?', (card_id,))
+    for row in cursor.fetchall():
+        cursor.execute('INSERT INTO card_labels (card_id, label_id) VALUES (?, ?)', (new_card_id, row['label_id']))
+    conn.commit()
+    conn.close()
+    return jsonify({'id': new_card_id, 'message': 'Card copied successfully'})
+
+@app.route('/api/cards/<card_id>/move', methods=['PUT'])
+def move_card(card_id):
+    data = request.get_json()
+    dest_list_id = data.get('list_id')
+    dest_board_id = data.get('board_id')
+    if not dest_list_id or not dest_board_id:
+        return jsonify({'error': 'list_id and board_id are required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM cards WHERE id = ?', (card_id,))
+    card = cursor.fetchone()
+    if not card:
+        conn.close()
+        return jsonify({'error': 'Card not found'}), 404
+    cursor.execute('''
+        UPDATE cards SET list_id = ?, board_id = ? WHERE id = ?
+    ''', (dest_list_id, dest_board_id, card_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Card moved successfully'})
+
 # Label API endpoints
 @app.route('/api/boards/<board_id>/labels', methods=['POST'])
 def create_label(board_id):
     data = request.get_json()
+    if not data or not data.get('title'):
+        return jsonify({'error': 'Label title is required'}), 400
     label_id = generate_id()
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -500,7 +610,6 @@ def create_label(board_id):
     ''', (label_id, board_id, data['title'], data.get('color', '#808080')))
     conn.commit()
     conn.close()
-    
     update_board_activity(board_id)
     return jsonify({'id': label_id, 'message': 'Label created successfully'}), 201
 
@@ -548,8 +657,9 @@ def remove_label_from_card(card_id, label_id):
 @app.route('/api/members', methods=['POST'])
 def create_member():
     data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Member name is required'}), 400
     member_id = generate_id()
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -558,7 +668,6 @@ def create_member():
     ''', (member_id, data['name'], data.get('email'), data.get('avatar')))
     conn.commit()
     conn.close()
-    
     return jsonify({'id': member_id, 'message': 'Member created successfully'}), 201
 
 @app.route('/api/boards/<board_id>/members/<member_id>', methods=['POST'])
@@ -615,7 +724,106 @@ def get_all_members():
     conn.close()
     return jsonify(members)
 
+@app.route('/api/boards/<board_id>/lists/reorder', methods=['PUT'])
+def reorder_lists(board_id):
+    data = request.get_json()
+    list_ids = data.get('list_ids')
+    if not isinstance(list_ids, list):
+        return jsonify({'error': 'list_ids must be a list'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for position, list_id in enumerate(list_ids):
+        cursor.execute('UPDATE lists SET position = ? WHERE id = ? AND board_id = ?', (position, list_id, board_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Lists reordered successfully'})
+
+@app.route('/api/lists/<list_id>/cards/reorder', methods=['PUT'])
+def reorder_cards(list_id):
+    data = request.get_json()
+    card_ids = data.get('card_ids')
+    if not isinstance(card_ids, list):
+        return jsonify({'error': 'card_ids must be a list'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for position, card_id in enumerate(card_ids):
+        cursor.execute('UPDATE cards SET position = ?, list_id = ? WHERE id = ?', (position, list_id, card_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Cards reordered successfully'})
+
+@app.route('/api/cards/<card_id>/checklist', methods=['POST'])
+def add_checklist_item(card_id):
+    data = request.get_json()
+    text = data.get('text')
+    if not text:
+        return jsonify({'error': 'Checklist item text is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT checklist_items FROM cards WHERE id = ?', (card_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Card not found'}), 404
+    checklist_items = json.loads(row['checklist_items']) if row['checklist_items'] else []
+    item_id = generate_id()
+    checklist_items.append({'id': item_id, 'text': text, 'checked': False})
+    cursor.execute('UPDATE cards SET checklist_items = ? WHERE id = ?', (json.dumps(checklist_items), card_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'id': item_id, 'message': 'Checklist item added'})
+
+@app.route('/api/cards/<card_id>/checklist/<item_id>', methods=['PUT'])
+def update_checklist_item(card_id, item_id):
+    data = request.get_json()
+    text = data.get('text')
+    checked = data.get('checked')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT checklist_items FROM cards WHERE id = ?', (card_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Card not found'}), 404
+    checklist_items = json.loads(row['checklist_items']) if row['checklist_items'] else []
+    updated = False
+    for item in checklist_items:
+        if item['id'] == item_id:
+            if text is not None:
+                item['text'] = text
+            if checked is not None:
+                item['checked'] = checked
+            updated = True
+            break
+    if not updated:
+        conn.close()
+        return jsonify({'error': 'Checklist item not found'}), 404
+    cursor.execute('UPDATE cards SET checklist_items = ? WHERE id = ?', (json.dumps(checklist_items), card_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Checklist item updated'})
+
+@app.route('/api/cards/<card_id>/checklist/<item_id>', methods=['DELETE'])
+def delete_checklist_item(card_id, item_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT checklist_items FROM cards WHERE id = ?', (card_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Card not found'}), 404
+    checklist_items = json.loads(row['checklist_items']) if row['checklist_items'] else []
+    new_items = [item for item in checklist_items if item['id'] != item_id]
+    if len(new_items) == len(checklist_items):
+        conn.close()
+        return jsonify({'error': 'Checklist item not found'}), 404
+    cursor.execute('UPDATE cards SET checklist_items = ? WHERE id = ?', (json.dumps(new_items), card_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Checklist item deleted'})
+
 # Initialize database and run app
 if __name__ == '__main__':
+    migrate_database()
     init_database()
     app.run(debug=True, host='0.0.0.0', port=5000)
