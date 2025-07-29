@@ -99,7 +99,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             labels     : [[]],
             dueDate    : [null],
             checklistItems: this._formBuilder.array([]),
-            list_id: this.card.listId
+            list_id: this.card.listId,
+            // selectedMember: [this.selectedMember || '']
         });
 
         // Fill the form
@@ -110,7 +111,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             labels     : this.card.labels,
             dueDate    : this.card.dueDate,
             checklistItems: [],
-            list_id: this.card.listId
+            list_id: this.card.listId,
+            // selectedMember: [this.selectedMember || '']
         });
 
         // Update card when there is a value change on the card form
@@ -349,15 +351,19 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         }
         // Không cho xóa creator (phần tử đầu tiên)
         // (Nếu có UI xóa member, cần kiểm tra index > 0 mới cho xóa)
+
+        // Lấy danh sách label id hiện tại
+        const labelIds = this.card.labels.map(l => l.id);
+
+        // Nếu có nhãn mới, tạo nhãn mới trước (nếu có API)
+        // Ở đây chỉ lấy id các nhãn đã có, nhãn mới sẽ được tạo ở chỗ khác
+
         const updateData = {
             ...formValue,
-            checklistItems: formValue.checklistItems,
-            member: this.selectedMember,
+            checklist_items: formValue.checklistItems,
+            // member: this.selectedMember,
             members: members,
-            labels: [
-                ...this.card.labels,
-                ...this.newLabels.split(',').map(l => ({ title: l.trim() })).filter(l => l.title)
-            ],
+            labels: labelIds, // <-- truyền mảng id nhãn
             list_id: this.card.listId
         };
         this._scrumboardService.updateCard(this.card.id, updateData).subscribe();

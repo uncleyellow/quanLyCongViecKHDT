@@ -125,6 +125,7 @@ export class Card implements Required<ICard>
     endDate: string;
     member: string;
     members: string[];
+    selectedMember:string[];
 
     /**
      * Constructor

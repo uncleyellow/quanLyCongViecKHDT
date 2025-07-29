@@ -486,6 +486,14 @@ def update_card(card_id):
         data.get('member'),
         card_id
     ))
+    # --- XỬ LÝ LABELS ---
+    labels = data.get('labels')
+    if labels is not None:
+        # Xóa hết nhãn cũ
+        cursor.execute('DELETE FROM card_labels WHERE card_id = ?', (card_id,))
+        # Thêm lại nhãn mới
+        for label_id in labels:
+            cursor.execute('INSERT INTO card_labels (card_id, label_id) VALUES (?, ?)', (card_id, label_id))
     conn.commit()
     conn.close()
     update_board_activity(board_id)

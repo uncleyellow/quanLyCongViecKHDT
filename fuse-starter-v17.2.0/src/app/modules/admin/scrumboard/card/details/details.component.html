@@ -140,27 +140,10 @@
             </div>
         </div>
 
-        <!-- Member -->
-        <div class="w-full">
-            <div class="font-medium">Thành viên phụ trách</div>
-            <mat-form-field class="w-full">
-                <mat-label>Chọn thành viên</mat-label>
-                <mat-select [(ngModel)]="selectedMember" name="selectedMember">
-                    <mat-option value="">Không có</mat-option>
-                    <mat-option *ngFor="let member of members" [value]="member.id">
-                        <div class="flex items-center">
-                            <img [src]="member.avatar" [alt]="member.name" class="w-6 h-6 rounded-full mr-2">
-                            {{ member.name }}
-                        </div>
-                    </mat-option>
-                </mat-select>
-            </mat-form-field>
-        </div>
-
         <!-- Label: nhập mới -->
         <mat-form-field class="w-full">
             <mat-label>Thêm nhãn mới (phân cách bằng dấu phẩy)</mat-label>
-            <input matInput [(ngModel)]="newLabels" name="newLabels">
+            <input matInput [(ngModel)]="newLabels" name="newLabels" [ngModelOptions]="{standalone: true}">
         </mat-form-field>
 
         <div class="flex gap-2 justify-end mt-4">
@@ -169,4 +152,18 @@
         </div>
 
     </form>
+</div>
+
+<!-- Member ngoài form -->
+<div class="w-full mt-4">
+    <div class="font-medium">Thành viên phụ trách</div>
+    <mat-select [(ngModel)]="selectedMember" name="selectedMember" [ngModelOptions]="{standalone: true}">
+        <mat-option value="">Không có</mat-option>
+        <mat-option *ngFor="let member of members" [value]="member.id">
+            <div class="flex items-center">
+                <img [src]="member.avatar" [alt]="member.name" class="w-6 h-6 rounded-full mr-2">
+                {{ member.name }}
+            </div>
+        </mat-option>
+    </mat-select>
 </div>
