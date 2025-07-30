@@ -32,6 +32,13 @@ export const compactNavigation: FuseNavigationItem[] = [
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
     },
+    {
+        id   : 'apps.files-manager',
+        title: 'Dữ liệu',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/files-manager'
+    },
 ];
 export const futuristicNavigation: FuseNavigationItem[] = [
     {
@@ -48,6 +55,13 @@ export const futuristicNavigation: FuseNavigationItem[] = [
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
     },
+    {
+        id   : 'apps.files-manager',
+        title: 'Dữ liệu',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/files-manager'
+    },
 ];
 export const horizontalNavigation: FuseNavigationItem[] = [
     {
@@ -63,5 +77,12 @@ export const horizontalNavigation: FuseNavigationItem[] = [
         type : 'basic',
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
+    },
+    {
+        id   : 'apps.files-manager',
+        title: 'Dữ liệu',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/files-manager'
     },
 ];

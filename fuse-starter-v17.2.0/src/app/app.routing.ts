@@ -76,7 +76,7 @@ export const appRoutes: Route[] = [
             
             
             {path: 'scrumboard', loadChildren: () => import('app/modules/admin/scrumboard/scrumboard.module').then(m => m.ScrumboardModule)},
-          
+            {path: 'files-manager', loadChildren: () => import('app/modules/admin/file-manager/file-manager.module').then(m => m.FileManagerModule)},
         ]
     }
 ];
