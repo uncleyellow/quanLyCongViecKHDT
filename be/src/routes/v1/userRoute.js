@@ -1,29 +1,39 @@
 import express from 'express'
 import { StatusCodes } from 'http-status-codes'
-// import { postValidation } from '.src/validations/postValidation'
 import { userController } from '../../controllers/userController'
-import { verifyToken } from '~/middlewares'
+import { verifyToken } from '../../middlewares'
 
 const Router = express.Router()
 
-// Router.route('/')
-//   .get((req, res) => {
-//     res.status(StatusCodes.OK).json({ message: 'Note: API get list post' })
-//   })
-// // .post(postValidation.createNew, postController.createNew)
-
-// Router.route('/:id')
-//   .get(postController.getDetails)
-//   .put((req, res) => {
-//     res.status(StatusCodes.OK).json({ message: 'Note: API update post' })
-//   })
-//   .delete((req, res) => {
-//     res.status(StatusCodes.OK).json({ message: 'Note: API delete post' })
-//   })
-
-// register route
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 Router.route('/me')
   .get(verifyToken, userController.getMe)
-
 
 export const userRoute = Router

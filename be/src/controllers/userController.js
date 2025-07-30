@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '~/services/userService'
+import { userService } from '../services/userService'
 
 const getMe = async (req, res, next) => {
   try {

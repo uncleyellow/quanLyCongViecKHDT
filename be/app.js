@@ -5,7 +5,7 @@ import { env } from './src/config/environment'
 import { APIs_V1 } from './src/routes/v1'
 import { errorHandlingMiddleware } from './src/middlewares/errorHandlingMiddleware'
 import { corsOptions } from './src/config/cors'
-import { swaggerUi, specs } from './src/config/swagger'
+import { swaggerUi, specs, swaggerOptions, customSwaggerHtml } from './src/config/swagger'
 
 const START_SERVER = () => {
   const app = express()
@@ -15,11 +15,17 @@ const START_SERVER = () => {
   // Enable req.body json data
   app.use(express.json())
 
-  // Swagger Documentation
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs))
+  // Swagger Documentation - Sử dụng CDN
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions))
+  
+  // Backup route với HTML tùy chỉnh nếu route trên không hoạt động
+  app.get('/api-docs-custom', (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(customSwaggerHtml(specs));
+  });
 
   // Use APIs V1
-  app.use('/v1', APIs_V1)
+  app.use('/api/v1', APIs_V1)
 
   // Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
