@@ -1,0 +1,366 @@
+<div class="flex flex-col flex-auto min-w-0">
+
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 border-b bg-white dark:bg-gray-800 space-y-4 lg:space-y-0">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Lịch sự kiện</h1>
+            <p class="text-gray-600 dark:text-gray-400">Quản lý thời gian công việc và cuộc họp</p>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-3">
+            <!-- View Mode Toggle -->
+            <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button 
+                    (click)="viewMode = 'month'"
+                    [class]="viewMode === 'month' ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'"
+                    class="px-3 py-1 rounded-md text-sm font-medium transition-colors">
+                    Tháng
+                </button>
+                <button 
+                    (click)="viewMode = 'week'"
+                    [class]="viewMode === 'week' ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'"
+                    class="px-3 py-1 rounded-md text-sm font-medium transition-colors">
+                    Tuần
+                </button>
+                <button 
+                    (click)="viewMode = 'day'"
+                    [class]="viewMode === 'day' ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'"
+                    class="px-3 py-1 rounded-md text-sm font-medium transition-colors">
+                    Ngày
+                </button>
+            </div>
+
+            <!-- Filter Toggle -->
+            <button
+                mat-stroked-button
+                (click)="showFilterPanel = !showFilterPanel"
+                class="flex items-center space-x-2">
+                <mat-icon>filter_list</mat-icon>
+                <span>Bộ lọc</span>
+            </button>
+
+            <!-- Add Event Button -->
+            <button
+                mat-raised-button
+                color="primary"
+                (click)="addEvent()"
+                class="flex items-center space-x-2">
+                <mat-icon>add</mat-icon>
+                <span>Thêm sự kiện</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div *ngIf="showFilterPanel" class="p-6 bg-gray-50 dark:bg-gray-900 border-b">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Date Range -->
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Từ ngày</mat-label>
+                <input matInput [matDatepicker]="startPicker" [(ngModel)]="filter.startDate" (dateChange)="applyFilters()">
+                <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                <mat-datepicker #startPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Đến ngày</mat-label>
+                <input matInput [matDatepicker]="endPicker" [(ngModel)]="filter.endDate" (dateChange)="applyFilters()">
+                <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                <mat-datepicker #endPicker></mat-datepicker>
+            </mat-form-field>
+
+            <!-- Event Type -->
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Loại sự kiện</mat-label>
+                <mat-select [(ngModel)]="filter.eventType" (selectionChange)="applyFilters()">
+                    <mat-option value="">Tất cả</mat-option>
+                    <mat-option *ngFor="let type of eventTypes" [value]="type.value">
+                        {{type.label}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <!-- Search -->
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Tìm kiếm</mat-label>
+                <input matInput [(ngModel)]="filter.searchText" (input)="applyFilters()" placeholder="Tên, mô tả, địa điểm...">
+                <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <!-- Related to Me -->
+            <div class="flex items-center">
+                <mat-checkbox [(ngModel)]="filter.relatedToMe" (change)="applyFilters()">
+                    Liên quan tới tôi
+                </mat-checkbox>
+            </div>
+
+            <!-- Participants -->
+            <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Người tham gia</mat-label>
+                <mat-select [(ngModel)]="filter.participants" multiple (selectionChange)="applyFilters()">
+                    <mat-option *ngFor="let participant of availableParticipants" [value]="participant.id">
+                        {{participant.name}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <!-- Reset Filters -->
+            <div class="flex items-center">
+                <button mat-button (click)="resetFilters()" class="text-gray-600 dark:text-gray-400">
+                    <mat-icon>refresh</mat-icon>
+                    Đặt lại
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Navigation -->
+    <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b">
+        <div class="flex items-center space-x-4">
+            <button mat-icon-button (click)="previousPeriod()">
+                <mat-icon>chevron_left</mat-icon>
+            </button>
+            
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{currentDate | date:'MMMM yyyy':'':'vi-VN'}}
+            </h2>
+            
+            <button mat-icon-button (click)="nextPeriod()">
+                <mat-icon>chevron_right</mat-icon>
+            </button>
+        </div>
+
+        <button mat-stroked-button (click)="goToToday()">
+            Hôm nay
+        </button>
+    </div>
+
+    <!-- Calendar Content -->
+    <div class="flex-auto p-6" #calendarContainer>
+        
+        <!-- Month View -->
+        <div *ngIf="viewMode === 'month'" class="h-full">
+            <!-- Week Days Header -->
+            <div class="grid grid-cols-7 gap-1 mb-2">
+                <div *ngFor="let day of ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']" 
+                     class="p-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{day}}
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="grid grid-cols-7 gap-1">
+                <div *ngFor="let date of getMonthDays()" 
+                     class="min-h-32 border border-gray-200 dark:border-gray-700 p-2 relative"
+                     [class]="isToday(date) ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+                     [class]="!isCurrentMonth(date) ? 'bg-gray-50 dark:bg-gray-800 text-gray-400' : 'bg-white dark:bg-gray-900'">
+                    
+                    <!-- Date Number -->
+                    <div class="text-sm font-medium mb-1"
+                         [class]="isToday(date) ? 'text-blue-600 dark:text-blue-400' : ''">
+                        {{date.getDate()}}
+                    </div>
+
+                    <!-- Events for this date -->
+                    <div class="space-y-1">
+                        <div *ngFor="let event of getEventsForDate(date)" 
+                             class="text-xs p-1 rounded cursor-pointer truncate"
+                             [style.background-color]="event.color + '20'"
+                             [style.border-left]="'3px solid ' + event.color"
+                             (click)="editEvent(event)"
+                             [matTooltip]="event.title + ' - ' + formatEventTime(event.start, event.end)">
+                            <div class="font-medium truncate">{{event.title}}</div>
+                            <div class="text-gray-600 dark:text-gray-400 truncate">
+                                {{formatEventTime(event.start, event.end)}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Week View -->
+        <div *ngIf="viewMode === 'week'" class="h-full">
+            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                <mat-icon class="text-4xl mb-4">schedule</mat-icon>
+                <p>Chế độ xem tuần đang được phát triển</p>
+            </div>
+        </div>
+
+        <!-- Day View -->
+        <div *ngIf="viewMode === 'day'" class="h-full">
+            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                <mat-icon class="text-4xl mb-4">today</mat-icon>
+                <p>Chế độ xem ngày đang được phát triển</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Event List Sidebar -->
+    <div class="w-80 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="font-semibold text-gray-900 dark:text-white">Sự kiện hôm nay</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{getEventsForDate(today).length}} sự kiện</p>
+        </div>
+        
+        <div class="p-4 space-y-3 max-h-96 overflow-y-auto">
+            <div *ngFor="let event of getEventsForDate(today)" 
+                 class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                 (click)="editEvent(event)">
+                
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <mat-icon [style.color]="event.color" class="text-sm">
+                                {{getEventTypeIcon(event.type)}}
+                            </mat-icon>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {{event.title}}
+                            </span>
+                        </div>
+                        
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            {{formatEventTime(event.start, event.end)}}
+                        </p>
+                        
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            {{event.location}}
+                        </p>
+                        
+                        <div class="flex items-center space-x-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Tham gia:</span>
+                            <div class="flex -space-x-1">
+                                <img *ngFor="let participant of event.participants.slice(0, 3)" 
+                                     [src]="participant.avatar || 'assets/images/avatars/default.jpg'" 
+                                     [alt]="participant.name"
+                                     class="w-5 h-5 rounded-full border border-white dark:border-gray-800">
+                                <div *ngIf="event.participants.length > 3" 
+                                     class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400 border border-white dark:border-gray-800">
+                                    +{{event.participants.length - 3}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button mat-icon-button (click)="deleteEvent(event); $event.stopPropagation()" 
+                            class="text-red-500 hover:text-red-700">
+                        <mat-icon class="text-sm">delete</mat-icon>
+                    </button>
+                </div>
+            </div>
+            
+            <div *ngIf="getEventsForDate(today).length === 0" 
+                 class="text-center text-gray-500 dark:text-gray-400 py-8">
+                <mat-icon class="text-4xl mb-2">event_busy</mat-icon>
+                <p class="text-sm">Không có sự kiện nào hôm nay</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Event Dialog -->
+    <div *ngIf="showAddEventDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    {{selectedEvent ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới'}}
+                </h2>
+                
+                <form (ngSubmit)="saveEvent()" #eventForm="ngForm" class="space-y-4">
+                    <!-- Title -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Tiêu đề sự kiện</mat-label>
+                        <input matInput name="title" [(ngModel)]="eventForm.title" required>
+                    </mat-form-field>
+
+                    <!-- Event Type -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Loại sự kiện</mat-label>
+                        <mat-select name="type" [(ngModel)]="eventForm.type" required>
+                            <mat-option *ngFor="let type of eventTypes" [value]="type.value">
+                                <div class="flex items-center space-x-2">
+                                    <mat-icon [style.color]="type.color">{{type.icon}}</mat-icon>
+                                    <span>{{type.label}}</span>
+                                </div>
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Date and Time -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Ngày bắt đầu</mat-label>
+                            <input matInput type="datetime-local" name="start" [(ngModel)]="eventForm.start" required>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="w-full">
+                            <mat-label>Ngày kết thúc</mat-label>
+                            <input matInput type="datetime-local" name="end" [(ngModel)]="eventForm.end" required>
+                        </mat-form-field>
+                    </div>
+
+                    <!-- Location -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Địa điểm</mat-label>
+                        <input matInput name="location" [(ngModel)]="eventForm.location" placeholder="Phòng họp, Online, v.v.">
+                    </mat-form-field>
+
+                    <!-- Description -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Mô tả</mat-label>
+                        <textarea matInput name="description" [(ngModel)]="eventForm.description" rows="3"></textarea>
+                    </mat-form-field>
+
+                    <!-- Participants -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Người tham gia</mat-label>
+                        <mat-select name="participants" [(ngModel)]="eventForm.participants" multiple>
+                            <mat-option *ngFor="let participant of availableParticipants" [value]="participant">
+                                <div class="flex items-center space-x-2">
+                                    <img [src]="participant.avatar || 'assets/images/avatars/default.jpg'" 
+                                         [alt]="participant.name" 
+                                         class="w-6 h-6 rounded-full">
+                                    <span>{{participant.name}}</span>
+                                </div>
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Related to Me -->
+                    <div class="flex items-center">
+                        <mat-checkbox name="relatedToMe" [(ngModel)]="eventForm.relatedToMe">
+                            Liên quan tới tôi
+                        </mat-checkbox>
+                    </div>
+
+                    <!-- All Day -->
+                    <div class="flex items-center">
+                        <mat-checkbox name="allDay" [(ngModel)]="eventForm.allDay">
+                            Cả ngày
+                        </mat-checkbox>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button 
+                            type="button"
+                            mat-button 
+                            (click)="showAddEventDialog = false"
+                            class="text-gray-600 dark:text-gray-400">
+                            Hủy
+                        </button>
+                        <button 
+                            type="submit"
+                            mat-raised-button
+                            color="primary"
+                            [disabled]="!eventForm.valid">
+                            {{selectedEvent ? 'Cập nhật' : 'Thêm'}}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>

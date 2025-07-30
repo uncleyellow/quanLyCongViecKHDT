@@ -16,6 +16,20 @@ export const defaultNavigation: FuseNavigationItem[] = [
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
     },
+    {
+        id   : 'apps.files-manager',
+        title: 'Dữ liệu',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/files-manager'
+    },
+    {
+        id   : 'apps.calender-events',
+        title: 'Lịch quản lý công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/calender-events'
+    },
 ];
 export const compactNavigation: FuseNavigationItem[] = [
     {
@@ -38,6 +52,20 @@ export const compactNavigation: FuseNavigationItem[] = [
         type : 'basic',
         icon : 'heroicons_outline:view-boards',
         link : '/files-manager'
+    },
+    {
+        id   : 'apps.calender-events',
+        title: 'Lịch quản lý công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/calender-events'
+    },
+    {
+        id   : 'apps.admin',
+        title: 'Quản trị Web',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/admin-config'
     },
 ];
 export const futuristicNavigation: FuseNavigationItem[] = [
@@ -62,6 +90,20 @@ export const futuristicNavigation: FuseNavigationItem[] = [
         icon : 'heroicons_outline:view-boards',
         link : '/files-manager'
     },
+    {
+        id   : 'apps.calender-events',
+        title: 'Lịch quản lý công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/calender-events'
+    },
+    {
+        id   : 'apps.admin',
+        title: 'Quản trị Web',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/admin-config'
+    },
 ];
 export const horizontalNavigation: FuseNavigationItem[] = [
     {
@@ -84,5 +126,19 @@ export const horizontalNavigation: FuseNavigationItem[] = [
         type : 'basic',
         icon : 'heroicons_outline:view-boards',
         link : '/files-manager'
+    },
+    {
+        id   : 'apps.calender-events',
+        title: 'Lịch quản lý công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/calender-events'
+    },
+    {
+        id   : 'apps.admin',
+        title: 'Quản trị Web',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/admin-config'
     },
 ];
