@@ -17,6 +17,13 @@ export const defaultNavigation: FuseNavigationItem[] = [
         link : '/scrumboard'
     },
     {
+        id   : 'apps.tasks',
+        title: 'Công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/tasks'
+    },
+    {
         id   : 'apps.files-manager',
         title: 'Dữ liệu',
         type : 'basic',
@@ -45,6 +52,13 @@ export const compactNavigation: FuseNavigationItem[] = [
         type : 'basic',
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
+    },
+    {
+        id   : 'apps.tasks',
+        title: 'Công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/tasks'
     },
     {
         id   : 'apps.files-manager',
@@ -84,6 +98,13 @@ export const futuristicNavigation: FuseNavigationItem[] = [
         link : '/scrumboard'
     },
     {
+        id   : 'apps.tasks',
+        title: 'Công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/tasks'
+    },
+    {
         id   : 'apps.files-manager',
         title: 'Dữ liệu',
         type : 'basic',
@@ -119,6 +140,13 @@ export const horizontalNavigation: FuseNavigationItem[] = [
         type : 'basic',
         icon : 'heroicons_outline:view-boards',
         link : '/scrumboard'
+    },
+    {
+        id   : 'apps.tasks',
+        title: 'Công việc',
+        type : 'basic',
+        icon : 'heroicons_outline:view-boards',
+        link : '/tasks'
     },
     {
         id   : 'apps.files-manager',
