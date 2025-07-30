@@ -1,6 +1,9 @@
 @echo off
 echo Building and Deploying Fuse Angular to GitHub Pages...
 
+REM Set npm registry to official npm
+npm config set registry https://registry.npmjs.org/
+
 REM Check if node is installed
 node --version >nul 2>&1
 if errorlevel 1 (
@@ -31,14 +34,14 @@ if not exist "node_modules" (
 )
 
 REM Check if angular-cli-ghpages is installed, install if missing
-if not exist "node_modules\@angular-schule\angular-cli-ghpages" (
+if not exist "node_modules\angular-cli-ghpages" (
     echo Installing angular-cli-ghpages...
-    npm install --save-dev @angular-schule/angular-cli-ghpages
+    npm install --save-dev angular-cli-ghpages
 )
 
 REM Build the project for production
 echo Building for production...
-npx ng build --configuration production --base-href https://uncleyellow.github.io/quanLyCongViecKHDT/
+npx ng build --configuration production --base-href /quanLyCongViecKHDT/
 
 if errorlevel 1 (
     echo Build failed!
