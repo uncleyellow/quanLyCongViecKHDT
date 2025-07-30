@@ -13,7 +13,8 @@ const USER_TABLE_SCHEMA = Joi.object({
   updated_at: Joi.date().allow(null).default(Date.now),
   deleted_at: Joi.date().allow(null).default(null),
   status: Joi.string().valid('online', 'banned', 'disabled').default('online'),
-  avatar: Joi.string().max(255).allow(null).default(null)
+  avatar: Joi.string().max(255).allow(null).default(null),
+  must_change_password: Joi.boolean().default(true)
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'created_at']
@@ -107,8 +108,8 @@ const getUsersByType = async (type) => {
 
 const deleteUser = async (userId) => {
   try {
-    const query = `UPDATE ${USER_TABLE_NAME} SET deleted_at = ? WHERE id = ?`
-    const result = await db.query(query, [Date.now(), userId])
+    const query = `UPDATE ${USER_TABLE_NAME} SET deleted_at = NOW() WHERE id = ?`
+    const result = await db.query(query, [userId])
     return result
   } catch (error) {
     throw new Error(error)
@@ -122,10 +123,19 @@ const update = async (userId, updateData) => {
         delete updateData[key]
       }
     })
-    updateData.updated_at = Date.now()
-    const query = `UPDATE ${USER_TABLE_NAME} SET ${Object.keys(updateData).map(key => `${key} = ?`).join(', ')} WHERE id = ?`
+    const query = `UPDATE ${USER_TABLE_NAME} SET ${Object.keys(updateData).map(key => `${key} = ?`).join(', ')}, updated_at = NOW() WHERE id = ?`
     const result = await db.query(query, [...Object.values(updateData), userId])
 
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const changePassword = async (userId, newPasswordHash) => {
+  try {
+    const query = `UPDATE ${USER_TABLE_NAME} SET password_hash = ?, must_change_password = FALSE, updated_at = NOW() WHERE id = ?`
+    const result = await db.query(query, [newPasswordHash, userId])
     return result
   } catch (error) {
     throw new Error(error)
@@ -143,5 +153,6 @@ export const userModel = {
   getAllUsers,
   getUsersByType,
   update,
-  deleteUser
+  deleteUser,
+  changePassword
 }
