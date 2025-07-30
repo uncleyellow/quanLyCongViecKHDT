@@ -3,18 +3,18 @@
         <div class="w-full max-w-80 sm:w-80 mx-auto sm:mx-0">
             <!-- Logo -->
             <div class="w-12">
-                <img src="assets/images/logo/logo.svg">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYC9fqA7hP74G40PQnZpFrdUud06f_Xe2-rA&s">
             </div>
 
             <!-- Title -->
-            <div class="mt-8 text-4xl font-extrabold tracking-tight leading-tight">Sign in</div>
-            <div class="flex items-baseline mt-0.5 font-medium">
-                <div>Don't have an account?</div>
+            <div class="mt-8 text-4xl font-extrabold tracking-tight leading-tight">Đăng nhập</div>
+            <!-- <div class="flex items-baseline mt-0.5 font-medium">
+                <div>Chưa có tài khoản?</div>
                 <a
                     class="ml-1 text-primary-500 hover:underline"
-                    [routerLink]="['/sign-up']">Sign up
+                    [routerLink]="['/sign-up']">Đăng ký
                 </a>
-            </div>
+            </div> -->
 
             <!-- Alert -->
             <fuse-alert
@@ -22,7 +22,7 @@
                 [appearance]="'outline'"
                 [showIcon]="false"
                 [type]="'info'">
-                You are browsing <strong>Fuse Demo</strong>. Click on the "Sign in" button to access the Demo and Documentation.
+                Chào mừng đến với <strong>Hệ thống Quản lý Công việc Ratraco</strong>. Đây là phần mềm quản lý công việc đa cấp (Công ty - Phòng ban - Cá nhân) của công ty Ratraco. Nhấn "Đăng nhập" để truy cập hệ thống.
             </fuse-alert>
 
             <!-- Alert -->
@@ -44,22 +44,22 @@
 
                 <!-- Email field -->
                 <mat-form-field class="w-full">
-                    <mat-label>Email address</mat-label>
+                    <mat-label>Địa chỉ email</mat-label>
                     <input
                         id="email"
                         matInput
                         [formControlName]="'email'">
                     <mat-error *ngIf="signInForm.get('email').hasError('required')">
-                        Email address is required
+                        Email là bắt buộc
                     </mat-error>
                     <mat-error *ngIf="signInForm.get('email').hasError('email')">
-                        Please enter a valid email address
+                        Vui lòng nhập địa chỉ email hợp lệ
                     </mat-error>
                 </mat-form-field>
 
                 <!-- Password field -->
                 <mat-form-field class="w-full">
-                    <mat-label>Password</mat-label>
+                    <mat-label>Mật khẩu</mat-label>
                     <input
                         id="password"
                         matInput
@@ -81,7 +81,7 @@
                             [svgIcon]="'heroicons_solid:eye-off'"></mat-icon>
                     </button>
                     <mat-error>
-                        Password is required
+                        Mật khẩu là bắt buộc
                     </mat-error>
                 </mat-form-field>
 
@@ -91,11 +91,11 @@
                         class="-ml-2"
                         [color]="'primary'"
                         [formControlName]="'rememberMe'">
-                        Remember me
+                        Ghi nhớ đăng nhập
                     </mat-checkbox>
                     <a
                         class="text-md font-medium text-primary-500 hover:underline"
-                        [routerLink]="['/forgot-password']">Forgot password?
+                        [routerLink]="['/forgot-password']">Quên mật khẩu?
                     </a>
                 </div>
 
@@ -107,7 +107,7 @@
                     [disabled]="signInForm.disabled"
                     (click)="signIn()">
                     <span *ngIf="!signInForm.disabled">
-                        Sign in
+                        Đăng nhập
                     </span>
                     <mat-progress-spinner
                         *ngIf="signInForm.disabled"
@@ -116,14 +116,14 @@
                 </button>
 
                 <!-- Separator -->
-                <div class="flex items-center mt-8">
+                <!-- <div class="flex items-center mt-8">
                     <div class="flex-auto mt-px border-t"></div>
-                    <div class="mx-2 text-secondary">Or continue with</div>
+                    <div class="mx-2 text-secondary">Hoặc đăng nhập với</div>
                     <div class="flex-auto mt-px border-t"></div>
-                </div>
+                </div> -->
 
                 <!-- Single sign-on buttons -->
-                <div class="flex items-center mt-8 space-x-4">
+                <!-- <div class="flex items-center mt-8 space-x-4">
                     <button
                         class="flex-auto"
                         type="button"
@@ -148,7 +148,7 @@
                             class="icon-size-5"
                             [svgIcon]="'feather:github'"></mat-icon>
                     </button>
-                </div>
+                </div> -->
             </form>
         </div>
     </div>
@@ -176,12 +176,12 @@
         <!-- Content -->
         <div class="z-10 relative w-full max-w-2xl">
             <div class="text-7xl font-bold leading-none text-gray-100">
-                <div>Welcome to</div>
-                <div>our community</div>
+                <div>Chào mừng đến với</div>
+                <div>Hệ thống Quản lý Công việc</div>
             </div>
             <div class="mt-6 text-lg tracking-tight leading-6 text-gray-400">
-                Fuse helps developers to build organized and well coded dashboards full of beautiful and rich modules.
-                Join us and start building your application today.
+                Hệ thống Quản lý Công việc Ratraco giúp quản lý công việc đa cấp từ Công ty đến Phòng ban và Cá nhân. 
+                Theo dõi tiến độ, phân công nhiệm vụ và tối ưu hóa quy trình làm việc của tổ chức.
             </div>
             <div class="flex items-center mt-8">
                 <div class="flex flex-0 items-center -space-x-1.5">
@@ -198,7 +198,7 @@
                         class="flex-0 w-10 h-10 rounded-full ring-4 ring-offset-1 ring-gray-800 ring-offset-gray-800 object-cover"
                         src="assets/images/avatars/male-16.jpg">
                 </div>
-                <div class="ml-4 font-medium tracking-tight text-gray-400">More than 17k people joined us, it's your turn</div>
+                <div class="ml-4 font-medium tracking-tight text-gray-400">Hơn 500+ nhân viên Ratraco đang sử dụng hệ thống này</div>
             </div>
         </div>
     </div>
