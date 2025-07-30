@@ -1,34 +1,600 @@
 <div class="flex flex-col flex-auto min-w-0">
 
-    <!-- Main -->
-    <div class="flex-auto p-6 sm:p-10">
+    <!-- Header with Add Widget Button and Filters -->
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 border-b bg-white dark:bg-gray-800 space-y-4 lg:space-y-0">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p class="text-gray-600 dark:text-gray-400">Quản lý công việc Ratraco</p>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="flex flex-wrap items-center space-x-4">
+            <!-- Quick Filters -->
+            <mat-form-field appearance="outline" class="w-48">
+                <mat-label>Loại công việc</mat-label>
+                <mat-select [(ngModel)]="selectedTaskType" (selectionChange)="applyFilters()">
+                    <mat-option value="">Tất cả</mat-option>
+                    <mat-option value="development">Phát triển</mat-option>
+                    <mat-option value="testing">Kiểm thử</mat-option>
+                    <mat-option value="design">Thiết kế</mat-option>
+                    <mat-option value="documentation">Tài liệu</mat-option>
+                </mat-select>
+            </mat-form-field>
 
-        <!-- CONTENT GOES HERE -->
-        <div class="h-400 min-h-400 max-h-400 border-2 border-dashed border-gray-300 rounded-2xl">
+            <mat-form-field appearance="outline" class="w-48">
+                <mat-label>Tác giả</mat-label>
+                <mat-select [(ngModel)]="selectedAuthor" (selectionChange)="applyFilters()">
+                    <mat-option value="">Tất cả</mat-option>
+                    <mat-option *ngFor="let member of teamMembers" [value]="member.id">
+                        {{member.name}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
 
-            <div class="flex flex-col flex-auto min-w-0">
-                <div class="flex-auto p-6 sm:p-10">
-                    <div *ngIf="loading" class="text-center py-10">
-                        <mat-spinner></mat-spinner>
+            <mat-form-field appearance="outline" class="w-48">
+                <mat-label>Trạng thái</mat-label>
+                <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
+                    <mat-option value="">Tất cả</mat-option>
+                    <mat-option value="todo">Chờ xử lý</mat-option>
+                    <mat-option value="in_progress">Đang thực hiện</mat-option>
+                    <mat-option value="completed">Hoàn thành</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <!-- Advanced Filter Button -->
+            <button
+                mat-stroked-button
+                (click)="openAdvancedFilters()"
+                class="flex items-center space-x-2">
+                <mat-icon>filter_list</mat-icon>
+                <span>Bộ lọc nâng cao</span>
+            </button>
+
+            <!-- Add Widget Button -->
+            <button
+                mat-raised-button
+                color="primary"
+                (click)="openWidgetSelector()"
+                class="flex items-center space-x-2">
+                <mat-icon>add</mat-icon>
+                <span>Thêm Widget</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Widget Grid Container -->
+    <div class="flex-auto p-6">
+        <div 
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            cdkDropList
+            (cdkDropListDropped)="onDrop($event)">
+            
+            <!-- Gantt Chart Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'gantt', type: 'gantt' }"
+                [style.grid-column]="widgetSizes.gantt.cols"
+                [style.grid-row]="widgetSizes.gantt.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-blue-500">timeline</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Biểu đồ Gantt</h3>
                     </div>
-                    <div *ngIf="error" class="text-red-600 py-4">{{ error }}</div>
-                    <div *ngIf="!loading && !error">
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('gantt')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('gantt')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('gantt')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('gantt')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div *ngIf="loading" class="flex items-center justify-center h-64">
+                        <mat-spinner diameter="40"></mat-spinner>
+                    </div>
+                    
+                    <div *ngIf="!loading && tasks.length > 0" class="h-64">
                         <apx-chart
                             [series]="chartOptions.series"
                             [chart]="chartOptions.chart"
+                            [plotOptions]="chartOptions.plotOptions"
                             [xaxis]="chartOptions.xaxis"
                             [yaxis]="chartOptions.yaxis"
                             [dataLabels]="chartOptions.dataLabels"
-                            [plotOptions]="chartOptions.plotOptions"
                             [tooltip]="chartOptions.tooltip"
-                            [title]="chartOptions.title"
-                            style="width: 100%;"
-                        ></apx-chart>
+                            [title]="chartOptions.title">
+                        </apx-chart>
+                    </div>
+
+                    <div *ngIf="!loading && tasks.length === 0" class="flex items-center justify-center h-64 text-gray-500">
+                        <div class="text-center">
+                            <mat-icon class="text-4xl mb-2">timeline</mat-icon>
+                            <p>Không có dữ liệu Gantt</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
+            <!-- Task Status Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'status', type: 'status' }"
+                [style.grid-column]="widgetSizes.status.cols"
+                [style.grid-row]="widgetSizes.status.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-green-500">pie_chart</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Trạng thái công việc</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('status')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('status')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('status')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('status')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="h-64">
+                        <apx-chart
+                            [series]="statusChartOptions.series"
+                            [chart]="statusChartOptions.chart"
+                            [labels]="statusChartOptions.labels"
+                            [colors]="statusChartOptions.colors"
+                            [responsive]="statusChartOptions.responsive">
+                        </apx-chart>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activities Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'activities', type: 'activities' }"
+                [style.grid-column]="widgetSizes.activities.cols"
+                [style.grid-row]="widgetSizes.activities.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-purple-500">activity</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Hoạt động gần đây</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('activities')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('activities')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('activities')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('activities')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="space-y-3 max-h-64 overflow-y-auto">
+                        <div *ngFor="let activity of recentActivities" class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                    <mat-icon class="text-blue-600 dark:text-blue-400 text-sm">update</mat-icon>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{activity.title}}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{activity.time}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Progress Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'progress', type: 'progress' }"
+                [style.grid-column]="widgetSizes.progress.cols"
+                [style.grid-row]="widgetSizes.progress.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-orange-500">trending_up</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Tiến độ công việc</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('progress')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('progress')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('progress')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('progress')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Hoàn thành</span>
+                            <span class="text-sm font-bold text-green-600">{{progressData.completed}}%</span>
+                        </div>
+                        <mat-progress-bar 
+                            mode="determinate" 
+                            [value]="progressData.completed"
+                            color="primary"
+                            class="h-2">
+                        </mat-progress-bar>
+                        
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{progressData.total}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Tổng công việc</div>
+                            </div>
+                            <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{progressData.completedCount}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Đã hoàn thành</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Members Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'members', type: 'members' }"
+                [style.grid-column]="widgetSizes.members.cols"
+                [style.grid-row]="widgetSizes.members.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-indigo-500">people</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Thành viên dự án</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('members')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('members')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('members')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('members')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="space-y-3 max-h-64 overflow-y-auto">
+                        <div *ngFor="let member of projectMembers" class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex-shrink-0">
+                                <img [src]="member.avatar" [alt]="member.name" class="w-10 h-10 rounded-full object-cover">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{member.name}}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{member.role}} • {{member.tasksCount}} công việc</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <div class="w-3 h-3 rounded-full" 
+                                     [ngClass]="{
+                                         'bg-green-500': member.status === 'online',
+                                         'bg-gray-400': member.status === 'offline',
+                                         'bg-yellow-500': member.status === 'away'
+                                     }">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Type Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'chart', type: 'chart' }"
+                [style.grid-column]="widgetSizes.chart.cols"
+                [style.grid-row]="widgetSizes.chart.rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-red-500">bar_chart</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">{{selectedChartType}} Chart</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('chart')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('chart')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('chart')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('chart')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="h-64">
+                        <apx-chart
+                            [series]="dynamicChartOptions.series"
+                            [chart]="dynamicChartOptions.chart"
+                            [xaxis]="dynamicChartOptions.xaxis"
+                            [yaxis]="dynamicChartOptions.yaxis"
+                            [plotOptions]="dynamicChartOptions.plotOptions"
+                            [dataLabels]="dynamicChartOptions.dataLabels"
+                            [colors]="dynamicChartOptions.colors">
+                        </apx-chart>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Widget Selector Dialog -->
+    <div *ngIf="showWidgetSelector" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Thêm Widget</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div 
+                        *ngFor="let widget of availableWidgets" 
+                        class="flex flex-col p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        (click)="addWidget(widget)">
+                        <div class="flex items-center mb-3">
+                            <mat-icon class="text-gray-500 mr-3">{{widget.icon}}</mat-icon>
+                            <h3 class="font-medium text-gray-900 dark:text-white">{{widget.title}}</h3>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{widget.description}}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Kích thước: {{widget.defaultSize}}</span>
+                            <mat-icon class="text-gray-400">add</mat-icon>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button 
+                        mat-button 
+                        (click)="closeWidgetSelector()"
+                        class="text-gray-600 dark:text-gray-400">
+                        Hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Filters Dialog -->
+    <div *ngIf="showAdvancedFilters" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Bộ lọc nâng cao</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Date Range -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Khoảng thời gian</mat-label>
+                        <mat-select [(ngModel)]="dateRange">
+                            <mat-option value="today">Hôm nay</mat-option>
+                            <mat-option value="week">Tuần này</mat-option>
+                            <mat-option value="month">Tháng này</mat-option>
+                            <mat-option value="quarter">Quý này</mat-option>
+                            <mat-option value="year">Năm nay</mat-option>
+                            <mat-option value="custom">Tùy chỉnh</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Priority -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Mức độ ưu tiên</mat-label>
+                        <mat-select [(ngModel)]="selectedPriority">
+                            <mat-option value="">Tất cả</mat-option>
+                            <mat-option value="high">Cao</mat-option>
+                            <mat-option value="medium">Trung bình</mat-option>
+                            <mat-option value="low">Thấp</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Completion Rate -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Tỷ lệ hoàn thành</mat-label>
+                        <mat-select [(ngModel)]="completionRate">
+                            <mat-option value="">Tất cả</mat-option>
+                            <mat-option value="0-25">0-25%</mat-option>
+                            <mat-option value="25-50">25-50%</mat-option>
+                            <mat-option value="50-75">50-75%</mat-option>
+                            <mat-option value="75-100">75-100%</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Department -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Phòng ban</mat-label>
+                        <mat-select [(ngModel)]="selectedDepartment">
+                            <mat-option value="">Tất cả</mat-option>
+                            <mat-option value="development">Phát triển</mat-option>
+                            <mat-option value="testing">Kiểm thử</mat-option>
+                            <mat-option value="design">Thiết kế</mat-option>
+                            <mat-option value="marketing">Marketing</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Tags -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Tags</mat-label>
+                        <mat-select [(ngModel)]="selectedTags" multiple>
+                            <mat-option value="urgent">Khẩn cấp</mat-option>
+                            <mat-option value="bug">Bug</mat-option>
+                            <mat-option value="feature">Tính năng mới</mat-option>
+                            <mat-option value="improvement">Cải tiến</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Workload -->
+                    <mat-form-field appearance="outline">
+                        <mat-label>Khối lượng công việc</mat-label>
+                        <mat-select [(ngModel)]="workload">
+                            <mat-option value="">Tất cả</mat-option>
+                            <mat-option value="light">Nhẹ (1-3h)</mat-option>
+                            <mat-option value="medium">Trung bình (4-8h)</mat-option>
+                            <mat-option value="heavy">Nặng (8h+)</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button 
+                        mat-button 
+                        (click)="resetAdvancedFilters()"
+                        class="text-gray-600 dark:text-gray-400">
+                        Đặt lại
+                    </button>
+                    <button 
+                        mat-raised-button
+                        color="primary"
+                        (click)="applyAdvancedFilters()">
+                        Áp dụng
+                    </button>
+                    <button 
+                        mat-button 
+                        (click)="closeAdvancedFilters()"
+                        class="text-gray-600 dark:text-gray-400">
+                        Hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget Configuration Dialog -->
+    <div *ngIf="showWidgetConfig" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Cấu hình Widget</h2>
+                
+                <div class="space-y-4">
+                    <!-- Chart Type Selection -->
+                    <div *ngIf="configuringWidget?.type === 'chart'">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại biểu đồ</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button 
+                                *ngFor="let chartType of chartTypes"
+                                (click)="selectChartType(chartType.value)"
+                                [class]="selectedChartType === chartType.value ? 
+                                    'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                                class="p-3 rounded-lg text-sm font-medium">
+                                {{chartType.label}}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Widget Size -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kích thước widget</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button 
+                                *ngFor="let size of widgetSizeOptions"
+                                (click)="selectWidgetSize(size.value)"
+                                [class]="selectedWidgetSize === size.value ? 
+                                    'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                                class="p-2 rounded text-xs">
+                                {{size.label}}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data Source -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Nguồn dữ liệu</mat-label>
+                        <mat-select [(ngModel)]="selectedDataSource">
+                            <mat-option value="all">Tất cả dự án</mat-option>
+                            <mat-option value="current">Dự án hiện tại</mat-option>
+                            <mat-option value="assigned">Công việc được giao</mat-option>
+                            <mat-option value="created">Công việc đã tạo</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <!-- Refresh Interval -->
+                    <mat-form-field appearance="outline" class="w-full">
+                        <mat-label>Tự động cập nhật</mat-label>
+                        <mat-select [(ngModel)]="refreshInterval">
+                            <mat-option value="0">Không tự động</mat-option>
+                            <mat-option value="30">30 giây</mat-option>
+                            <mat-option value="60">1 phút</mat-option>
+                            <mat-option value="300">5 phút</mat-option>
+                            <mat-option value="900">15 phút</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button 
+                        mat-button 
+                        (click)="closeWidgetConfig()"
+                        class="text-gray-600 dark:text-gray-400">
+                        Hủy
+                    </button>
+                    <button 
+                        mat-raised-button
+                        color="primary"
+                        (click)="saveWidgetConfig()">
+                        Lưu
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

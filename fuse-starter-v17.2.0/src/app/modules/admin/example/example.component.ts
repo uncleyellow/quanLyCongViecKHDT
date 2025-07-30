@@ -1,6 +1,7 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { GanttService, GanttTask } from './gantt.service';
 import { Subject, takeUntil } from 'rxjs';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
     ApexAxisChartSeries,
     ApexChart,
@@ -9,7 +10,9 @@ import {
     ApexTitleSubtitle,
     ApexPlotOptions,
     ApexTooltip,
-    ApexYAxis
+    ApexYAxis,
+    ApexNonAxisChartSeries,
+    ApexResponsive
 } from 'ng-apexcharts';
 
 export type ChartOptions = {
@@ -21,7 +24,75 @@ export type ChartOptions = {
     plotOptions: ApexPlotOptions;
     tooltip: ApexTooltip;
     title: ApexTitleSubtitle;
+    colors?: string[];
 };
+
+export type PieChartOptions = {
+    series: ApexNonAxisChartSeries;
+    chart: ApexChart;
+    labels: string[];
+    colors: string[];
+    responsive: ApexResponsive[];
+};
+
+export interface Widget {
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    icon: string;
+    defaultSize: string;
+    config?: any;
+}
+
+export interface RecentActivity {
+    id: string;
+    title: string;
+    time: string;
+    type: string;
+}
+
+export interface ProgressData {
+    total: number;
+    completed: number;
+    completedCount: number;
+    inProgress: number;
+    pending: number;
+}
+
+export interface TeamMember {
+    id: string;
+    name: string;
+    avatar: string;
+    role: string;
+    status: 'online' | 'offline' | 'away';
+    tasksCount: number;
+}
+
+export interface ProjectMember {
+    id: string;
+    name: string;
+    avatar: string;
+    role: string;
+    status: 'online' | 'offline' | 'away';
+    tasksCount: number;
+}
+
+export interface WidgetSize {
+    cols: string;
+    rows: string;
+}
+
+export interface ChartType {
+    value: string;
+    label: string;
+}
+
+export interface WidgetSizeOption {
+    value: string;
+    label: string;
+}
+
 @Component({
     selector     : 'example',
     templateUrl  : './example.component.html',
@@ -31,8 +102,126 @@ export class ExampleComponent implements OnInit, OnDestroy
 {
     @Input() boardId: string = '';
     @ViewChild('ganttContainer', { static: true }) ganttContainer!: ElementRef;
+    
+    // Chart options
     chartOptions: Partial<ChartOptions> = {};
+    statusChartOptions: Partial<PieChartOptions> = {};
+    dynamicChartOptions: Partial<ChartOptions> = {};
+    
+    // Data
     tasks: GanttTask[] = [];
+    recentActivities: RecentActivity[] = [];
+    progressData: ProgressData = {
+        total: 0,
+        completed: 0,
+        completedCount: 0,
+        inProgress: 0,
+        pending: 0
+    };
+    teamMembers: TeamMember[] = [];
+    projectMembers: ProjectMember[] = [];
+    
+    // Filter properties
+    selectedTaskType: string = '';
+    selectedAuthor: string = '';
+    selectedStatus: string = '';
+    dateRange: string = '';
+    selectedPriority: string = '';
+    completionRate: string = '';
+    selectedDepartment: string = '';
+    selectedTags: string[] = [];
+    workload: string = '';
+    
+    // Widget management
+    showWidgetSelector = false;
+    showAdvancedFilters = false;
+    showWidgetConfig = false;
+    configuringWidget: Widget | null = null;
+    selectedChartType: string = 'bar';
+    selectedWidgetSize: string = '1x1';
+    selectedDataSource: string = 'all';
+    refreshInterval: string = '0';
+    
+    // Widget sizes
+    widgetSizes: { [key: string]: WidgetSize } = {
+        gantt: { cols: 'span 2', rows: 'span 2' },
+        status: { cols: 'span 1', rows: 'span 1' },
+        activities: { cols: 'span 1', rows: 'span 2' },
+        progress: { cols: 'span 1', rows: 'span 1' },
+        members: { cols: 'span 1', rows: 'span 2' },
+        chart: { cols: 'span 2', rows: 'span 1' }
+    };
+    
+    availableWidgets: Widget[] = [
+        {
+            id: 'gantt',
+            type: 'gantt',
+            title: 'Biểu đồ Gantt',
+            description: 'Hiển thị tiến độ công việc theo thời gian',
+            icon: 'timeline',
+            defaultSize: '2x2'
+        },
+        {
+            id: 'status',
+            type: 'status',
+            title: 'Trạng thái công việc',
+            description: 'Biểu đồ tròn hiển thị phân bố trạng thái',
+            icon: 'pie_chart',
+            defaultSize: '1x1'
+        },
+        {
+            id: 'activities',
+            type: 'activities',
+            title: 'Hoạt động gần đây',
+            description: 'Danh sách các hoạt động mới nhất',
+            icon: 'activity',
+            defaultSize: '1x2'
+        },
+        {
+            id: 'progress',
+            type: 'progress',
+            title: 'Tiến độ công việc',
+            description: 'Thanh tiến độ và thống kê tổng quan',
+            icon: 'trending_up',
+            defaultSize: '1x1'
+        },
+        {
+            id: 'members',
+            type: 'members',
+            title: 'Thành viên dự án',
+            description: 'Danh sách thành viên và trạng thái hoạt động',
+            icon: 'people',
+            defaultSize: '1x2'
+        },
+        {
+            id: 'chart',
+            type: 'chart',
+            title: 'Biểu đồ động',
+            description: 'Biểu đồ có thể thay đổi loại (cột, đường, radar...)',
+            icon: 'bar_chart',
+            defaultSize: '2x1'
+        }
+    ];
+    
+    chartTypes: ChartType[] = [
+        { value: 'bar', label: 'Biểu đồ cột' },
+        { value: 'line', label: 'Biểu đồ đường' },
+        { value: 'pie', label: 'Biểu đồ tròn' },
+        { value: 'radar', label: 'Biểu đồ radar' },
+        { value: 'area', label: 'Biểu đồ vùng' },
+        { value: 'column', label: 'Biểu đồ cột dọc' }
+    ];
+    
+    widgetSizeOptions: WidgetSizeOption[] = [
+        { value: '1x1', label: 'Nhỏ' },
+        { value: '1x2', label: 'Cao' },
+        { value: '2x1', label: 'Rộng' },
+        { value: '2x2', label: 'Lớn' },
+        { value: '2x3', label: 'Rất cao' },
+        { value: '3x2', label: 'Rất rộng' }
+    ];
+    
+    // UI state
     loading = false;
     error = '';
     private _unsubscribeAll = new Subject<void>();
@@ -58,6 +247,9 @@ export class ExampleComponent implements OnInit, OnDestroy
         if (this.boardId) {
             this.loadGanttData();
         }
+        this.initializeWidgets();
+        this.loadMockData();
+        this.prepareDynamicChartData();
     }
 
     ngOnDestroy(): void {
@@ -65,6 +257,164 @@ export class ExampleComponent implements OnInit, OnDestroy
         this._unsubscribeAll.complete();
     }
 
+    // Filter Methods
+    applyFilters(): void {
+        console.log('Applying filters:', {
+            taskType: this.selectedTaskType,
+            author: this.selectedAuthor,
+            status: this.selectedStatus
+        });
+        this.refreshAllWidgets();
+    }
+
+    openAdvancedFilters(): void {
+        this.showAdvancedFilters = true;
+    }
+
+    closeAdvancedFilters(): void {
+        this.showAdvancedFilters = false;
+    }
+
+    applyAdvancedFilters(): void {
+        console.log('Applying advanced filters:', {
+            dateRange: this.dateRange,
+            priority: this.selectedPriority,
+            completionRate: this.completionRate,
+            department: this.selectedDepartment,
+            tags: this.selectedTags,
+            workload: this.workload
+        });
+        this.refreshAllWidgets();
+        this.closeAdvancedFilters();
+    }
+
+    resetAdvancedFilters(): void {
+        this.dateRange = '';
+        this.selectedPriority = '';
+        this.completionRate = '';
+        this.selectedDepartment = '';
+        this.selectedTags = [];
+        this.workload = '';
+    }
+
+    // Widget Management Methods
+    openWidgetSelector(): void {
+        this.showWidgetSelector = true;
+    }
+
+    closeWidgetSelector(): void {
+        this.showWidgetSelector = false;
+    }
+
+    addWidget(widget: Widget): void {
+        console.log('Adding widget:', widget);
+        this.closeWidgetSelector();
+        // Here you would typically save to backend
+        // For now, just log the action
+    }
+
+    removeWidget(widgetId: string): void {
+        console.log('Removing widget:', widgetId);
+        // Here you would typically remove from backend
+    }
+
+    refreshWidget(widgetId: string): void {
+        console.log('Refreshing widget:', widgetId);
+        switch (widgetId) {
+            case 'gantt':
+                this.loadGanttData();
+                break;
+            case 'status':
+                this.prepareStatusChartData();
+                break;
+            case 'activities':
+                this.loadRecentActivities();
+                break;
+            case 'progress':
+                this.loadProgressData();
+                break;
+            case 'members':
+                this.loadProjectMembers();
+                break;
+            case 'chart':
+                this.prepareDynamicChartData();
+                break;
+        }
+    }
+
+    refreshAllWidgets(): void {
+        this.refreshWidget('gantt');
+        this.refreshWidget('status');
+        this.refreshWidget('activities');
+        this.refreshWidget('progress');
+        this.refreshWidget('members');
+        this.refreshWidget('chart');
+    }
+
+    configureWidget(widgetId: string): void {
+        console.log('Configuring widget:', widgetId);
+        this.configuringWidget = this.availableWidgets.find(w => w.id === widgetId) || null;
+        this.showWidgetConfig = true;
+    }
+
+    closeWidgetConfig(): void {
+        this.showWidgetConfig = false;
+        this.configuringWidget = null;
+    }
+
+    selectChartType(chartType: string): void {
+        this.selectedChartType = chartType;
+        this.prepareDynamicChartData();
+    }
+
+    selectWidgetSize(size: string): void {
+        this.selectedWidgetSize = size;
+        // Update widget size based on selection
+        const [cols, rows] = size.split('x');
+        if (this.configuringWidget) {
+            this.widgetSizes[this.configuringWidget.id] = {
+                cols: `span ${cols}`,
+                rows: `span ${rows}`
+            };
+        }
+    }
+
+    saveWidgetConfig(): void {
+        console.log('Saving widget config:', {
+            widget: this.configuringWidget,
+            chartType: this.selectedChartType,
+            size: this.selectedWidgetSize,
+            dataSource: this.selectedDataSource,
+            refreshInterval: this.refreshInterval
+        });
+        this.closeWidgetConfig();
+    }
+
+    resizeWidget(widgetId: string): void {
+        console.log('Resizing widget:', widgetId);
+        // Cycle through size options
+        const currentSize = this.widgetSizes[widgetId];
+        const sizeOptions = ['1x1', '1x2', '2x1', '2x2'];
+        const currentIndex = sizeOptions.findIndex(size => {
+            const [cols, rows] = size.split('x');
+            return currentSize.cols === `span ${cols}` && currentSize.rows === `span ${rows}`;
+        });
+        const nextIndex = (currentIndex + 1) % sizeOptions.length;
+        const nextSize = sizeOptions[nextIndex];
+        const [cols, rows] = nextSize.split('x');
+        this.widgetSizes[widgetId] = {
+            cols: `span ${cols}`,
+            rows: `span ${rows}`
+        };
+    }
+
+    onDrop(event: CdkDragDrop<string[]>): void {
+        console.log('Widget dropped:', event);
+        // Handle widget reordering
+        // moveItemInArray(this.widgets, event.previousIndex, event.currentIndex);
+    }
+
+    // Data Loading Methods
     loadGanttData(): void {
         this.loading = true;
         this.error = '';
@@ -86,6 +436,138 @@ export class ExampleComponent implements OnInit, OnDestroy
                     console.error('Gantt data error:', err);
                 }
             });
+    }
+
+    loadMockData(): void {
+        this.loadRecentActivities();
+        this.loadProgressData();
+        this.loadTeamMembers();
+        this.loadProjectMembers();
+        this.prepareStatusChartData();
+    }
+
+    loadTeamMembers(): void {
+        this.teamMembers = [
+            { id: '1', name: 'Nguyễn Văn A', avatar: 'assets/images/avatars/male-01.jpg', role: 'Developer', status: 'online', tasksCount: 5 },
+            { id: '2', name: 'Trần Thị B', avatar: 'assets/images/avatars/female-01.jpg', role: 'Designer', status: 'online', tasksCount: 3 },
+            { id: '3', name: 'Giang IT', avatar: 'assets/images/avatars/male-03.jpg', role: 'Tester', status: 'away', tasksCount: 7 },
+            { id: '4', name: 'Huyen', avatar: 'assets/images/avatars/female-01.jpg', role: 'Manager', status: 'offline', tasksCount: 2 }
+        ];
+    }
+
+    loadProjectMembers(): void {
+        this.projectMembers = [
+            { id: '1', name: 'Nguyễn Văn A', avatar: 'assets/images/avatars/male-01.jpg', role: 'Frontend Dev', status: 'online', tasksCount: 8 },
+            { id: '2', name: 'Trần Thị B', avatar: 'assets/images/avatars/female-01.jpg', role: 'UI/UX Designer', status: 'online', tasksCount: 4 },
+            { id: '3', name: 'Giang IT', avatar: 'assets/images/avatars/male-03.jpg', role: 'Backend Dev', status: 'away', tasksCount: 12 },
+            { id: '4', name: 'Huyen', avatar: 'assets/images/avatars/female-01.jpg', role: 'Project Manager', status: 'offline', tasksCount: 3 },
+            { id: '5', name: 'Tuan Anh', avatar: 'assets/images/avatars/male-02.jpg', role: 'QA Engineer', status: 'online', tasksCount: 6 }
+        ];
+    }
+
+    loadRecentActivities(): void {
+        this.recentActivities = [
+            {
+                id: '1',
+                title: 'Công việc "Phát triển tính năng mới" đã được hoàn thành',
+                time: '2 phút trước',
+                type: 'completed'
+            },
+            {
+                id: '2',
+                title: 'Nguyễn Văn A đã bắt đầu công việc "Kiểm thử hệ thống"',
+                time: '15 phút trước',
+                type: 'started'
+            },
+            {
+                id: '3',
+                title: 'Trần Thị B đã thêm bình luận vào công việc "Thiết kế UI"',
+                time: '1 giờ trước',
+                type: 'commented'
+            },
+            {
+                id: '4',
+                title: 'Công việc "Tối ưu hiệu suất" đã được giao cho Giang IT',
+                time: '2 giờ trước',
+                type: 'assigned'
+            }
+        ];
+    }
+
+    loadProgressData(): void {
+        this.progressData = {
+            total: 25,
+            completed: 68,
+            completedCount: 17,
+            inProgress: 5,
+            pending: 3
+        };
+    }
+
+    initializeWidgets(): void {
+        // Initialize widget configurations
+        // This would typically load from backend
+    }
+
+    // Chart Preparation Methods
+    prepareStatusChartData(): void {
+        this.statusChartOptions = {
+            series: [44, 55, 13, 43],
+            chart: {
+                type: 'pie',
+                height: 250
+            },
+            labels: ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý', 'Tạm dừng'],
+            colors: ['#4caf50', '#2196f3', '#ff9800', '#f44336'],
+            responsive: [
+                {
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            width: 200
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            ]
+        };
+    }
+
+    prepareDynamicChartData(): void {
+        const data = [30, 40, 35, 50, 49, 60, 70, 91, 125];
+        const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+
+        this.dynamicChartOptions = {
+            series: [
+                {
+                    name: 'Công việc',
+                    data: data
+                }
+            ],
+            chart: {
+                type: this.selectedChartType as any,
+                height: 250
+            },
+            xaxis: {
+                categories: categories
+            },
+            yaxis: {
+                title: {
+                    text: 'Số lượng'
+                }
+            },
+            colors: ['#2196f3'],
+            dataLabels: {
+                enabled: false
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false
+                }
+            }
+        };
     }
 
     calculateTimeline(): void {
