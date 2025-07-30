@@ -21,6 +21,24 @@ def init_database():
     
     # Create tables with proper foreign key constraints
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS companies (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS departments (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            company_id TEXT,
+            description TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
+        )
+    ''')
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS boards (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
@@ -29,8 +47,12 @@ def init_database():
             last_activity TEXT,
             owner_id TEXT,
             is_public INTEGER DEFAULT 0,
+            company_id TEXT,
+            department_id TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (owner_id) REFERENCES members(id) ON DELETE SET NULL
+            FOREIGN KEY (owner_id) REFERENCES members(id) ON DELETE SET NULL,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
         )
     ''')
     
@@ -40,7 +62,11 @@ def init_database():
             name TEXT NOT NULL,
             email TEXT,
             avatar TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            company_id TEXT,
+            department_id TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
         )
     ''')
     
@@ -48,6 +74,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS board_members (
             board_id TEXT,
             member_id TEXT,
+            role TEXT DEFAULT 'member',
             joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (board_id, member_id),
             FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
@@ -90,6 +117,8 @@ def init_database():
             checklist_items TEXT,
             start_date TEXT,
             end_date TEXT,
+            dependencies TEXT,
+            status TEXT DEFAULT 'todo',
             member TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
@@ -122,6 +151,83 @@ def init_database():
             VALUES (?, ?, ?, ?, ?, 1)
         ''', (board_id, 'Daily Tasks', 'Công việc hàng ngày cho mọi người', 'heroicons_outline:calendar', datetime.now().isoformat()))
     
+    # Thêm 3 tài khoản mẫu: công ty, phòng ban, cá nhân
+    cursor.execute('SELECT id FROM members WHERE email = ?', ('company@example.com',))
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO members (id, name, email, avatar)
+            VALUES (?, ?, ?, ?)
+        ''', (str(uuid.uuid4()), 'Công ty ABC', 'company@example.com', 'assets/images/avatars/company.png'))
+    cursor.execute('SELECT id FROM members WHERE email = ?', ('department@example.com',))
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO members (id, name, email, avatar)
+            VALUES (?, ?, ?, ?)
+        ''', (str(uuid.uuid4()), 'Phòng Kỹ thuật', 'department@example.com', 'assets/images/avatars/department.png'))
+    cursor.execute('SELECT id FROM members WHERE email = ?', ('user@example.com',))
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO members (id, name, email, avatar)
+            VALUES (?, ?, ?, ?)
+        ''', (str(uuid.uuid4()), 'Nguyễn Văn A', 'user@example.com', 'assets/images/avatars/male-01.jpg'))
+    
+    # Tạo công ty và phòng ban mẫu nếu chưa có
+    cursor.execute('SELECT id FROM companies WHERE name = ?', ('Công ty ABC',))
+    company = cursor.fetchone()
+    if not company:
+        company_id = str(uuid.uuid4())
+        cursor.execute('''
+            INSERT INTO companies (id, name, description)
+            VALUES (?, ?, ?)
+        ''', (company_id, 'Công ty ABC', 'Công ty mẫu cho hệ thống'))
+    else:
+        company_id = company['id']
+    cursor.execute('SELECT id FROM departments WHERE name = ?', ('Phòng Kỹ thuật',))
+    department = cursor.fetchone()
+    if not department:
+        department_id = str(uuid.uuid4())
+        cursor.execute('''
+            INSERT INTO departments (id, name, company_id, description)
+            VALUES (?, ?, ?, ?)
+        ''', (department_id, 'Phòng Kỹ thuật', company_id, 'Phòng ban mẫu cho hệ thống'))
+    else:
+        department_id = department['id']
+    # Gán các tài khoản mẫu vào công ty/phòng ban mẫu
+    cursor.execute('UPDATE members SET company_id = ?, department_id = ? WHERE email = ?', (company_id, None, 'company@example.com'))
+    cursor.execute('UPDATE members SET company_id = ?, department_id = ? WHERE email = ?', (company_id, department_id, 'department@example.com'))
+    cursor.execute('UPDATE members SET company_id = ?, department_id = ? WHERE email = ?', (company_id, department_id, 'user@example.com'))
+    
+    # Thêm bảng daily_tasks
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_tasks (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            frequency TEXT DEFAULT 'daily',
+            start_date TEXT,
+            end_date TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES members(id) ON DELETE CASCADE
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_task_instances (
+            id TEXT PRIMARY KEY,
+            daily_task_id TEXT NOT NULL,
+            task_date TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            started_at TEXT,
+            completed_at TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (daily_task_id) REFERENCES daily_tasks(id) ON DELETE CASCADE
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -138,6 +244,82 @@ def migrate_database():
     columns = [row[1] for row in cursor.fetchall()]
     if 'archived' not in columns:
         cursor.execute('ALTER TABLE cards ADD COLUMN archived INTEGER DEFAULT 0')
+    if 'dependencies' not in columns:
+        cursor.execute('ALTER TABLE cards ADD COLUMN dependencies TEXT')
+    # Thêm trường company_id, department_id cho boards nếu chưa có
+    cursor.execute("PRAGMA table_info(boards)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'company_id' not in columns:
+        cursor.execute('ALTER TABLE boards ADD COLUMN company_id TEXT')
+    if 'department_id' not in columns:
+        cursor.execute('ALTER TABLE boards ADD COLUMN department_id TEXT')
+    # Thêm trường company_id, department_id cho members nếu chưa có
+    cursor.execute("PRAGMA table_info(members)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'company_id' not in columns:
+        cursor.execute('ALTER TABLE members ADD COLUMN company_id TEXT')
+    if 'department_id' not in columns:
+        cursor.execute('ALTER TABLE members ADD COLUMN department_id TEXT')
+    # Thêm trường role cho board_members nếu chưa có
+    cursor.execute("PRAGMA table_info(board_members)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'role' not in columns:
+        cursor.execute('ALTER TABLE board_members ADD COLUMN role TEXT DEFAULT "member"')
+    # Thêm trường status cho cards nếu chưa có
+    cursor.execute("PRAGMA table_info(cards)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'status' not in columns:
+        cursor.execute('ALTER TABLE cards ADD COLUMN status TEXT DEFAULT "todo"')
+    
+    # Thêm bảng widgets nếu chưa có
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='widgets'")
+    if not cursor.fetchone():
+        cursor.execute('''
+            CREATE TABLE widgets (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                config TEXT,
+                position INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES members(id) ON DELETE CASCADE
+            )
+        ''')
+    
+    # Thêm bảng daily_tasks sau bảng widgets
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_tasks (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            frequency TEXT DEFAULT 'daily',
+            start_date TEXT,
+            end_date TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES members(id) ON DELETE CASCADE
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_task_instances (
+            id TEXT PRIMARY KEY,
+            daily_task_id TEXT NOT NULL,
+            task_date TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            started_at TEXT,
+            completed_at TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (daily_task_id) REFERENCES daily_tasks(id) ON DELETE CASCADE
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -260,6 +442,112 @@ def create_board():
     conn.close()
     return jsonify({'id': board_id, 'message': 'Board created successfully'}), 201
 
+# Thêm decorator kiểm tra quyền quản lý board
+def require_board_admin(func):
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        board_id = kwargs.get('board_id')
+        user_email = request.args.get('user_email')
+        if not user_email or not board_id:
+            return jsonify({'error': 'Missing user_email or board_id'}), 403
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT bm.role, b.owner_id, m.id as member_id
+            FROM board_members bm
+            JOIN members m ON bm.member_id = m.id
+            JOIN boards b ON bm.board_id = b.id
+            WHERE bm.board_id = ? AND m.email = ?
+        ''', (board_id, user_email))
+        result = cursor.fetchone()
+        conn.close()
+        if not result or (result['role'] != 'admin' and result['owner_id'] != result['member_id']):
+            return jsonify({'error': 'Permission denied. Admin access required.'}), 403
+        return func(*args, **kwargs)
+    return wrapper
+
+# Thêm decorator kiểm tra quyền member board
+def require_board_member(func):
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        board_id = kwargs.get('board_id')
+        user_email = request.args.get('user_email')
+        if not user_email or not board_id:
+            return jsonify({'error': 'Missing user_email or board_id'}), 403
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT bm.role, b.owner_id, m.id as member_id
+            FROM board_members bm
+            JOIN members m ON bm.member_id = m.id
+            JOIN boards b ON bm.board_id = b.id
+            WHERE bm.board_id = ? AND m.email = ?
+        ''', (board_id, user_email))
+        result = cursor.fetchone()
+        conn.close()
+        if not result:
+            return jsonify({'error': 'Permission denied. Board member access required.'}), 403
+        return func(*args, **kwargs)
+    return wrapper
+
+# API thêm member vào board với role
+@app.route('/api/boards/<board_id>/members/<member_id>', methods=['POST'])
+@require_board_admin
+def add_member_to_board(board_id, member_id):
+    data = request.get_json()
+    role = data.get('role', 'member') if data else 'member'
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO board_members (board_id, member_id, role)
+            VALUES (?, ?, ?)
+        ''', (board_id, member_id, role))
+        conn.commit()
+        conn.close()
+        
+        update_board_activity(board_id)
+        return jsonify({'message': 'Member added to board successfully'})
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({'error': 'Member already exists on board'}), 400
+
+# API cập nhật role của member trong board
+@app.route('/api/boards/<board_id>/members/<member_id>/role', methods=['PUT'])
+@require_board_admin
+def update_member_role(board_id, member_id):
+    data = request.get_json()
+    role = data.get('role')
+    if not role:
+        return jsonify({'error': 'Role is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE board_members SET role = ? WHERE board_id = ? AND member_id = ?
+    ''', (role, board_id, member_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Member role updated successfully'})
+
+# API lấy danh sách member của board với role
+@app.route('/api/boards/<board_id>/members', methods=['GET'])
+@require_board_member
+def get_board_members(board_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT m.*, bm.role, bm.joined_at
+        FROM members m
+        JOIN board_members bm ON m.id = bm.member_id
+        WHERE bm.board_id = ?
+    ''', (board_id,))
+    members = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(members)
+
 @app.route('/api/boards/<board_id>', methods=['GET'])
 def get_board(board_id):
     conn = get_db_connection()
@@ -298,9 +586,9 @@ def get_board(board_id):
     # Get board labels
     cursor.execute('SELECT * FROM labels WHERE board_id = ?', (board_id,))
     board_data['labels'] = [dict(row) for row in cursor.fetchall()]
-    # Get board members
+    # Get board members with role
     cursor.execute('''
-        SELECT m.* FROM members m
+        SELECT m.*, bm.role, bm.joined_at FROM members m
         JOIN board_members bm ON m.id = bm.member_id
         WHERE bm.board_id = ?
     ''', (board_id,))
@@ -422,8 +710,8 @@ def create_card(list_id):
     cursor.execute('SELECT board_id FROM lists WHERE id = ?', (list_id,))
     board_id = cursor.fetchone()[0]
     cursor.execute('''
-        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date, member)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cards (id, board_id, list_id, title, description, position, due_date, type, checklist_items, start_date, end_date, dependencies, status, member)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         card_id,
         board_id,
@@ -436,6 +724,8 @@ def create_card(list_id):
         json.dumps(data.get('checklist_items', [])),
         data.get('start_date'),
         data.get('end_date'),
+        data.get('dependencies'),
+        data.get('status', 'todo'),
         data.get('member')
     ))
     conn.commit()
@@ -459,8 +749,7 @@ def update_card(card_id):
     list_id = data.get('list_id') or data.get('listId')
     if not list_id:
         return make_response(jsonify({'error': 'list_id is required'}), 400)
-    # Thêm dòng này để kiểm tra
-    print('DEBUG list_id:', list_id)
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT board_id FROM cards WHERE id = ?', (card_id,))
@@ -471,7 +760,7 @@ def update_card(card_id):
     board_id = board_id_row[0]
     cursor.execute('''
         UPDATE cards 
-        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?, type = ?, checklist_items = ?, start_date = ?, end_date = ?, member = ?
+        SET title = ?, description = ?, position = ?, due_date = ?, list_id = ?, type = ?, checklist_items = ?, start_date = ?, end_date = ?, dependencies = ?, status = ?, member = ?
         WHERE id = ?
     ''', (
         data['title'],
@@ -483,6 +772,8 @@ def update_card(card_id):
         json.dumps(data.get('checklist_items', [])),
         data.get('start_date'),
         data.get('end_date'),
+        data.get('dependencies'),
+        data.get('status', 'todo'),
         data.get('member'),
         card_id
     ))
@@ -678,25 +969,6 @@ def create_member():
     conn.close()
     return jsonify({'id': member_id, 'message': 'Member created successfully'}), 201
 
-@app.route('/api/boards/<board_id>/members/<member_id>', methods=['POST'])
-def add_member_to_board(board_id, member_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute('''
-            INSERT INTO board_members (board_id, member_id)
-            VALUES (?, ?)
-        ''', (board_id, member_id))
-        conn.commit()
-        conn.close()
-        
-        update_board_activity(board_id)
-        return jsonify({'message': 'Member added to board successfully'})
-    except sqlite3.IntegrityError:
-        conn.close()
-        return jsonify({'error': 'Member already exists on board'}), 400
-
 @app.route('/api/boards/<board_id>/members/<member_id>', methods=['DELETE'])
 def remove_member_from_board(board_id, member_id):
     conn = get_db_connection()
@@ -829,6 +1101,946 @@ def delete_checklist_item(card_id, item_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Checklist item deleted'})
+
+@app.route('/api/boards/<board_id>/gantt', methods=['GET'])
+def get_gantt_data(board_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Lấy tất cả các card của board (bao gồm cả archived nếu muốn, hoặc chỉ chưa archived)
+    cursor.execute('''
+        SELECT id, title, start_date, end_date, dependencies, position, list_id, description, due_date, type, member
+        FROM cards
+        WHERE board_id = ?
+    ''', (board_id,))
+    cards = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(cards)
+
+@app.route('/api/companies', methods=['GET'])
+def get_companies():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM companies')
+    companies = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(companies)
+
+@app.route('/api/companies', methods=['POST'])
+def create_company():
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Company name is required'}), 400
+    company_id = str(uuid.uuid4())
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO companies (id, name, description)
+        VALUES (?, ?, ?)
+    ''', (company_id, data['name'], data.get('description')))
+    conn.commit()
+    conn.close()
+    return jsonify({'id': company_id, 'message': 'Company created successfully'}), 201
+
+@app.route('/api/companies/<company_id>', methods=['PUT'])
+def update_company(company_id):
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Company name is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE companies SET name = ?, description = ? WHERE id = ?
+    ''', (data['name'], data.get('description'), company_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Company updated successfully'})
+
+@app.route('/api/companies/<company_id>', methods=['DELETE'])
+def delete_company(company_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM companies WHERE id = ?', (company_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Company deleted successfully'})
+
+@app.route('/api/departments', methods=['GET'])
+def get_departments():
+    company_id = request.args.get('company_id')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if company_id:
+        cursor.execute('SELECT * FROM departments WHERE company_id = ?', (company_id,))
+    else:
+        cursor.execute('SELECT * FROM departments')
+    departments = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(departments)
+
+@app.route('/api/departments', methods=['POST'])
+def create_department():
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Department name is required'}), 400
+    department_id = str(uuid.uuid4())
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO departments (id, name, company_id, description)
+        VALUES (?, ?, ?, ?)
+    ''', (department_id, data['name'], data.get('company_id'), data.get('description')))
+    conn.commit()
+    conn.close()
+    return jsonify({'id': department_id, 'message': 'Department created successfully'}), 201
+
+@app.route('/api/departments/<department_id>', methods=['PUT'])
+def update_department(department_id):
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Department name is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE departments SET name = ?, company_id = ?, description = ? WHERE id = ?
+    ''', (data['name'], data.get('company_id'), data.get('description'), department_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Department updated successfully'})
+
+@app.route('/api/departments/<department_id>', methods=['DELETE'])
+def delete_department(department_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM departments WHERE id = ?', (department_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Department deleted successfully'})
+
+def require_company_member(func):
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        company_id = kwargs.get('company_id') or request.args.get('company_id')
+        user_email = request.args.get('user_email')
+        if not user_email or not company_id:
+            return jsonify({'error': 'Missing user_email or company_id'}), 403
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM members WHERE email = ?', (user_email,))
+        member = cursor.fetchone()
+        conn.close()
+        if not member or str(member['company_id']) != str(company_id):
+            return jsonify({'error': 'Permission denied'}), 403
+        return func(*args, **kwargs)
+    return wrapper
+
+def require_department_member(func):
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        department_id = kwargs.get('department_id') or request.args.get('department_id')
+        user_email = request.args.get('user_email')
+        if not user_email or not department_id:
+            return jsonify({'error': 'Missing user_email or department_id'}), 403
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM members WHERE email = ?', (user_email,))
+        member = cursor.fetchone()
+        conn.close()
+        if not member or str(member['department_id']) != str(department_id):
+            return jsonify({'error': 'Permission denied'}), 403
+        return func(*args, **kwargs)
+    return wrapper
+
+@app.route('/api/boards/by-company/<company_id>', methods=['GET'])
+@require_company_member
+def get_boards_by_company(company_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM boards WHERE company_id = ?', (company_id,))
+    boards = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(boards)
+
+@app.route('/api/boards/by-department/<department_id>', methods=['GET'])
+@require_department_member
+def get_boards_by_department(department_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM boards WHERE department_id = ?', (department_id,))
+    boards = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(boards)
+
+@app.route('/api/members/by-company/<company_id>', methods=['GET'])
+@require_company_member
+def get_members_by_company(company_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM members WHERE company_id = ?', (company_id,))
+    members = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(members)
+
+@app.route('/api/members/by-department/<department_id>', methods=['GET'])
+@require_department_member
+def get_members_by_department(department_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM members WHERE department_id = ?', (department_id,))
+    members = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(members)
+
+# Widget API endpoints
+@app.route('/api/widgets', methods=['GET'])
+def get_widgets():
+    user_email = request.args.get('user_email')
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    cursor.execute('''
+        SELECT * FROM widgets 
+        WHERE user_id = ? AND is_active = 1 
+        ORDER BY position
+    ''', (user['id'],))
+    widgets = [dict(row) for row in cursor.fetchall()]
+    
+    # Parse config JSON
+    for widget in widgets:
+        if widget.get('config'):
+            try:
+                widget['config'] = json.loads(widget['config'])
+            except:
+                widget['config'] = {}
+        else:
+            widget['config'] = {}
+    
+    conn.close()
+    return jsonify(widgets)
+
+@app.route('/api/widgets', methods=['POST'])
+def create_widget():
+    data = request.get_json()
+    user_email = data.get('user_email')
+    widget_type = data.get('type')
+    title = data.get('title')
+    config = data.get('config', {})
+    
+    if not user_email or not widget_type or not title:
+        return jsonify({'error': 'user_email, type, and title are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    widget_id = generate_id()
+    cursor.execute('''
+        INSERT INTO widgets (id, user_id, type, title, config, position)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (widget_id, user['id'], widget_type, title, json.dumps(config), data.get('position', 0)))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'id': widget_id, 
+        'message': 'Widget created successfully',
+        'widget': {
+            'id': widget_id,
+            'user_id': user['id'],
+            'type': widget_type,
+            'title': title,
+            'config': config,
+            'position': data.get('position', 0)
+        }
+    }), 201
+
+@app.route('/api/widgets/<widget_id>', methods=['PUT'])
+def update_widget(widget_id):
+    data = request.get_json()
+    user_email = data.get('user_email')
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu widget
+    cursor.execute('''
+        SELECT w.* FROM widgets w
+        JOIN members m ON w.user_id = m.id
+        WHERE w.id = ? AND m.email = ?
+    ''', (widget_id, user_email))
+    widget = cursor.fetchone()
+    
+    if not widget:
+        conn.close()
+        return jsonify({'error': 'Widget not found or access denied'}), 404
+    
+    # Cập nhật widget
+    update_fields = []
+    params = []
+    
+    if 'title' in data:
+        update_fields.append('title = ?')
+        params.append(data['title'])
+    
+    if 'type' in data:
+        update_fields.append('type = ?')
+        params.append(data['type'])
+    
+    if 'config' in data:
+        update_fields.append('config = ?')
+        params.append(json.dumps(data['config']))
+    
+    if 'position' in data:
+        update_fields.append('position = ?')
+        params.append(data['position'])
+    
+    if 'is_active' in data:
+        update_fields.append('is_active = ?')
+        params.append(data['is_active'])
+    
+    if update_fields:
+        update_fields.append('updated_at = ?')
+        params.append(datetime.now().isoformat())
+        params.append(widget_id)
+        
+        cursor.execute(f'''
+            UPDATE widgets 
+            SET {', '.join(update_fields)}
+            WHERE id = ?
+        ''', params)
+        
+        conn.commit()
+    
+    conn.close()
+    return jsonify({'message': 'Widget updated successfully'})
+
+@app.route('/api/widgets/<widget_id>', methods=['DELETE'])
+def delete_widget(widget_id):
+    user_email = request.args.get('user_email')
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu widget
+    cursor.execute('''
+        SELECT w.* FROM widgets w
+        JOIN members m ON w.user_id = m.id
+        WHERE w.id = ? AND m.email = ?
+    ''', (widget_id, user_email))
+    widget = cursor.fetchone()
+    
+    if not widget:
+        conn.close()
+        return jsonify({'error': 'Widget not found or access denied'}), 404
+    
+    cursor.execute('DELETE FROM widgets WHERE id = ?', (widget_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Widget deleted successfully'})
+
+@app.route('/api/widgets/reorder', methods=['PUT'])
+def reorder_widgets():
+    data = request.get_json()
+    user_email = data.get('user_email')
+    widget_positions = data.get('widget_positions')  # [{id: "widget_id", position: 0}, ...]
+    
+    if not user_email or not widget_positions:
+        return jsonify({'error': 'user_email and widget_positions are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra user
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Cập nhật vị trí các widget
+    for item in widget_positions:
+        widget_id = item.get('id')
+        position = item.get('position', 0)
+        
+        if widget_id:
+            cursor.execute('''
+                UPDATE widgets 
+                SET position = ?, updated_at = ?
+                WHERE id = ? AND user_id = ?
+            ''', (position, datetime.now().isoformat(), widget_id, user['id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Widgets reordered successfully'})
+
+# API lấy dữ liệu cho các loại widget
+@app.route('/api/widgets/data/<widget_type>', methods=['GET'])
+def get_widget_data(widget_type):
+    user_email = request.args.get('user_email')
+    board_id = request.args.get('board_id')
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra user
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    data = {}
+    
+    if widget_type == 'status_chart':
+        # Dữ liệu cho biểu đồ trạng thái task
+        if board_id:
+            cursor.execute('''
+                SELECT status, COUNT(*) as count
+                FROM cards 
+                WHERE board_id = ? AND (archived IS NULL OR archived = 0)
+                GROUP BY status
+            ''', (board_id,))
+        else:
+            # Lấy tất cả board của user
+            cursor.execute('''
+                SELECT status, COUNT(*) as count
+                FROM cards c
+                JOIN board_members bm ON c.board_id = bm.board_id
+                WHERE bm.member_id = ? AND (c.archived IS NULL OR c.archived = 0)
+                GROUP BY status
+            ''', (user['id'],))
+        
+        status_data = {row['status']: row['count'] for row in cursor.fetchall()}
+        data = {
+            'labels': ['Todo', 'In Progress', 'Done'],
+            'datasets': [{
+                'label': 'Tasks',
+                'data': [
+                    status_data.get('todo', 0),
+                    status_data.get('in_progress', 0),
+                    status_data.get('done', 0)
+                ],
+                'backgroundColor': ['#ff9800', '#2196f3', '#4caf50']
+            }]
+        }
+    
+    elif widget_type == 'recent_activities':
+        # Dữ liệu cho hoạt động gần đây
+        if board_id:
+            cursor.execute('''
+                SELECT c.title, c.status, c.updated_at, l.title as list_title
+                FROM cards c
+                JOIN lists l ON c.list_id = l.id
+                WHERE c.board_id = ? AND (c.archived IS NULL OR c.archived = 0)
+                ORDER BY c.updated_at DESC
+                LIMIT 10
+            ''', (board_id,))
+        else:
+            cursor.execute('''
+                SELECT c.title, c.status, c.updated_at, l.title as list_title, b.title as board_title
+                FROM cards c
+                JOIN lists l ON c.list_id = l.id
+                JOIN board_members bm ON c.board_id = bm.board_id
+                JOIN boards b ON c.board_id = b.id
+                WHERE bm.member_id = ? AND (c.archived IS NULL OR c.archived = 0)
+                ORDER BY c.updated_at DESC
+                LIMIT 10
+            ''', (user['id'],))
+        
+        activities = [dict(row) for row in cursor.fetchall()]
+        data = {'activities': activities}
+    
+    elif widget_type == 'gantt_chart':
+        # Dữ liệu cho Gantt chart
+        if board_id:
+            cursor.execute('''
+                SELECT id, title, start_date, end_date, status, member
+                FROM cards
+                WHERE board_id = ? AND (archived IS NULL OR archived = 0)
+                AND start_date IS NOT NULL AND end_date IS NOT NULL
+                ORDER BY start_date
+            ''', (board_id,))
+        else:
+            cursor.execute('''
+                SELECT c.id, c.title, c.start_date, c.end_date, c.status, c.member, b.title as board_title
+                FROM cards c
+                JOIN board_members bm ON c.board_id = bm.board_id
+                JOIN boards b ON c.board_id = b.id
+                WHERE bm.member_id = ? AND (c.archived IS NULL OR c.archived = 0)
+                AND c.start_date IS NOT NULL AND c.end_date IS NOT NULL
+                ORDER BY c.start_date
+            ''', (user['id'],))
+        
+        gantt_data = [dict(row) for row in cursor.fetchall()]
+        data = {'tasks': gantt_data}
+    
+    conn.close()
+    return jsonify(data)
+
+# Daily Tasks API endpoints
+@app.route('/api/daily-tasks', methods=['GET'])
+def get_daily_tasks():
+    user_email = request.args.get('user_email')
+    date = request.args.get('date')  # Format: YYYY-MM-DD
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Lấy user_id
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Lấy danh sách daily tasks của user
+    cursor.execute('''
+        SELECT * FROM daily_tasks 
+        WHERE user_id = ? AND is_active = 1
+        ORDER BY created_at DESC
+    ''', (user['id'],))
+    daily_tasks = [dict(row) for row in cursor.fetchall()]
+    
+    # Nếu có date, lấy instances cho ngày đó
+    if date:
+        for task in daily_tasks:
+            cursor.execute('''
+                SELECT * FROM daily_task_instances 
+                WHERE daily_task_id = ? AND task_date = ?
+            ''', (task['id'], date))
+            instance = cursor.fetchone()
+            if instance:
+                task['instance'] = dict(instance)
+            else:
+                task['instance'] = None
+    
+    conn.close()
+    return jsonify(daily_tasks)
+
+@app.route('/api/daily-tasks', methods=['POST'])
+def create_daily_task():
+    data = request.get_json()
+    user_email = data.get('user_email')
+    title = data.get('title')
+    frequency = data.get('frequency', 'daily')
+    
+    if not user_email or not title:
+        return jsonify({'error': 'user_email and title are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Lấy user_id
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    task_id = generate_id()
+    cursor.execute('''
+        INSERT INTO daily_tasks (id, user_id, title, description, frequency, start_date, end_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (task_id, user['id'], title, data.get('description'), frequency, 
+          data.get('start_date'), data.get('end_date')))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'id': task_id, 
+        'message': 'Daily task created successfully'
+    }), 201
+
+@app.route('/api/daily-tasks/<task_id>', methods=['PUT'])
+def update_daily_task(task_id):
+    data = request.get_json()
+    user_email = data.get('user_email')
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    # Cập nhật task
+    update_fields = []
+    params = []
+    
+    if 'title' in data:
+        update_fields.append('title = ?')
+        params.append(data['title'])
+    
+    if 'description' in data:
+        update_fields.append('description = ?')
+        params.append(data['description'])
+    
+    if 'frequency' in data:
+        update_fields.append('frequency = ?')
+        params.append(data['frequency'])
+    
+    if 'start_date' in data:
+        update_fields.append('start_date = ?')
+        params.append(data['start_date'])
+    
+    if 'end_date' in data:
+        update_fields.append('end_date = ?')
+        params.append(data['end_date'])
+    
+    if 'is_active' in data:
+        update_fields.append('is_active = ?')
+        params.append(data['is_active'])
+    
+    if update_fields:
+        update_fields.append('updated_at = ?')
+        params.append(datetime.now().isoformat())
+        params.append(task_id)
+        
+        cursor.execute(f'''
+            UPDATE daily_tasks 
+            SET {', '.join(update_fields)}
+            WHERE id = ?
+        ''', params)
+        
+        conn.commit()
+    
+    conn.close()
+    return jsonify({'message': 'Daily task updated successfully'})
+
+@app.route('/api/daily-tasks/<task_id>', methods=['DELETE'])
+def delete_daily_task(task_id):
+    user_email = request.args.get('user_email')
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    cursor.execute('DELETE FROM daily_tasks WHERE id = ?', (task_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Daily task deleted successfully'})
+
+@app.route('/api/daily-tasks/<task_id>/start', methods=['POST'])
+def start_daily_task(task_id):
+    data = request.get_json()
+    user_email = data.get('user_email')
+    date = data.get('date')  # Format: YYYY-MM-DD
+    
+    if not user_email or not date:
+        return jsonify({'error': 'user_email and date are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    # Kiểm tra instance đã tồn tại chưa
+    cursor.execute('''
+        SELECT * FROM daily_task_instances 
+        WHERE daily_task_id = ? AND task_date = ?
+    ''', (task_id, date))
+    instance = cursor.fetchone()
+    
+    if instance:
+        # Cập nhật instance hiện tại
+        cursor.execute('''
+            UPDATE daily_task_instances 
+            SET status = ?, started_at = ?
+            WHERE id = ?
+        ''', ('in_progress', datetime.now().isoformat(), instance['id']))
+    else:
+        # Tạo instance mới
+        instance_id = generate_id()
+        cursor.execute('''
+            INSERT INTO daily_task_instances (id, daily_task_id, task_date, status, started_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (instance_id, task_id, date, 'in_progress', datetime.now().isoformat()))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Task started successfully'})
+
+@app.route('/api/daily-tasks/<task_id>/complete', methods=['POST'])
+def complete_daily_task(task_id):
+    data = request.get_json()
+    user_email = data.get('user_email')
+    date = data.get('date')  # Format: YYYY-MM-DD
+    notes = data.get('notes')
+    
+    if not user_email or not date:
+        return jsonify({'error': 'user_email and date are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    # Kiểm tra instance
+    cursor.execute('''
+        SELECT * FROM daily_task_instances 
+        WHERE daily_task_id = ? AND task_date = ?
+    ''', (task_id, date))
+    instance = cursor.fetchone()
+    
+    if instance:
+        # Cập nhật instance
+        cursor.execute('''
+            UPDATE daily_task_instances 
+            SET status = ?, completed_at = ?, notes = ?
+            WHERE id = ?
+        ''', ('completed', datetime.now().isoformat(), notes, instance['id']))
+    else:
+        # Tạo instance mới với trạng thái completed
+        instance_id = generate_id()
+        cursor.execute('''
+            INSERT INTO daily_task_instances (id, daily_task_id, task_date, status, completed_at, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (instance_id, task_id, date, 'completed', datetime.now().isoformat(), notes))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Task completed successfully'})
+
+@app.route('/api/daily-tasks/<task_id>/skip', methods=['POST'])
+def skip_daily_task(task_id):
+    data = request.get_json()
+    user_email = data.get('user_email')
+    date = data.get('date')  # Format: YYYY-MM-DD
+    notes = data.get('notes')
+    
+    if not user_email or not date:
+        return jsonify({'error': 'user_email and date are required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    # Kiểm tra instance
+    cursor.execute('''
+        SELECT * FROM daily_task_instances 
+        WHERE daily_task_id = ? AND task_date = ?
+    ''', (task_id, date))
+    instance = cursor.fetchone()
+    
+    if instance:
+        # Cập nhật instance
+        cursor.execute('''
+            UPDATE daily_task_instances 
+            SET status = ?, notes = ?
+            WHERE id = ?
+        ''', ('skipped', notes, instance['id']))
+    else:
+        # Tạo instance mới với trạng thái skipped
+        instance_id = generate_id()
+        cursor.execute('''
+            INSERT INTO daily_task_instances (id, daily_task_id, task_date, status, notes)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (instance_id, task_id, date, 'skipped', notes))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Task skipped successfully'})
+
+@app.route('/api/daily-tasks/<task_id>/instances', methods=['GET'])
+def get_daily_task_instances(task_id):
+    user_email = request.args.get('user_email')
+    start_date = request.args.get('start_date')  # Format: YYYY-MM-DD
+    end_date = request.args.get('end_date')      # Format: YYYY-MM-DD
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra quyền sở hữu
+    cursor.execute('''
+        SELECT dt.* FROM daily_tasks dt
+        JOIN members m ON dt.user_id = m.id
+        WHERE dt.id = ? AND m.email = ?
+    ''', (task_id, user_email))
+    task = cursor.fetchone()
+    
+    if not task:
+        conn.close()
+        return jsonify({'error': 'Task not found or access denied'}), 404
+    
+    # Lấy instances
+    if start_date and end_date:
+        cursor.execute('''
+            SELECT * FROM daily_task_instances 
+            WHERE daily_task_id = ? AND task_date BETWEEN ? AND ?
+            ORDER BY task_date DESC
+        ''', (task_id, start_date, end_date))
+    else:
+        cursor.execute('''
+            SELECT * FROM daily_task_instances 
+            WHERE daily_task_id = ?
+            ORDER BY task_date DESC
+        ''', (task_id,))
+    
+    instances = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return jsonify(instances)
+
+@app.route('/api/daily-tasks/summary', methods=['GET'])
+def get_daily_tasks_summary():
+    user_email = request.args.get('user_email')
+    date = request.args.get('date')  # Format: YYYY-MM-DD
+    
+    if not user_email:
+        return jsonify({'error': 'user_email is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Lấy user_id
+    cursor.execute('SELECT id FROM members WHERE email = ?', (user_email,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    if date:
+        # Lấy summary cho ngày cụ thể
+        cursor.execute('''
+            SELECT 
+                dt.title,
+                dti.status,
+                dti.started_at,
+                dti.completed_at,
+                dti.notes
+            FROM daily_tasks dt
+            LEFT JOIN daily_task_instances dti ON dt.id = dti.daily_task_id AND dti.task_date = ?
+            WHERE dt.user_id = ? AND dt.is_active = 1
+            ORDER BY dt.created_at
+        ''', (date, user['id']))
+    else:
+        # Lấy summary cho hôm nay
+        today = datetime.now().strftime('%Y-%m-%d')
+        cursor.execute('''
+            SELECT 
+                dt.title,
+                dti.status,
+                dti.started_at,
+                dti.completed_at,
+                dti.notes
+            FROM daily_tasks dt
+            LEFT JOIN daily_task_instances dti ON dt.id = dti.daily_task_id AND dti.task_date = ?
+            WHERE dt.user_id = ? AND dt.is_active = 1
+            ORDER BY dt.created_at
+        ''', (today, user['id']))
+    
+    tasks = [dict(row) for row in cursor.fetchall()]
+    
+    # Tính toán thống kê
+    total_tasks = len(tasks)
+    completed_tasks = len([t for t in tasks if t['status'] == 'completed'])
+    in_progress_tasks = len([t for t in tasks if t['status'] == 'in_progress'])
+    pending_tasks = len([t for t in tasks if t['status'] == 'pending' or t['status'] is None])
+    skipped_tasks = len([t for t in tasks if t['status'] == 'skipped'])
+    
+    summary = {
+        'date': date or datetime.now().strftime('%Y-%m-%d'),
+        'total_tasks': total_tasks,
+        'completed_tasks': completed_tasks,
+        'in_progress_tasks': in_progress_tasks,
+        'pending_tasks': pending_tasks,
+        'skipped_tasks': skipped_tasks,
+        'completion_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
+        'tasks': tasks
+    }
+    
+    conn.close()
+    return jsonify(summary)
 
 # Initialize database and run app
 if __name__ == '__main__':

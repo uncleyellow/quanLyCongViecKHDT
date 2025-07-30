@@ -76,7 +76,9 @@ export const appRoutes: Route[] = [
             
             
             {path: 'scrumboard', loadChildren: () => import('app/modules/admin/scrumboard/scrumboard.module').then(m => m.ScrumboardModule)},
-          
-        ]
+            {path: 'files-manager', loadChildren: () => import('app/modules/admin/file-manager/file-manager.module').then(m => m.FileManagerModule)},
+            {path: 'calender-events', loadChildren: () => import('app/modules/admin/calender-events/calender-events.module').then(m => m.CalenderEventsModule)},
+            // {path: 'admin-config', loadChildren: () => import('app/modules/admin/admin-config/admin-config.module').then(m => m.AdminManagerModule)},
+        ]   
     }
 ];

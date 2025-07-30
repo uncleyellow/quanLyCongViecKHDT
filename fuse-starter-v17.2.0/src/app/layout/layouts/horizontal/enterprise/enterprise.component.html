@@ -4,7 +4,7 @@
 <!-- Navigation -->
 <ng-container *ngIf="isScreenSmall">
     <fuse-vertical-navigation
-        class="dark bg-gray-900 print:hidden"
+        class="dark bg-orange-600 print:hidden"
         [mode]="'over'"
         [name]="'mainNavigation'"
         [navigation]="navigation.default"
@@ -15,7 +15,7 @@
             <div class="flex items-center h-20 pt-6 px-8">
                 <img
                     class="w-24"
-                    src="assets/images/logo/logo-text-on-dark.svg"
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYC9fqA7hP74G40PQnZpFrdUud06f_Xe2-rA&s"
                     alt="Logo image">
             </div>
         </ng-container>
@@ -28,14 +28,14 @@
     <!-- Header -->
     <div class="relative flex flex-col flex-0 justify-center w-full h-16 sm:h-20 md:h-36 overflow-hidden z-49 shadow dark:shadow-none print:hidden">
         <!-- Top bar -->
-        <div class="relative dark flex flex-auto justify-center w-full px-4 md:px-8 bg-gray-800 dark:bg-gray-900">
+        <div class="relative dark flex flex-auto justify-center w-full px-4 md:px-8 bg-orange-500 dark:bg-orange-600">
             <div class="flex items-center w-full max-w-360 h-16 sm:h-20">
                 <!-- Logo -->
                 <ng-container *ngIf="!isScreenSmall">
                     <div class="flex items-center">
                         <img
-                            class="w-24"
-                            src="assets/images/logo/logo-text-on-dark.svg"
+                            class="w-36 relative right-8"
+                            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYC9fqA7hP74G40PQnZpFrdUud06f_Xe2-rA&s"
                             alt="Logo image">
                     </div>
                 </ng-container>
@@ -49,10 +49,10 @@
                 </ng-container>
                 <!-- Components -->
                 <div class="flex items-center pl-2 ml-auto space-x-0.5 sm:space-x-2">
-                    <languages></languages>
+                    <!-- <languages></languages> -->
                     <fuse-fullscreen class="hidden md:block"></fuse-fullscreen>
-                    <search [appearance]="'bar'"></search>
-                    <shortcuts></shortcuts>
+                    <!-- <search [appearance]="'bar'"></search> -->
+                    <!-- <shortcuts></shortcuts> -->
                     <messages></messages>
                     <notifications></notifications>
                     <button
@@ -79,8 +79,8 @@
     </div>
 
     <!-- Content -->
-    <div class="flex flex-auto justify-center w-full sm:p-6 md:p-8">
-        <div class="flex flex-col flex-auto w-full sm:max-w-360 sm:shadow-lg sm:rounded-lg sm:overflow-hidden bg-default">
+    <div class="flex flex-auto w-full">
+        <div class="flex flex-col flex-auto w-full">
             <!-- *ngIf="true" hack is required here for router-outlet to work correctly.
                  Otherwise, layout changes won't be registered and the view won't be updated! -->
             <router-outlet *ngIf="true"></router-outlet>
@@ -88,10 +88,12 @@
     </div>
 
     <!-- Footer -->
-    <div class="relative flex flex-0 justify-center w-full px-6 md:px-8 z-49 border-t bg-card print:hidden">
+    <div class="relative flex flex-0 justify-center w-full px-6 md:px-8 z-49 border-t bg-card print:hidden justify-center items-center">
         <div class="flex items-center w-full max-w-360 h-14 sm:h-20">
-            <span class="font-medium text-secondary">Fuse &copy; {{currentYear}}</span>
+            <span class="font-medium text-secondary">Quản Lý công việc Ratraco {{currentYear}}</span>
         </div>
+        <span class="font-medium text-secondary">Hỗ trợ Zalo: 0985363602</span>
+        <span class="font-medium text-secondary">Email: kiniemboquenjerry&#64;gmail.com</span>
     </div>
 
 </div>

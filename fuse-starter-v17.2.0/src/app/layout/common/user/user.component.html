@@ -26,31 +26,31 @@
     #userActions="matMenu">
     <button mat-menu-item>
         <span class="flex flex-col leading-none">
-            <span>Signed in as</span>
+            <!-- <span>Đăng nhập với tư cách</span> -->
             <span class="mt-1.5 text-md font-medium">{{user.email}}</span>
         </span>
     </button>
     <mat-divider class="my-2"></mat-divider>
     <button mat-menu-item>
         <mat-icon [svgIcon]="'heroicons_outline:user-circle'"></mat-icon>
-        <span>Profile</span>
+        <span>Hồ Sơ</span>
     </button>
     <button mat-menu-item>
         <mat-icon [svgIcon]="'heroicons_outline:cog'"></mat-icon>
-        <span>Settings</span>
+        <span>Cài Đặt</span>
     </button>
     <button
         mat-menu-item
         [matMenuTriggerFor]="userStatus">
         <mat-icon [svgIcon]="'heroicons_outline:dots-circle-horizontal'"></mat-icon>
-        <span>Status</span>
+        <span>Trạng Thái</span>
     </button>
     <mat-divider class="my-2"></mat-divider>
     <button
         mat-menu-item
         (click)="signOut()">
         <mat-icon [svgIcon]="'heroicons_outline:logout'"></mat-icon>
-        <span>Sign out</span>
+        <span>Đăng xuất</span>
     </button>
 </mat-menu>
 
@@ -67,18 +67,18 @@
         mat-menu-item
         (click)="updateUserStatus('away')">
         <span class="w-4 h-4 mr-3 rounded-full bg-amber-500"></span>
-        <span>Away</span>
+        <span>Đang Vắng</span>
     </button>
     <button
         mat-menu-item
         (click)="updateUserStatus('busy')">
         <span class="w-4 h-4 mr-3 rounded-full bg-red-500"></span>
-        <span>Busy</span>
+        <span>Bận</span>
     </button>
     <button
         mat-menu-item
         (click)="updateUserStatus('not-visible')">
         <span class="w-4 h-4 mr-3 rounded-full bg-gray-400"></span>
-        <span>Invisible</span>
+        <span>Không nhìn thấy</span>
     </button>
 </mat-menu>
