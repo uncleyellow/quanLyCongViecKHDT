@@ -33,7 +33,7 @@ const validateBeforeCreate = async (data) => {
 
 const getList = async (data) => {
   try {
-    const query = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE user_id = ?`
+    const query = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE owner_id = ?`
     const boardList = await db.query(query, [data.user_id])
     return boardList[0]
   } catch (error) { throw new Error(error) }
