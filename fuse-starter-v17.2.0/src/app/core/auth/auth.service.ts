@@ -152,6 +152,16 @@ export class AuthService
     }
 
     /**
+     * Change password
+     *
+     * @param passwordData
+     */
+    changePassword(passwordData: { currentPassword: string; newPassword: string; confirmPassword: string }): Observable<any>
+    {
+        return this._httpClient.post(`${this.baseApiUrl}/users/change-password`, passwordData);
+    }
+
+    /**
      * Sign up
      *
      * @param user
