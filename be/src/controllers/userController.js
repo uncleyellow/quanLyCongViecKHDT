@@ -1,0 +1,69 @@
+import { StatusCodes } from 'http-status-codes'
+import { userService } from '../services/userService'
+import { userValidation } from '../validations/userValidation'
+
+const getMe = async (req, res, next) => {
+  try {
+    console.log('req.user', req.user)
+    const { userId } = req.user
+    const user = await userService.getMe(userId)
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'User fetched successfully',
+      data: user
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const { currentPassword, newPassword } = req.body
+
+    // Validate input
+    const { error } = userValidation.changePasswordSchema.validate(req.body)
+    if (error) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        code: StatusCodes.BAD_REQUEST,
+        status: 'error',
+        message: 'Validation error',
+        errors: error.details.map(detail => detail.message)
+      })
+    }
+
+    const result = await userService.changePassword(userId, currentPassword, newPassword)
+    
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: result.message,
+      data: null
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+const checkPasswordChangeRequired = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const user = await userService.getMe(userId)
+    
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Password change status checked successfully',
+      data: {
+        mustChangePassword: user.must_change_password || false
+      }
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+export const userController = {
+  getMe,
+  changePassword,
+  checkPasswordChangeRequired
+}

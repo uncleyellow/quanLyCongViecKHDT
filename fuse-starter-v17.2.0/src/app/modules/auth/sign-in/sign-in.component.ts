@@ -1,9 +1,11 @@
 import { Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, NgForm, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertType } from '@fuse/components/alert';
 import { AuthService } from 'app/core/auth/auth.service';
+import { ChangePasswordModalComponent } from '../change-password-modal/change-password-modal.component';
 
 @Component({
     selector     : 'auth-sign-in',
@@ -29,7 +31,8 @@ export class AuthSignInComponent implements OnInit
         private _activatedRoute: ActivatedRoute,
         private _authService: AuthService,
         private _formBuilder: UntypedFormBuilder,
-        private _router: Router
+        private _router: Router,
+        private _dialog: MatDialog
     )
     {
     }
@@ -74,21 +77,24 @@ export class AuthSignInComponent implements OnInit
 
         // Sign in
         this._authService.signIn(this.signInForm.value)
-            .subscribe(
-                () => {
+            .subscribe({
+                next: (response) => {
+                    // Check if user must change password
+                    const user = response.data;
+                    if (user.must_change_password === 1) {
+                        this.showChangePasswordModal();
+                    } else {
+                        // Set the redirect url.
+                        // The '/signed-in-redirect' is a dummy url to catch the request and redirect the user
+                        // to the correct page after a successful sign in. This way, that url can be set via
+                        // routing file and we don't have to touch here.
+                        const redirectURL = this._activatedRoute.snapshot.queryParamMap.get('redirectURL') || '/signed-in-redirect';
 
-                    // Set the redirect url.
-                    // The '/signed-in-redirect' is a dummy url to catch the request and redirect the user
-                    // to the correct page after a successful sign in. This way, that url can be set via
-                    // routing file and we don't have to touch here.
-                    const redirectURL = this._activatedRoute.snapshot.queryParamMap.get('redirectURL') || '/signed-in-redirect';
-
-                    // Navigate to the redirect url
-                    this._router.navigateByUrl(redirectURL);
-
+                        // Navigate to the redirect url
+                        this._router.navigateByUrl(redirectURL);
+                    }
                 },
-                (response) => {
-
+                error: (response) => {
                     // Re-enable the form
                     this.signInForm.enable();
 
@@ -104,6 +110,31 @@ export class AuthSignInComponent implements OnInit
                     // Show the alert
                     this.showAlert = true;
                 }
-            );
+            });
+    }
+
+    /**
+     * Show change password modal
+     */
+    private showChangePasswordModal(): void {
+        const dialogRef = this._dialog.open(ChangePasswordModalComponent, {
+            width: '500px',
+            disableClose: true,
+            data: {}
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result === true) {
+                // Password changed successfully, redirect to dashboard
+                const redirectURL = this._activatedRoute.snapshot.queryParamMap.get('redirectURL') || '/signed-in-redirect';
+                this._router.navigateByUrl(redirectURL);
+            } else {
+                // User cancelled, sign out and stay on login page
+                this._authService.signOut().subscribe(() => {
+                    this.signInForm.enable();
+                    this.signInNgForm.resetForm();
+                });
+            }
+        });
     }
 }

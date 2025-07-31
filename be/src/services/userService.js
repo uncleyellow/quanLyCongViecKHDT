@@ -1,0 +1,47 @@
+/* eslint-disable no-useless-catch */
+import { StatusCodes } from 'http-status-codes'
+import { cloneDeep } from 'lodash'
+import { userModel } from '../models/userModel'
+import ApiError from '../utils/ApiError'
+import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
+import { v4 as uuidv4 } from 'uuid'
+
+const getMe = async (id) => {
+  const user = await userModel.findOneById(id)
+  delete user.password_hash
+  return user
+}
+
+const changePassword = async (userId, currentPassword, newPassword) => {
+  try {
+    // Lấy thông tin user hiện tại
+    const user = await userModel.findOneById(userId)
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    // Hash mật khẩu hiện tại để so sánh
+    const currentPasswordHash = crypto.createHash('sha256').update(currentPassword).digest('hex')
+
+    // Kiểm tra mật khẩu hiện tại có đúng không
+    if (user.password_hash !== currentPasswordHash) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Current password is incorrect')
+    }
+
+    // Hash mật khẩu mới
+    const newPasswordHash = crypto.createHash('sha256').update(newPassword).digest('hex')
+
+    // Cập nhật mật khẩu mới và đánh dấu đã thay đổi
+    await userModel.changePassword(userId, newPasswordHash)
+
+    return { message: 'Password changed successfully' }
+  } catch (error) {
+    throw error
+  }
+}
+
+export const userService = {
+  getMe,
+  changePassword
+}

@@ -5,5 +5,6 @@ export interface User
     email: string;
     avatar?: string;
     status?: string;
-    role?:string
+    role?: string;
+    must_change_password?: number;
 }
