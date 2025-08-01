@@ -25,7 +25,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     const currentPasswordHash = crypto.createHash('sha256').update(currentPassword).digest('hex')
 
     // Kiểm tra mật khẩu hiện tại có đúng không
-    if (user.passwordHash !== currentPasswordHash) {
+    if (user.password_hash !== currentPasswordHash) {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Current password is incorrect')
     }
 
