@@ -1,5 +1,6 @@
 import Joi from 'joi'
 import db from '../config/db'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators'
 
 // Define Collection (Name & Schema)
 const USER_TABLE_NAME = 'users'
@@ -7,18 +8,19 @@ const USER_TABLE_SCHEMA = Joi.object({
   id: Joi.string().length(36).required(),
   name: Joi.string().min(1).max(100).required().trim().strict(),
   email: Joi.string().email().max(150).required().trim().strict(),
-  password_hash: Joi.string().min(1).max(255).required().trim().strict(),
+  passwordHash: Joi.string().min(1).max(255).required().trim().strict(),
   type: Joi.string().valid('staff', 'manager', 'boss', 'admin').default('staff'),
-  created_at: Joi.date().allow(null).default(Date.now),
-  updated_at: Joi.date().allow(null).default(Date.now),
-  deleted_at: Joi.date().allow(null).default(null),
   status: Joi.string().valid('online', 'banned', 'disabled').default('online'),
   avatar: Joi.string().max(255).allow(null).default(null),
-  must_change_password: Joi.boolean().default(true)
+  mustChangePassword: Joi.boolean().default(true),
+  boardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  createdAt: Joi.date().allow(null).default(Date.now),
+  updatedAt: Joi.date().allow(null).default(Date.now),
+  deletedAt: Joi.date().allow(null).default(null)
 })
 
-const INVALID_UPDATE_FIELDS = ['id', 'created_at']
-const INVALID_RESPONSE_FIELDS = ['password_hash']
+const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
+const INVALID_RESPONSE_FIELDS = ['passwordHash']
 
 const validateBeforeCreate = async (data) => {
   try {
@@ -31,7 +33,7 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
-    const { deleted_at, created_at, updated_at, ...dataToInsert } = validData
+    const { deletedAt, createdAt, updatedAt, ...dataToInsert } = validData
     const query = `INSERT INTO ${USER_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : value).join(', ')})`
     const createdUser = await db.query(query)
     return createdUser
@@ -42,10 +44,10 @@ const createNew = async (data) => {
 
 const login = async (data) => {
   try {
-    const { email, password_hash } = data
+    const { email, passwordHash } = data
 
     const query = `SELECT * FROM ${USER_TABLE_NAME} WHERE email = ? AND password_hash = ?`
-    const loginUser = await db.query(query, [email, password_hash])
+    const loginUser = await db.query(query, [email, passwordHash])
     if (loginUser[0][0]) {
       const user = loginUser[0][0]
       INVALID_RESPONSE_FIELDS.forEach(field => {

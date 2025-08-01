@@ -1,10 +1,10 @@
 /* eslint-disable no-useless-catch */
-import { cardModel } from '../models/cardModel'
+import { listModel } from '../models/listModel'
 import { v4 as uuidv4 } from 'uuid'
 
 const getList = async (reqBody) => {
   try {
-    const listData = await cardModel.getList(reqBody)
+    const listData = await listModel.getList(reqBody)
     return listData
   } catch (error) {
     throw error
@@ -12,17 +12,16 @@ const getList = async (reqBody) => {
 }
 
 const createNew = async (reqBody) => {
-  console.log(reqBody)
   try {
     reqBody.id = uuidv4()
-    const newList = await cardModel.createNew(reqBody)
+    const newList = await listModel.createNew(reqBody)
     return newList
   } catch (error) { throw error }
 }
 
 const getDetail = async (reqBody) => {
   try {
-    const listDetail = await cardModel.getDetail(reqBody)
+    const listDetail = await listModel.getDetail(reqBody)
     return listDetail
   } catch (error) { throw error }
 }
@@ -31,47 +30,47 @@ const update = async (reqBody, reqBodyUpdate) => {
   reqBodyUpdate.archived = reqBodyUpdate.archived === true ? 1 : 0
   reqBodyUpdate.cardOrderIds = JSON.stringify(reqBodyUpdate.cardOrderIds)
   try {
-    const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
+    const updatedList = await listModel.update(reqBody, reqBodyUpdate)
     return updatedList
   } catch (error) { throw error }
 }
 
 const updatePartial = async (reqBody, reqBodyUpdate) => {
   try {
-    const updatedList = await cardModel.updatePartial(reqBody, reqBodyUpdate)
+    const updatedList = await listModel.updatePartial(reqBody, reqBodyUpdate)
     return updatedList
   } catch (error) { throw error }
 }
 
 const deleteItem = async (reqBody) => {
   try {
-    const deletedList = await cardModel.deleteList(reqBody)
+    const deletedList = await listModel.deleteList(reqBody)
     return deletedList
   } catch (error) { throw error }
 }
 
 const getListsByBoard = async (boardId) => {
   try {
-    const lists = await cardModel.getListsByBoard(boardId)
+    const lists = await listModel.getListsByBoard(boardId)
     return lists
   } catch (error) { throw error }
 }
 
 const updateCardOrder = async (listId, cardOrderIds) => {
   try {
-    const result = await cardModel.updateCardOrder(listId, cardOrderIds)
+    const result = await listModel.updateCardOrder(listId, cardOrderIds)
     return result
   } catch (error) { throw error }
 }
 
 const pushCardOrderIds = async (card) => {
   try {
-    const result = await cardModel.pushCardOrderIds(card)
+    const result = await listModel.pushCardOrderIds(card)
     return result
   } catch (error) { throw error }
 }
 
-export const cardService = {
+export const listService = {
   getList,
   createNew,
   getDetail,

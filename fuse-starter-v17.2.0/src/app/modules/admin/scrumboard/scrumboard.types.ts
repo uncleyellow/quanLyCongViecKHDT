@@ -14,9 +14,16 @@ export interface IList
 {
     id?: string | null;
     boardId: string;
-    position: number;
     title: string;
-    cards?: ICard[];
+    createdAt?: string | null;
+    archived?: boolean;
+    cards: ICard[];
+    cardOrderIds?: string[] | null;
+    createdBy?: string | null;
+    updatedBy?: string | null;
+    deletedBy?: string | null;
+    updatedAt?: string | null;
+    deletedAt?: string | null;
 }
 
 export interface ICard
@@ -24,17 +31,20 @@ export interface ICard
     id?: string | null;
     boardId: string;
     listId: string;
-    position: number;
     title: string;
     description?: string | null;
-    labels?: ILabel[];
+    position?: number;
     dueDate?: string | null;
-    type?: 'normal' | 'checklist';
+    type?: string;
     checklistItems?: {id?: string, text: string, checked: boolean}[];
-    startDate?: string;
-    endDate?: string;
-    member?: string;
-    members?: string[];
+    startDate?: string | null;
+    endDate?: string | null;
+    members?: string | null;
+    createdAt?: string;
+    archived?: 0 | 1;
+    dependencies?: string | null;
+    status?: string;
+    labels?: ILabel[];
 }
 
 export interface IMember

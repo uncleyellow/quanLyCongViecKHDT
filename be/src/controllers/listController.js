@@ -1,10 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
-import { cardService } from '../services/cardService'
+import { listService } from '../services/listService'
 
 const getList = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const listData = await cardService.getList({ ...req.query, userId: userId })
+        const listData = await listService.getList({ ...req.query, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -23,10 +23,8 @@ const getList = async (req, res, next) => {
 
 const createNew = async (req, res, next) => {
     try {
-        console.log(req.body)
         const { userId } = req.user
-        console.log(userId)
-        const newList = await cardService.createNew({ ...req.body, createdBy: userId })
+        const newList = await listService.createNew({ ...req.body, createdBy: userId })
         const responseObject = {
             code: StatusCodes.CREATED,
             status: 'success',
@@ -40,7 +38,7 @@ const createNew = async (req, res, next) => {
 const getDetail = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const listDetail = await cardService.getDetail({ ...req.params, userId: userId })
+        const listDetail = await listService.getDetail({ ...req.params, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -54,7 +52,7 @@ const getDetail = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedList = await cardService.update({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
+        const updatedList = await listService.update({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -68,7 +66,7 @@ const update = async (req, res, next) => {
 const updatePartial = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedList = await cardService.updatePartial({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
+        const updatedList = await listService.updatePartial({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -82,7 +80,7 @@ const updatePartial = async (req, res, next) => {
 const deleteItem = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const deletedList = await cardService.deleteItem({ ...req.params, userId: userId })
+        const deletedList = await listService.deleteItem({ ...req.params, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -96,7 +94,7 @@ const deleteItem = async (req, res, next) => {
 const getListsByBoard = async (req, res, next) => {
     try {
         const { boardId } = req.params
-        const lists = await cardService.getListsByBoard(boardId)
+        const lists = await listService.getListsByBoard(boardId)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -111,7 +109,7 @@ const updateCardOrder = async (req, res, next) => {
     try {
         const { listId } = req.params
         const { cardOrderIds } = req.body
-        const result = await cardService.updateCardOrder(listId, cardOrderIds)
+        const result = await listService.updateCardOrder(listId, cardOrderIds)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -122,7 +120,7 @@ const updateCardOrder = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
-export const cardController = {
+export const listController = {
     getList,
     createNew,
     getDetail,

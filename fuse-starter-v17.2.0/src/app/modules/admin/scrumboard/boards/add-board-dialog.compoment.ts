@@ -5,7 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 @Component({
   selector: 'add-board-dialog',
   template: `
-    <h2 mat-dialog-title>Thêm bảng mới</h2>
+    <h2 mat-dialog-title ngClass="text-lg font-medium">Thêm bảng mới</h2>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <mat-form-field class="w-full">
         <mat-label>Tiêu đề</mat-label>

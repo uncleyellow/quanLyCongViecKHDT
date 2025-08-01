@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
-import { Board, Card, Label, List, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { Board, Card, CreateCard, CreateList, Label, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
 // import { environment } from 'app/modules/admin/scrumboard/environments/environment';
 import { users as mockUsers } from 'app/mock-api/common/user/data';
 import { environment } from 'environments/environment.local';
@@ -92,10 +92,23 @@ export class ScrumboardService
      */
     getBoard(id: string): Observable<Board>
     {
-        return this._httpClient.get<Board>(`${environment.apiBaseUrl}/api/boards/${id}`)
+        return this._httpClient.get<Board>(`${environment.apiBaseUrl}/boards/${id}`)
             .pipe(
-                map(response => new Board(response)),
-                tap(board => this._board.next(board))
+                map((response: any) => {
+                    // Handle API response with { data: {...} }
+                    if (response && response.data) {
+                        return new Board(response.data);
+                    }
+                    // Fallback: if response itself is the board data
+                    if (response && response.id) {
+                        return new Board(response);
+                    }
+                    // Unexpected format
+                    console.error('Unexpected board response format:', response);
+                    return new Board({ title: 'Unknown Board' });
+                }),
+                tap(board => {
+                    this._board.next(board)})
             );
     }
 
@@ -112,7 +125,19 @@ export class ScrumboardService
         return this._httpClient.post<Board>(`${environment.apiBaseUrl}/api/boards`, {
             ...board,
             owner_email: ownerEmail
-        }).pipe(map(response => new Board(response)));
+        }).pipe(map((response: any) => {
+            // Handle API response with { data: {...} }
+            if (response && response.data) {
+                return new Board(response.data);
+            }
+            // Fallback: if response itself is the board data
+            if (response && response.id) {
+                return new Board(response);
+            }
+            // Unexpected format
+            console.error('Unexpected create board response format:', response);
+            return new Board({ title: 'Unknown Board' });
+        }));
     }
 
     /**
@@ -124,7 +149,19 @@ export class ScrumboardService
     updateBoard(id: string, board: Board): Observable<Board>
     {
         return this._httpClient.put<Board>(`${environment.apiBaseUrl}/api/boards/${id}`, board)
-            .pipe(map(response => new Board(response)));
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new Board(response.data);
+                }
+                // Fallback: if response itself is the board data
+                if (response && response.id) {
+                    return new Board(response);
+                }
+                // Unexpected format
+                console.error('Unexpected update board response format:', response);
+                return new Board({ title: 'Unknown Board' });
+            }));
     }
 
     /**
@@ -142,10 +179,22 @@ export class ScrumboardService
      *
      * @param list
      */
-    createList(boardId: string, list: List): Observable<List>
+    createList(boardId: string, list: CreateList): Observable<List>
     {
-        return this._httpClient.post<List>(`${environment.apiBaseUrl}/api/boards/${boardId}/lists`, list)
-            .pipe(map(response => new List(response)));
+        return this._httpClient.post<List>(`${environment.apiBaseUrl}/lists`, list)
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new List(response.data);
+                }
+                // Fallback: if response itself is the list data
+                if (response && response.id) {
+                    return new List(response);
+                }
+                // Unexpected format
+                console.error('Unexpected create list response format:', response);
+                return new List({ boardId: boardId, title: 'Unknown List', cards: [] });
+            }));
     }
 
     /**
@@ -153,10 +202,22 @@ export class ScrumboardService
      *
      * @param list
      */
-    updateList(listId: string, list: List): Observable<List>
+    updateList(listId: string, list: UpdateList): Observable<List>
     {
-        return this._httpClient.put<List>(`${environment.apiBaseUrl}/api/lists/${listId}`, list)
-            .pipe(map(response => new List(response)));
+        return this._httpClient.put<List>(`${environment.apiBaseUrl}/lists/${listId}`, list)
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new List(response.data);
+                }
+                // Fallback: if response itself is the list data
+                if (response && response.id) {
+                    return new List(response);
+                }
+                // Unexpected format
+                console.error('Unexpected update list response format:', response);
+                return new List({ boardId: list.boardId, title: list.title, cards: [] });
+            }));
     }
 
     /**
@@ -166,7 +227,7 @@ export class ScrumboardService
      */
     deleteList(listId: string): Observable<any>
     {
-        return this._httpClient.delete(`${environment.apiBaseUrl}/api/lists/${listId}`);
+        return this._httpClient.delete(`${environment.apiBaseUrl}/lists/${listId}`);
     }
 
     /**
@@ -205,10 +266,22 @@ export class ScrumboardService
      *
      * @param card
      */
-    createCard(listId: string, card: Card): Observable<Card>
+    createCard(listId: string, card: CreateCard): Observable<Card>
     {
-        return this._httpClient.post<Card>(`${environment.apiBaseUrl}/api/lists/${listId}/cards`, card)
-            .pipe(map(response => new Card(response)));
+        return this._httpClient.post<Card>(`${environment.apiBaseUrl}/cards`, card)
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new Card(response.data);
+                }
+                // Fallback: if response itself is the card data
+                if (response && response.id) {
+                    return new Card(response);
+                }
+                // Unexpected format
+                console.error('Unexpected create card response format:', response);
+                return new Card({ boardId: card.boardId, listId: listId, position: 0, title: 'Unknown Card' });
+            }));
     }
 
     /**
@@ -219,8 +292,20 @@ export class ScrumboardService
      */
     updateCard(cardId: string, card: Card): Observable<Card>
     {
-        return this._httpClient.put<Card>(`${environment.apiBaseUrl}/api/cards/${cardId}`, card)
-            .pipe(map(response => new Card(response)));
+        return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, card)
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new Card(response.data);
+                }
+                // Fallback: if response itself is the card data
+                if (response && response.id) {
+                    return new Card(response);
+                }
+                // Unexpected format
+                console.error('Unexpected update card response format:', response);
+                return new Card({ boardId: card.boardId, listId: card.listId, position: card.position, title: card.title });
+            }));
     }
 
     /**
@@ -230,7 +315,7 @@ export class ScrumboardService
      */
     deleteCard(cardId: string): Observable<any>
     {
-        return this._httpClient.delete(`${environment.apiBaseUrl}/api/cards/${cardId}`);
+        return this._httpClient.delete(`${environment.apiBaseUrl}/cards/${cardId}`);
     }
 
     /**
@@ -240,8 +325,20 @@ export class ScrumboardService
      */
     createLabel(boardId: string, label: Label): Observable<Label>
     {
-        return this._httpClient.post<Label>(`${environment.apiBaseUrl}/api/boards/${boardId}/labels`, label)
-            .pipe(map(response => new Label(response)));
+        return this._httpClient.post<Label>(`${environment.apiBaseUrl}/boards/${boardId}/labels`, label)
+            .pipe(map((response: any) => {
+                // Handle API response with { data: {...} }
+                if (response && response.data) {
+                    return new Label(response.data);
+                }
+                // Fallback: if response itself is the label data
+                if (response && response.id) {
+                    return new Label(response);
+                }
+                // Unexpected format
+                console.error('Unexpected create label response format:', response);
+                return new Label({ id: null, boardId: boardId, title: label.title });
+            }));
     }
 
     /**
@@ -329,8 +426,8 @@ export class ScrumboardService
      * @param listIds
      */
     reorderLists(boardId: string, listIds: string[]): Observable<any> {
-        return this._httpClient.put(`${environment.apiBaseUrl}/api/boards/${boardId}/lists/reorder`, {
-            list_ids: listIds
+        return this._httpClient.patch(`${environment.apiBaseUrl}/boards/${boardId}/reorder`, {
+            listOrderIds: listIds
         });
     }
 
@@ -341,8 +438,8 @@ export class ScrumboardService
      * @param cardIds
      */
     reorderCards(listId: string, cardIds: string[]): Observable<any> {
-        return this._httpClient.put(`${environment.apiBaseUrl}/api/lists/${listId}/cards/reorder`, {
-            card_ids: cardIds
+        return this._httpClient.patch(`${environment.apiBaseUrl}/lists/${listId}/reorder`, {
+            cardOrderIds: cardIds
         });
     }
 

@@ -4,7 +4,6 @@ import { userValidation } from '../validations/userValidation'
 
 const getMe = async (req, res, next) => {
   try {
-    console.log('req.user', req.user)
     const { userId } = req.user
     const user = await userService.getMe(userId)
     const responseObject = {
@@ -55,7 +54,7 @@ const checkPasswordChangeRequired = async (req, res, next) => {
       status: 'success',
       message: 'Password change status checked successfully',
       data: {
-        mustChangePassword: user.must_change_password || false
+        mustChangePassword: user.mustChangePassword || false
       }
     }
     res.status(StatusCodes.OK).json(responseObject)

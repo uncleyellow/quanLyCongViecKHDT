@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 const getMe = async (id) => {
   const user = await userModel.findOneById(id)
-  delete user.password_hash
+  delete user.passwordHash
   return user
 }
 
@@ -25,7 +25,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     const currentPasswordHash = crypto.createHash('sha256').update(currentPassword).digest('hex')
 
     // Kiểm tra mật khẩu hiện tại có đúng không
-    if (user.password_hash !== currentPasswordHash) {
+    if (user.passwordHash !== currentPasswordHash) {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Current password is incorrect')
     }
 

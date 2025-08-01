@@ -1,23 +1,40 @@
 import express from 'express'
-import { StatusCodes } from 'http-status-codes'
-// import { postValidation } from '.src/validations/postValidation'
-import { boardController } from '../../controllers/boardController'
+import { listValidation } from '../../validations/listValidation'
+import { listController } from '../../controllers/listController'
 import { verifyToken } from '../../middlewares/verifyToken'
-import { boardValidation } from '../../validations/boardValidation'
 
 const Router = express.Router()
 
 /**
  * @swagger
- * /boards:
+ * /lists:
  *   get:
- *     summary: Get all boards
- *     tags: [Boards]
+ *     summary: Get all lists with pagination
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: boardId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by board ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
  *     responses:
  *       200:
- *         description: List of boards retrieved successfully
+ *         description: Lists fetched successfully
  *         content:
  *           application/json:
  *             schema:
@@ -29,8 +46,8 @@ const Router = express.Router()
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   post:
- *     summary: Create a new board
- *     tags: [Boards]
+ *     summary: Create a new list
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -41,28 +58,29 @@ const Router = express.Router()
  *             type: object
  *             required:
  *               - title
+ *               - boardId
  *             properties:
  *               title:
  *                 type: string
+ *                 minLength: 3
  *                 maxLength: 255
- *                 example: My Project Board
- *               description:
+ *                 example: To Do
+ *               boardId:
  *                 type: string
- *                 nullable: true
- *                 example: A board for managing project tasks
- *               icon:
- *                 type: string
- *                 maxLength: 255
- *                 nullable: true
- *                 example: 📋
- *               isPublic:
+ *                 format: uuid
+ *                 example: 123e4567-e89b-12d3-a456-426614174000
+ *               order:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 1
+ *               archived:
  *                 type: integer
  *                 enum: [0, 1]
  *                 default: 0
- *                 example: 1
+ *                 example: 0
  *     responses:
  *       201:
- *         description: Board created successfully
+ *         description: List created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -81,15 +99,15 @@ const Router = express.Router()
  *               $ref: '#/components/schemas/Error'
  */
 Router.route('/')
-  .get(verifyToken, boardController.getList) // get list board
-  .post(verifyToken, boardController.createNew) // create new board
+    .get(verifyToken, listController.getList)
+    .post(verifyToken, listValidation.createNew, listController.createNew)
 
 /**
  * @swagger
- * /boards/{id}:
+ * /lists/{id}:
  *   get:
- *     summary: Get board by ID
- *     tags: [Boards]
+ *     summary: Get list detail by ID
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -99,29 +117,23 @@ Router.route('/')
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Board ID
+ *         description: List ID
  *     responses:
  *       200:
- *         description: Board retrieved successfully
+ *         description: List detail fetched successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Board not found
+ *         description: List not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   put:
- *     summary: Update board (full update)
- *     tags: [Boards]
+ *     summary: Update list completely
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -131,99 +143,30 @@ Router.route('/')
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Board ID
+ *         description: List ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - title
  *             properties:
  *               title:
  *                 type: string
+ *                 minLength: 3
  *                 maxLength: 255
- *                 example: My Project Board
- *               description:
- *                 type: string
- *                 nullable: true
- *                 example: A board for managing project tasks
- *               icon:
- *                 type: string
- *                 maxLength: 255
- *                 nullable: true
- *                 example: 📋
- *               isPublic:
+ *                 example: In Progress
+ *               order:
  *                 type: integer
- *                 enum: [0, 1]
- *                 default: 0
- *                 example: 1
- *     responses:
- *       200:
- *         description: Board updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       400:
- *         description: Bad request
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Board not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *   patch:
- *     summary: Update board (partial update)
- *     tags: [Boards]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Board ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 maxLength: 255
- *                 example: Updated Board Title
- *               description:
- *                 type: string
- *                 nullable: true
- *                 example: Updated board description
- *               icon:
- *                 type: string
- *                 maxLength: 255
- *                 nullable: true
- *                 example: 🎯
- *               isPublic:
+ *                 minimum: 0
+ *                 example: 2
+ *               archived:
  *                 type: integer
  *                 enum: [0, 1]
  *                 example: 0
  *     responses:
  *       200:
- *         description: Board updated successfully
+ *         description: List updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -235,14 +178,14 @@ Router.route('/')
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Board not found
+ *         description: List not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *   delete:
- *     summary: Delete board
- *     tags: [Boards]
+ *   patch:
+ *     summary: Update list partially
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -252,49 +195,128 @@ Router.route('/')
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Board ID
+ *         description: List ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 255
+ *                 example: Done
+ *               order:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 3
+ *               archived:
+ *                 type: integer
+ *                 enum: [0, 1]
+ *                 example: 1
  *     responses:
  *       200:
- *         description: Board deleted successfully
+ *         description: List updated successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
- *       401:
- *         description: Unauthorized
+ *       400:
+ *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Board not found
+ *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete list (soft delete)
+ *     tags: [Lists]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: List ID
+ *     responses:
+ *       200:
+ *         description: List deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: List not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
 Router.route('/:id')
-  .get(verifyToken, boardController.getDetail) // get detail board
-  .put(verifyToken, boardController.update) // update board
-  .patch(verifyToken, boardController.updatePartial) // update partial board
-  .delete(verifyToken, boardController.deleteItem) // delete board
+    .get(verifyToken, listController.getDetail)
+    .put(verifyToken, listValidation.update, listController.update)
+    .patch(verifyToken, listValidation.updatePartial, listController.updatePartial)
+    .delete(verifyToken, listController.deleteItem)
 
 /**
  * @swagger
- * /boards/{id}/reorder:
- *   patch:
- *     summary: Reorder lists in a board
- *     tags: [Boards]
+ * /lists/board/{boardId}:
+ *   get:
+ *     summary: Get all lists by board ID
+ *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: boardId
  *         required: true
  *         schema:
  *           type: string
  *           format: uuid
  *         description: Board ID
+ *     responses:
+ *       200:
+ *         description: Lists by board fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+Router.route('/board/:boardId')
+    .get(verifyToken, listController.getListsByBoard)
+
+/**
+ * @swagger
+ * /lists/{listId}/card-order:
+ *   put:
+ *     summary: Update card order in list
+ *     tags: [Lists]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: listId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: List ID
  *     requestBody:
  *       required: true
  *       content:
@@ -302,18 +324,17 @@ Router.route('/:id')
  *           schema:
  *             type: object
  *             required:
- *               - listOrderIds
+ *               - cardOrderIds
  *             properties:
- *               listOrderIds:
+ *               cardOrderIds:
  *                 type: array
  *                 items:
  *                   type: string
- *                   format: uuid
- *                 example: ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001"]
- *                 description: Array of list IDs in the desired order
+ *                   pattern: '^[0-9a-fA-F]{24}$'
+ *                 example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
  *     responses:
  *       200:
- *         description: Lists reordered successfully
+ *         description: Card order updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -324,20 +345,14 @@ Router.route('/:id')
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Board not found
+ *         description: List not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-Router.route('/:id/reorder')
-  .patch(verifyToken, boardValidation.reorder, boardController.reorder) // reorder lists in board
-
-export const boardRoute = Router
+Router.route('/:listId/card-order')
+    .put(verifyToken, listValidation.updateCardOrder, listController.updateCardOrder)
+   
+export const listRoute = Router

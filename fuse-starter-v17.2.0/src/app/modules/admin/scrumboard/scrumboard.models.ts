@@ -76,9 +76,16 @@ export class List implements Required<IList>
 {
     id: string | null;
     boardId: string;
-    position: number;
     title: string;
     cards: Card[];
+    createdAt: string | null;
+    archived: boolean;
+    cardOrderIds: string[] | null;
+    createdBy: string | null;
+    updatedBy: string | null;
+    deletedBy: string | null;
+    updatedAt: string | null;
+    deletedAt: string | null;
 
     /**
      * Constructor
@@ -87,9 +94,16 @@ export class List implements Required<IList>
     {
         this.id = list.id || null;
         this.boardId = list.boardId;
-        this.position = list.position;
         this.title = list.title;
         this.cards = [];
+        this.createdAt = list.createdAt || null;
+        this.archived = list.archived || false;
+        this.cardOrderIds = list.cardOrderIds || null;
+        this.createdBy = list.createdBy || null;
+        this.updatedBy = list.updatedBy || null;
+        this.deletedBy = list.deletedBy || null;
+        this.updatedAt = list.updatedAt || null;
+        this.deletedAt = list.deletedAt || null;
 
         // Cards
         if ( list.cards )
@@ -106,6 +120,41 @@ export class List implements Required<IList>
     }
 }
 
+export class CreateList implements Partial<IList>
+{
+    boardId: string;
+    title: string;
+
+    /**
+     * Constructor
+     */
+    constructor(data: { boardId: string; title: string })
+    {
+        this.boardId = data.boardId;
+        this.title = data.title;
+    }
+}
+
+export class UpdateList implements Partial<IList>
+{
+    boardId: string;
+    title: string;
+    archived?: boolean;
+    cardOrderIds?: string[];
+
+    /**
+     * Constructor
+     */
+    constructor(data: { boardId: string; title: string; archived?: boolean; cardOrderIds?: string[] })
+    {
+        this.boardId = data.boardId;
+        this.title = data.title;
+        this.archived = data.archived ?? false;
+        this.cardOrderIds = data.cardOrderIds ?? [];
+    }
+}
+
+
 // -----------------------------------------------------------------------------------------------------
 // @ Card
 // -----------------------------------------------------------------------------------------------------
@@ -114,53 +163,66 @@ export class Card implements Required<ICard>
     id: string | null;
     boardId: string;
     listId: string;
-    position: number;
     title: string;
     description: string | null;
-    labels: Label[];
+    position: number;
     dueDate: string | null;
-    type: 'normal' | 'checklist';
+    type: string;
     checklistItems: {id?: string, text: string, checked: boolean}[];
-    startDate: string;
-    endDate: string;
-    member: string;
-    members: string[];
-    selectedMember:string[];
+    startDate: string | null;
+    endDate: string | null;
+    members: string | null;
+    createdAt: string;
+    archived: 0 | 1;
+    dependencies: string | null;
+    status: string;
+    labels: Label[];
+    /**
+     * Constructor
+     */
+    constructor(card: ICard)
+    {
+        this.id = card.id ?? null;
+        this.boardId = card.boardId;
+        this.listId = card.listId;
+        this.title = card.title;
+        this.description = card.description ?? null;
+        this.position = card.position ?? 0;
+        this.dueDate = card.dueDate ?? null;
+        this.type = card.type ?? 'normal';
+        this.checklistItems = card.checklistItems ?? [];
+        this.startDate = card.startDate ?? null;
+        this.endDate = card.endDate ?? null;
+        this.members = card.members ?? null;
+        this.createdAt = card.createdAt ?? '';
+        this.archived = card.archived ?? 0;
+        this.dependencies = card.dependencies ?? null;
+        this.status = card.status ?? 'todo';
+        this.labels = [];
+    }
+}
+
+export class CreateCard implements Partial<ICard>
+{
+    boardId: string;
+    listId: string;
+    title: string;
+    type: string;
+    status: string;
 
     /**
      * Constructor
      */
     constructor(card: ICard)
     {
-        this.id = card.id || null;
         this.boardId = card.boardId;
         this.listId = card.listId;
-        this.position = card.position;
         this.title = card.title;
-        this.description = card.description || null;
-        this.labels = [];
-        this.dueDate = card.dueDate || null;
-        this.type = card.type || 'normal';
-        this.checklistItems = card.checklistItems || [];
-        this.startDate = card.startDate || '';
-        this.endDate = card.endDate || '';
-        this.member = card.member || '';
-        this.members = card.members || [];
-
-        // Labels
-        if ( card.labels )
-        {
-            this.labels = card.labels.map((label) => {
-                if ( !(label instanceof Label) )
-                {
-                    return new Label(label);
-                }
-
-                return label;
-            });
-        }
+        this.type = card.type ?? 'normal';
+        this.status = card.status ?? 'todo';
     }
 }
+
 
 // -----------------------------------------------------------------------------------------------------
 // @ Member

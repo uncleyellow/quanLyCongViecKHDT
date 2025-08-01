@@ -22,15 +22,15 @@
  *         name:
  *           type: string
  *           description: User's full name
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *           description: User creation timestamp
- *         updated_at:
+ *         updatedAt:
  *           type: string
  *           format: date-time
  *           description: User last update timestamp
- *         deleted_at:
+ *         deletedAt:
  *           type: string
  *           format: date-time
  *           nullable: true
@@ -66,50 +66,50 @@
  *           maxLength: 255
  *           nullable: true
  *           description: Board icon
- *         owner_id:
+ *         ownerId:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: Board owner ID
- *         is_public:
+ *         isPublic:
  *           type: integer
  *           enum: [0, 1]
  *           default: 0
  *           description: Board visibility (0 = private, 1 = public)
- *         company_id:
+ *         companyId:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: Company ID
- *         department_id:
+ *         departmentId:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: Department ID
- *         created_by:
+ *         createdBy:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: User who created the board
- *         updated_by:
+ *         updatedBy:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: User who last updated the board
- *         deleted_by:
+ *         deletedBy:
  *           type: string
  *           format: uuid
  *           nullable: true
  *           description: User who deleted the board
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *           description: Board creation timestamp
- *         updated_at:
+ *         updatedAt:
  *           type: string
  *           format: date-time
  *           description: Board last update timestamp
- *         deleted_at:
+ *         deletedAt:
  *           type: string
  *           format: date-time
  *           nullable: true
@@ -294,12 +294,12 @@
  *                   title: My Project Board
  *                   description: A board for managing project tasks
  *                   icon: 📋
- *                   is_public: 1
+ *                   isPublic: 1
  *                 - id: 2
  *                   title: My Personal Board
  *                   description: A board for personal tasks
  *                   icon: 📝
- *                   is_public: 0
+ *                   isPublic: 0
  *       401:
  *         description: Unauthorized
  *         content:
@@ -333,17 +333,17 @@
  *                 maxLength: 255
  *                 nullable: true
  *                 example: 📋
- *               is_public:
+ *               isPublic:
  *                 type: integer
  *                 enum: [0, 1]
  *                 default: 0
  *                 example: 1
- *               company_id:
+ *               companyId:
  *                 type: string
  *                 format: uuid
  *                 nullable: true
  *                 example: 123e4567-e89b-12d3-a456-426614174000
- *               department_id:
+ *               departmentId:
  *                 type: string
  *                 format: uuid
  *                 nullable: true
@@ -364,7 +364,7 @@
  *                 title: My Project Board
  *                 description: A board for managing project tasks
  *                 icon: 📋
- *                 is_public: 1
+ *                 isPublic: 1
  *       400:
  *         description: Bad request
  *         content:
@@ -411,12 +411,12 @@
  *                 title: My Project Board
  *                 description: A board for managing project tasks
  *                 icon: 📋
- *                 is_public: 1
- *                 owner_id: 123e4567-e89b-12d3-a456-426614174002
- *                 company_id: 123e4567-e89b-12d3-a456-426614174003
- *                 department_id: 123e4567-e89b-12d3-a456-426614174004
- *                 created_at: 2024-01-01T00:00:00.000Z
- *                 updated_at: 2024-01-01T00:00:00.000Z
+ *                 isPublic: 1
+ *                 ownerId: 123e4567-e89b-12d3-a456-426614174002
+ *                 companyId: 123e4567-e89b-12d3-a456-426614174003
+ *                 departmentId: 123e4567-e89b-12d3-a456-426614174004
+ *                 createdAt: 2024-01-01T00:00:00.000Z
+ *                 updatedAt: 2024-01-01T00:00:00.000Z
  *       401:
  *         description: Unauthorized
  *         content:
@@ -464,17 +464,17 @@
  *                 maxLength: 255
  *                 nullable: true
  *                 example: 📋
- *               is_public:
+ *               isPublic:
  *                 type: integer
  *                 enum: [0, 1]
  *                 default: 0
  *                 example: 1
- *               company_id:
+ *               companyId:
  *                 type: string
  *                 format: uuid
  *                 nullable: true
  *                 example: 123e4567-e89b-12d3-a456-426614174000
- *               department_id:
+ *               departmentId:
  *                 type: string
  *                 format: uuid
  *                 nullable: true
@@ -495,7 +495,7 @@
  *                 title: My Project Board
  *                 description: A board for managing project tasks
  *                 icon: 📋
- *                 is_public: 1
+ *                 isPublic: 1
  *       400:
  *         description: Bad request
  *         content:
@@ -541,11 +541,11 @@
  *                 maxLength: 255
  *                 nullable: true
  *                 example: 🎯
- *               is_public:
+ *               isPublic:
  *                 type: integer
  *                 enum: [0, 1]
  *                 example: 0
- *               company_id:
+ *               companyId:
  *                 type: string
  *                 format: uuid
  *                 nullable: true
@@ -565,12 +565,12 @@
  *                 title: My Project Board
  *                 description: A board for managing project tasks
  *                 icon: 📋
- *                 is_public: 1
- *                 owner_id: 123e4567-e89b-12d3-a456-426614174002
- *                 company_id: 123e4567-e89b-12d3-a456-426614174003
- *                 department_id: 123e4567-e89b-12d3-a456-426614174004
- *                 created_at: 2024-01-01T00:00:00.000Z
- *                 updated_at: 2024-01-01T00:00:00.000Z
+ *                 isPublic: 1
+ *                 ownerId: 123e4567-e89b-12d3-a456-426614174002
+ *                 companyId: 123e4567-e89b-12d3-a456-426614174003
+ *                 departmentId: 123e4567-e89b-12d3-a456-426614174004
+ *                 createdAt: 2024-01-01T00:00:00.000Z
+ *                 updatedAt: 2024-01-01T00:00:00.000Z
  *       400:
  *         description: Bad request
  *         content:
@@ -612,11 +612,11 @@
  *                 title: My Project Board
  *                 description: A board for managing project tasks
  *                 icon: 📋
- *                 is_public: 1
- *                 owner_id: 123e4567-e89b-12d3-a456-426614174002
- *                 company_id: 123e4567-e89b-12d3-a456-426614174003
- *                 department_id: 123e4567-e89b-12d3-a456-426614174004
- *                 created_at: 2024-01-01T00:00:00.000Z
+ *                 isPublic: 1
+ *                 ownerId: 123e4567-e89b-12d3-a456-426614174002
+ *                 companyId: 123e4567-e89b-12d3-a456-426614174003
+ *                 departmentId: 123e4567-e89b-12d3-a456-426614174004
+ *                 createdAt: 2024-01-01T00:00:00.000Z
  *       401:
  *         description: Unauthorized
  *         content:
