@@ -46,7 +46,25 @@ const update = async (req, res, next) => {
     }
 }
 
+const reorder = async (req, res, next) => {
+    const correctCondition = Joi.object({
+        listOrderIds: Joi.array().items(Joi.string().uuid()).required().messages({
+            'any.required': 'listOrderIds is required',
+            'array.base': 'listOrderIds must be an array',
+            'array.items': 'listOrderIds must contain valid UUID strings'
+        })
+    })
+
+    try {
+        await correctCondition.validateAsync(req.body, { abortEarly: false })
+        next()
+    } catch (error) {
+        next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message))
+    }
+}
+
 export const boardValidation = {
     createNew,
-    update
+    update,
+    reorder
 }

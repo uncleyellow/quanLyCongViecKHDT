@@ -87,7 +87,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                     if (foundListId) break;
                 }
                 this.card.listId = foundListId;
-                this.selectedMember = card.member || '';
+                this.selectedMember = card.members || '';
                 this.newLabels = ''; // reset khi mở
             });
 

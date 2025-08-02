@@ -4,7 +4,7 @@ import { boardService } from '../services/boardService'
 const getList = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const boardList = await boardService.getList({ ...req.query, user_id: userId })
+        const boardList = await boardService.getList({ ...req.query, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -24,7 +24,7 @@ const getList = async (req, res, next) => {
 const createNew = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const newBoard = await boardService.createNew({ ...req.body, user_id: userId })
+        const newBoard = await boardService.createNew({ ...req.body, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -38,7 +38,7 @@ const createNew = async (req, res, next) => {
 const getDetail = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const boardDetail = await boardService.getDetail({ ...req.params, user_id: userId })
+        const boardDetail = await boardService.getDetail({ ...req.params, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -52,7 +52,7 @@ const getDetail = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedBoard = await boardService.update({ ...req.params, user_id: userId }, req.body)
+        const updatedBoard = await boardService.update({ ...req.params, userId: userId }, req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -66,7 +66,7 @@ const update = async (req, res, next) => {
 const updatePartial = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedBoard = await boardService.updatePartial({ ...req.params, user_id: userId }, req.body)
+        const updatedBoard = await boardService.updatePartial({ ...req.params, userId: userId }, req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -80,12 +80,26 @@ const updatePartial = async (req, res, next) => {
 const deleteItem = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const deletedBoard = await boardService.delete({ ...req.params, user_id: userId })
+        const deletedBoard = await boardService.delete({ ...req.params, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
             message: 'Board deleted successfully',
             data: deletedBoard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
+const reorder = async (req, res, next) => {
+    try {
+        const { userId } = req.user
+        const reorderedBoard = await boardService.reorder({ ...req.params, userId: userId }, req.body)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Board lists reordered successfully',
+            data: reorderedBoard
         }
         res.status(StatusCodes.OK).json(responseObject)
     } catch (error) { next(error) }
@@ -97,5 +111,6 @@ export const boardController = {
     getDetail,
     update,
     updatePartial,
-    deleteItem
+    deleteItem,
+    reorder
 }

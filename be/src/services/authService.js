@@ -16,7 +16,7 @@ const createNew = async (reqBody) => {
     }
 
     // Hash password before saving to database
-    newUser.password_hash = crypto.createHash('sha256').update(newUser.password).digest('hex')
+    newUser.passwordHash = crypto.createHash('sha256').update(newUser.password).digest('hex')
     delete newUser.password // Remove plain password from object
 
     // Gọi tới tằng Model để xử lý lưu bản ghi newBoard vào trong Database
@@ -24,7 +24,7 @@ const createNew = async (reqBody) => {
 
     // Lấy bản ghi board vừa tạo ra để trả về cho tầng controller
     const getNewUser = await userModel.findOneById(createdUser[0].insertId)
-    delete getNewUser.password_hash
+    delete getNewUser.passwordHash
     const token = jwt.sign({ userId: getNewUser.id }, process.env.JWT_SECRET, { expiresIn: '14d' })
     return { ...getNewUser, token }
   } catch (error) {
@@ -36,6 +36,7 @@ const login = async (reqBody) => {
   try {
     const { email, password } = reqBody
     const user = await userModel.getUserByEmail(email)
+    console.log(user)
     if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
     // Hash password before comparing with database
     const hashedPassword = crypto.createHash('sha256').update(password).digest('hex')
@@ -44,7 +45,7 @@ const login = async (reqBody) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '14d' })
 
-    delete user.password_hash
+    delete user.passwordHash
     return { ...user, token }
   } catch (error) { throw error }
 }

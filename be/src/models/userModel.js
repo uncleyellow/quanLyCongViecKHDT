@@ -1,5 +1,6 @@
 import Joi from 'joi'
 import db from '../config/db'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators'
 
 // Define Collection (Name & Schema)
 const USER_TABLE_NAME = 'users'
@@ -9,12 +10,13 @@ const USER_TABLE_SCHEMA = Joi.object({
   email: Joi.string().email().max(150).required().trim().strict(),
   password_hash: Joi.string().min(1).max(255).required().trim().strict(),
   type: Joi.string().valid('staff', 'manager', 'boss', 'admin').default('staff'),
-  created_at: Joi.date().allow(null).default(Date.now),
-  updated_at: Joi.date().allow(null).default(Date.now),
-  deleted_at: Joi.date().allow(null).default(null),
   status: Joi.string().valid('online', 'banned', 'disabled').default('online'),
   avatar: Joi.string().max(255).allow(null).default(null),
-  must_change_password: Joi.boolean().default(true)
+  must_change_password: Joi.boolean().default(true),
+  board_order_ids: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  created_at: Joi.date().allow(null).default(Date.now),
+  updated_at: Joi.date().allow(null).default(Date.now),
+  deleted_at: Joi.date().allow(null).default(null)
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'created_at']

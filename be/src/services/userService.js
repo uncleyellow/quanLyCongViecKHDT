@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 const getMe = async (id) => {
   const user = await userModel.findOneById(id)
-  delete user.password_hash
+  delete user.passwordHash
   return user
 }
 
