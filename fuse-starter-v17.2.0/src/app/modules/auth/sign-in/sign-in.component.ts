@@ -81,7 +81,7 @@ export class AuthSignInComponent implements OnInit
                 next: (response) => {
                     // Check if user must change password
                     const user = response.data;
-                    if (user.must_change_password === 1) {
+                    if (user.mustChangePassword === 1) {
                         this.showChangePasswordModal();
                     } else {
                         // Set the redirect url.

@@ -33,7 +33,7 @@ const changePassword = async (req, res, next) => {
     }
 
     const result = await userService.changePassword(userId, currentPassword, newPassword)
-    
+
     const responseObject = {
       code: StatusCodes.OK,
       status: 'success',
@@ -48,7 +48,7 @@ const checkPasswordChangeRequired = async (req, res, next) => {
   try {
     const { userId } = req.user
     const user = await userService.getMe(userId)
-    
+
     const responseObject = {
       code: StatusCodes.OK,
       status: 'success',

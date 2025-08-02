@@ -1,11 +1,8 @@
 /* eslint-disable no-useless-catch */
 import { StatusCodes } from 'http-status-codes'
-import { cloneDeep } from 'lodash'
 import { userModel } from '../models/userModel'
 import ApiError from '../utils/ApiError'
 import crypto from 'crypto'
-import jwt from 'jsonwebtoken'
-import { v4 as uuidv4 } from 'uuid'
 
 const getMe = async (id) => {
   const user = await userModel.findOneById(id)
@@ -25,7 +22,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     const currentPasswordHash = crypto.createHash('sha256').update(currentPassword).digest('hex')
 
     // Kiểm tra mật khẩu hiện tại có đúng không
-    if (user.password_hash !== currentPasswordHash) {
+    if (user.passwordHash !== currentPasswordHash) {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Current password is incorrect')
     }
 
