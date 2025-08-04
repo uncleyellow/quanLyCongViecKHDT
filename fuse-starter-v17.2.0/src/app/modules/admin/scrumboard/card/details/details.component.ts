@@ -10,13 +10,12 @@ import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.servi
 import { Board, Card, Label, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
 
 @Component({
-    selector       : 'scrumboard-card-details',
-    templateUrl    : './details.component.html',
-    encapsulation  : ViewEncapsulation.None,
+    selector: 'scrumboard-card-details',
+    templateUrl: './details.component.html',
+    encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
-{
+export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     @ViewChild('labelInput') labelInput: ElementRef<HTMLInputElement>;
     board: Board;
     card: Card;
@@ -39,8 +38,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         private _changeDetectorRef: ChangeDetectorRef,
         private _formBuilder: UntypedFormBuilder,
         private _scrumboardService: ScrumboardService
-    )
-    {
+    ) {
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -50,8 +48,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     /**
      * On init
      */
-    ngOnInit(): void
-    {
+    ngOnInit(): void {
         // Lấy danh sách members từ mock data
         this._scrumboardService.getMembers().subscribe(members => {
             this.members = members;
@@ -93,11 +90,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
 
         // Prepare the card form
         this.cardForm = this._formBuilder.group({
-            id         : [''],
-            title      : ['', Validators.required],
+            id: [''],
+            title: ['', Validators.required],
             description: [''],
-            labels     : [[]],
-            dueDate    : [null],
+            labels: [[]],
+            dueDate: [null],
             checklistItems: this._formBuilder.array([]),
             listId: this.card.listId,
             boardId: this.board.id,
@@ -106,11 +103,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
 
         // Fill the form
         this.cardForm.setValue({
-            id         : this.card.id,
-            title      : this.card.title,
+            id: this.card.id,
+            title: this.card.title,
             description: this.card.description,
-            labels     : this.card.labels,
-            dueDate    : this.card.dueDate,
+            labels: this.card.labels,
+            dueDate: this.card.dueDate,
             checklistItems: [],
             listId: this.card.listId,
             boardId: this.board.id,
@@ -146,8 +143,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     /**
      * On destroy
      */
-    ngOnDestroy(): void
-    {
+    ngOnDestroy(): void {
         // Unsubscribe from all subscriptions
         this._unsubscribeAll.next(null);
         this._unsubscribeAll.complete();
@@ -162,8 +158,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param label
      */
-    hasLabel(label: Label): boolean
-    {
+    hasLabel(label: Label): boolean {
         return !!this.card.labels.find(cardLabel => cardLabel.id === label.id);
     }
 
@@ -172,8 +167,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param event
      */
-    filterLabels(event): void
-    {
+    filterLabels(event): void {
         // Get the value
         const value = event.target.value.toLowerCase();
 
@@ -186,17 +180,14 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param event
      */
-    filterLabelsInputKeyDown(event): void
-    {
+    filterLabelsInputKeyDown(event): void {
         // Return if the pressed key is not 'Enter'
-        if ( event.key !== 'Enter' )
-        {
+        if (event.key !== 'Enter') {
             return;
         }
 
         // If there is no label available...
-        if ( this.filteredLabels.length === 0 )
-        {
+        if (this.filteredLabels.length === 0) {
             // Return
             return;
         }
@@ -206,13 +197,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         const isLabelApplied = this.card.labels.find(cardLabel => cardLabel.id === label.id);
 
         // If the found label is already applied to the card...
-        if ( isLabelApplied )
-        {
+        if (isLabelApplied) {
             // Remove the label from the card
             this.removeLabelFromCard(label);
         }
-        else
-        {
+        else {
             // Otherwise add the label to the card
             this.addLabelToCard(label);
         }
@@ -224,14 +213,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      * @param label
      * @param change
      */
-    toggleProductTag(label: Label, change: MatCheckboxChange): void
-    {
-        if ( change.checked )
-        {
+    toggleProductTag(label: Label, change: MatCheckboxChange): void {
+        if (change.checked) {
             this.addLabelToCard(label);
         }
-        else
-        {
+        else {
             this.removeLabelFromCard(label);
         }
     }
@@ -241,8 +227,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param label
      */
-    addLabelToCard(label: Label): void
-    {
+    addLabelToCard(label: Label): void {
         // Add the label
         this.card.labels.unshift(label);
 
@@ -258,8 +243,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param label
      */
-    removeLabelFromCard(label: Label): void
-    {
+    removeLabelFromCard(label: Label): void {
         // Remove the label
         this.card.labels.splice(this.card.labels.findIndex(cardLabel => cardLabel.id === label.id), 1);
 
@@ -273,8 +257,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     /**
      * Check if the given date is overdue
      */
-    isOverdue(date: string): boolean
-    {
+    isOverdue(date: string): boolean {
         return DateTime.fromISO(date).startOf('day') < DateTime.now().startOf('day');
     }
 
@@ -284,8 +267,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      * @param index
      * @param item
      */
-    trackByFn(index: number, item: any): any
-    {
+    trackByFn(index: number, item: any): any {
         return item.id || index;
     }
 
@@ -294,23 +276,34 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
     addChecklistItem() {
         if (this.newChecklistText && this.newChecklistText.trim()) {
             const newItemText = this.newChecklistText.trim();
-            
+
             // Tạo item mới tạm thời để hiển thị ngay lập tức
             const tempItem = {
                 id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 text: newItemText,
                 checked: false
             };
-            
+
             // Thêm item mới vào UI ngay lập tức
             if (!this.card.checklistItems) {
                 this.card.checklistItems = [];
             }
             this.card.checklistItems.push(tempItem);
             this._changeDetectorRef.markForCheck();
-            
+
+            const currentChecklistItems = this.card.checklistItems || [];
+
+            // Thêm item mới vào checklist
+            const newChecklistItems = [
+                ...currentChecklistItems,
+                {
+                    id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Tạo ID tạm thời unique
+                    checked: false,
+                    text: newItemText
+                }
+            ];
             // Gọi API để lưu vào database
-            this._scrumboardService.addChecklistItem(this.card.id, newItemText).subscribe((response: any) => {
+            this._scrumboardService.updateChecklistItem(this.card.id, newChecklistItems).subscribe((response: any) => {
                 // Cập nhật item với ID thật từ server (nếu có)
                 if (response && response.data) {
                     const serverItem = response.data;
@@ -329,7 +322,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                 }
                 console.error('Error adding checklist item:', error);
             });
-            
+
             this.newChecklistText = '';
         }
     }
@@ -338,14 +331,15 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         if (this.card.checklistItems && this.card.checklistItems[i]) {
             const itemToRemove = this.card.checklistItems[i];
             const itemId = itemToRemove.id;
-            
+
             // Xóa item khỏi UI ngay lập tức
             this.card.checklistItems.splice(i, 1);
             this._changeDetectorRef.markForCheck();
-            
-            // Gọi API để xóa khỏi database
+
+            // Gọi API để xóa khỏi database bằng PATCH method
             if (itemId && !itemId.startsWith('temp_')) {
-                this._scrumboardService.deleteChecklistItem(this.card.id, itemId).subscribe(() => {
+                // Sử dụng PATCH để cập nhật checklistItems mới (không có item bị xóa)
+                this._scrumboardService.updateChecklistItem(this.card.id, this.card.checklistItems).subscribe(() => {
                     // Xóa thành công, không cần làm gì thêm
                 }, (error) => {
                     // Nếu có lỗi, thêm lại item vào UI
@@ -361,16 +355,14 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         if (this.card.checklistItems && this.card.checklistItems[i]) {
             const item = this.card.checklistItems[i];
             const itemId = item.id;
-            
+
             // Toggle trạng thái checked ngay lập tức
             item.checked = !item.checked;
             this._changeDetectorRef.markForCheck();
-            
+
             // Gọi API để cập nhật database
             if (itemId && !itemId.startsWith('temp_')) {
-                this._scrumboardService.updateChecklistItem(this.card.id, itemId, {
-                    checked: item.checked
-                }).subscribe(() => {
+                this._scrumboardService.updateChecklistItem(this.card.id, this.card.checklistItems).subscribe(() => {
                     // Cập nhật thành công, không cần làm gì thêm
                 }, (error) => {
                     // Nếu có lỗi, revert lại trạng thái
@@ -392,10 +384,10 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             try {
                 const user = JSON.parse(userStr);
                 creatorId = user.id;
-            } catch {}
+            } catch { }
         }
         // Nếu card chưa có members, set người tạo là member đầu tiên
-        let members = this.card.members && this.card.members.length ? [...this.card.members] : [];
+        let members: string[] = Array.isArray(this.card.members) && this.card.members.length ? [...this.card.members] : (this.card.members.length > 0 ? [this.card.members] : []);
         if (members.length === 0 && creatorId) {
             members = [creatorId];
         }
@@ -443,8 +435,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
      *
      * @param file
      */
-    private _readAsDataURL(file: File): Promise<any>
-    {
+    private _readAsDataURL(file: File): Promise<any> {
         // Return a new promise
         return new Promise((resolve, reject) => {
 

@@ -9,8 +9,7 @@ import { environment } from 'environments/environment.local';
 @Injectable({
     providedIn: 'root'
 })
-export class ScrumboardService
-{
+export class ScrumboardService {
     // Private
     private _board: BehaviorSubject<Board | null>;
     private _boards: BehaviorSubject<Board[] | null>;
@@ -21,8 +20,7 @@ export class ScrumboardService
      */
     constructor(
         private _httpClient: HttpClient
-    )
-    {
+    ) {
         // Set the private defaults
         this._board = new BehaviorSubject(null);
         this._boards = new BehaviorSubject(null);
@@ -36,24 +34,21 @@ export class ScrumboardService
     /**
      * Getter for board
      */
-    get board$(): Observable<Board>
-    {
+    get board$(): Observable<Board> {
         return this._board.asObservable();
     }
 
     /**
      * Getter for boards
      */
-    get boards$(): Observable<Board[]>
-    {
+    get boards$(): Observable<Board[]> {
         return this._boards.asObservable();
     }
 
     /**
      * Getter for card
      */
-    get card$(): Observable<Card>
-    {
+    get card$(): Observable<Card> {
         return this._card.asObservable();
     }
 
@@ -64,8 +59,7 @@ export class ScrumboardService
     /**
      * Get boards
      */
-    getBoards(userId: string): Observable<Board[]>
-    {
+    getBoards(userId: string): Observable<Board[]> {
         return this._httpClient.get<Board[]>(`${environment.apiBaseUrl}/boards`)
             .pipe(
                 map((response: any) => {
@@ -90,8 +84,7 @@ export class ScrumboardService
      *
      * @param id
      */
-    getBoard(id: string): Observable<Board>
-    {
+    getBoard(id: string): Observable<Board> {
         return this._httpClient.get<Board>(`${environment.apiBaseUrl}/boards/${id}`)
             .pipe(
                 map((response: any) => {
@@ -108,7 +101,8 @@ export class ScrumboardService
                     return new Board({ title: 'Unknown Board' });
                 }),
                 tap(board => {
-                    this._board.next(board)})
+                    this._board.next(board)
+                })
             );
     }
 
@@ -117,8 +111,7 @@ export class ScrumboardService
      *
      * @param board
      */
-    createBoard(board: Board, ownerEmail: string): Observable<Board>
-    {
+    createBoard(board: Board, ownerEmail: string): Observable<Board> {
         debugger
         const userStr = localStorage.getItem('user');
         ownerEmail == userStr
@@ -146,8 +139,7 @@ export class ScrumboardService
      * @param id
      * @param board
      */
-    updateBoard(id: string, board: Board): Observable<Board>
-    {
+    updateBoard(id: string, board: Board): Observable<Board> {
         return this._httpClient.put<Board>(`${environment.apiBaseUrl}/api/boards/${id}`, board)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
@@ -169,8 +161,7 @@ export class ScrumboardService
      *
      * @param id
      */
-    deleteBoard(id: string): Observable<any>
-    {
+    deleteBoard(id: string): Observable<any> {
         return this._httpClient.delete(`${environment.apiBaseUrl}/api/boards/${id}`);
     }
 
@@ -179,8 +170,7 @@ export class ScrumboardService
      *
      * @param list
      */
-    createList(boardId: string, list: CreateList): Observable<List>
-    {
+    createList(boardId: string, list: CreateList): Observable<List> {
         return this._httpClient.post<List>(`${environment.apiBaseUrl}/lists`, list)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
@@ -202,8 +192,7 @@ export class ScrumboardService
      *
      * @param list
      */
-    updateList(listId: string, list: UpdateList): Observable<List>
-    {
+    updateList(listId: string, list: UpdateList): Observable<List> {
         return this._httpClient.put<List>(`${environment.apiBaseUrl}/lists/${listId}`, list)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
@@ -225,23 +214,21 @@ export class ScrumboardService
      *
      * @param id
      */
-    deleteList(listId: string): Observable<any>
-    {
+    deleteList(listId: string): Observable<any> {
         return this._httpClient.delete(`${environment.apiBaseUrl}/lists/${listId}`);
     }
 
     /**
      * Get card
      */
-    getCard(id: string): Observable<Card>
-    {
+    getCard(id: string): Observable<Card> {
         return this._board.pipe(
             take(1),
             map((board) => {
 
                 // Find the card
                 const card = board.lists.find(list => list.cards.some(item => item.id === id))
-                                  .cards.find(item => item.id === id);
+                    .cards.find(item => item.id === id);
 
                 // Update the card
                 this._card.next(card);
@@ -251,8 +238,7 @@ export class ScrumboardService
             }),
             switchMap((card) => {
 
-                if ( !card )
-                {
+                if (!card) {
                     return throwError('Could not found the card with id of ' + id + '!');
                 }
 
@@ -266,8 +252,7 @@ export class ScrumboardService
      *
      * @param card
      */
-    createCard(listId: string, card: CreateCard): Observable<Card>
-    {
+    createCard(listId: string, card: CreateCard): Observable<Card> {
         return this._httpClient.post<Card>(`${environment.apiBaseUrl}/cards`, card)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
@@ -290,8 +275,7 @@ export class ScrumboardService
      * @param id
      * @param card
      */
-    updateCard(cardId: string, card: Card): Observable<Card>
-    {
+    updateCard(cardId: string, card: Card): Observable<Card> {
         return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, card)
             .pipe(
                 map((response: any) => {
@@ -321,8 +305,7 @@ export class ScrumboardService
      *
      * @param id
      */
-    deleteCard(cardId: string): Observable<any>
-    {
+    deleteCard(cardId: string): Observable<any> {
         return this._httpClient.delete(`${environment.apiBaseUrl}/cards/${cardId}`);
     }
 
@@ -331,8 +314,7 @@ export class ScrumboardService
      *
      * @param label
      */
-    createLabel(boardId: string, label: Label): Observable<Label>
-    {
+    createLabel(boardId: string, label: Label): Observable<Label> {
         return this._httpClient.post<Label>(`${environment.apiBaseUrl}/boards/${boardId}/labels`, label)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
@@ -421,10 +403,9 @@ export class ScrumboardService
      *
      * @param query
      */
-    search(query: string): Observable<Card[] | null>
-    {
+    search(query: string): Observable<Card[] | null> {
         // @TODO: Update the board cards based on the search results
-        return this._httpClient.get<Card[] | null>(`${environment.apiBaseUrl}/api/apps/scrumboard/board/search`, {params: {query}});
+        return this._httpClient.get<Card[] | null>(`${environment.apiBaseUrl}/api/apps/scrumboard/board/search`, { params: { query } });
     }
 
     /**
@@ -516,67 +497,24 @@ export class ScrumboardService
     }
 
     /**
-     * Add checklist item
-     *
-     * @param cardId
-     * @param text
-     */
-    addChecklistItem(cardId: string, text: string): Observable<any> {
-        // return this._httpClient.post(`${environment.apiBaseUrl}/api/cards/${cardId}/checklist`, {
-        //     text: text
-        // });
-        
-        // Lấy thông tin card hiện tại để có checklistItems
-        return this._httpClient.get(`${environment.apiBaseUrl}/cards/${cardId}`).pipe(
-            switchMap((res: any) => {
-                const card = res.data;
-                // Lấy checklistItems hiện tại hoặc tạo mới nếu chưa có
-                const currentChecklistItems = card.checklistItems || [];
-                
-                // Thêm item mới vào checklist
-                const newChecklistItems = [
-                    ...currentChecklistItems,
-                    {
-                        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Tạo ID tạm thời unique
-                        checked: false,
-                        text: text
-                    }
-                ];
-                
-                // Cập nhật card với checklist mới
-                return this._httpClient.patch(`${environment.apiBaseUrl}/cards/${cardId}`, {
-                    checklistItems: newChecklistItems
-                }).pipe(
-                    map((response: any) => {
-                        // Handle API response format
-                        if (response && response.data) {
-                            return response.data;
-                        }
-                        return response;
-                    })
-                );
-            })
-        );
-    }
-
-    /**
      * Update checklist item
      *
      * @param cardId
-     * @param itemId
-     * @param data
+     * @param newChecklistItems
      */
-    updateChecklistItem(cardId: string, itemId: string, data: {text?: string, checked?: boolean}): Observable<any> {
-        return this._httpClient.put(`${environment.apiBaseUrl}/api/cards/${cardId}/checklist/${itemId}`, data);
-    }
+    updateChecklistItem(cardId: string, newChecklistItems: any[]): Observable<any> {       
 
-    /**
-     * Delete checklist item
-     *
-     * @param cardId
-     * @param itemId
-     */
-    deleteChecklistItem(cardId: string, itemId: string): Observable<any> {
-        return this._httpClient.delete(`${environment.apiBaseUrl}/api/cards/${cardId}/checklist/${itemId}`);
+        // Cập nhật card với checklist mới
+        return this._httpClient.patch(`${environment.apiBaseUrl}/cards/${cardId}`, {
+            checklistItems: newChecklistItems
+        }).pipe(
+            map((response: any) => {
+                // Handle API response format
+                if (response && response.data) {
+                    return response.data;
+                }
+                return response;
+            })
+        );
     }
 }

@@ -31,7 +31,7 @@ const CARD_TABLE_SCHEMA = Joi.object({
     ).default(null),
     startDate: Joi.date().allow(null).default(null),
     endDate: Joi.date().allow(null).default(null),
-    member: Joi.string().max(255).allow(null).default(null),
+    members: Joi.array().items(Joi.string().uuid().allow(null)).default(null),
     createdAt: Joi.date().default(Date.now),
     createdBy: Joi.string().uuid().allow(null).default(null),
     updatedBy: Joi.string().uuid().allow(null).default(null),

@@ -2,6 +2,7 @@
 import { cardModel } from '../models/cardModel'
 import { v4 as uuidv4 } from 'uuid'
 import { formatDateTimeForMySQL } from '../utils/formatters'
+import { boardMemberModel } from '~/models/boardMemberModel'
 
 const getList = async (reqBody) => {
   try {
@@ -40,9 +41,9 @@ const getDetail = async (reqBody) => {
 }
 
 const update = async (reqBody, reqBodyUpdate) => {
+  console.log(reqBodyUpdate)
   reqBodyUpdate.archived = reqBodyUpdate.archived === true ? 1 : 0
   reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
-  console.log(reqBodyUpdate)
   // Format datetime fields for MySQL
   if (reqBodyUpdate.dueDate) {
     reqBodyUpdate.dueDate = formatDateTimeForMySQL(reqBodyUpdate.dueDate)
@@ -53,9 +54,20 @@ const update = async (reqBody, reqBodyUpdate) => {
   if (reqBodyUpdate.endDate) {
     reqBodyUpdate.endDate = formatDateTimeForMySQL(reqBodyUpdate.endDate)
   }
-  console.log(reqBodyUpdate)
   const labels = JSON.stringify(reqBodyUpdate.labels)
   delete reqBodyUpdate.labels
+  // Xử lý danh sách members
+  const members = reqBodyUpdate.members
+  delete reqBodyUpdate.members
+
+  const newMembers = members.map(member => ({
+    boardId: reqBodyUpdate.boardId,
+    memberId: member,
+    role: 'member'
+  }))
+
+  const newBoardMember = await boardMemberModel.createNewMany(newMembers)
+  console.log(newBoardMember)
   try {
     const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
     return updatedList
