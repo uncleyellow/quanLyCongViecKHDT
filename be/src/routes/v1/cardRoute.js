@@ -393,10 +393,10 @@ Router.route('/')
  *         description: Internal server error
  */
 Router.route('/:id')
-    .get(verifyToken, cardValidation.validateId, cardController.getDetail)
-    .put(verifyToken, cardValidation.validateId, cardValidation.update, cardController.update)
-    .patch(verifyToken, cardValidation.validateId, cardValidation.updatePartial, cardController.updatePartial)
-    .delete(verifyToken, cardValidation.validateId, cardController.deleteItem)
+    .get(verifyToken, cardController.getDetail)
+    .put(verifyToken, cardValidation.update, cardController.update)
+    .patch(verifyToken, cardValidation.updatePartial, cardController.updatePartial)
+    .delete(verifyToken, cardController.deleteItem)
 
 /**
  * @swagger

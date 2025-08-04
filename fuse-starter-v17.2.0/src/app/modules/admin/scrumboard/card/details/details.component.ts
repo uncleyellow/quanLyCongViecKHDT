@@ -99,7 +99,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             labels     : [[]],
             dueDate    : [null],
             checklistItems: this._formBuilder.array([]),
-            list_id: this.card.listId,
+            listId: this.card.listId,
+            boardId: this.board.id,
             // selectedMember: [this.selectedMember || '']
         });
 
@@ -111,7 +112,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
             labels     : this.card.labels,
             dueDate    : this.card.dueDate,
             checklistItems: [],
-            list_id: this.card.listId,
+            listId: this.card.listId,
+            boardId: this.board.id,
             // selectedMember: [this.selectedMember || '']
         });
 
@@ -127,9 +129,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                 takeUntil(this._unsubscribeAll)
             )
             .subscribe((value) => {
+                const cardId = value.id;
+                delete value.id;
 
                 // Update the card on the server
-                this._scrumboardService.updateCard(value.id, value).subscribe();
+                this._scrumboardService.updateCard(cardId, value).subscribe();
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
@@ -360,12 +364,14 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
 
         const updateData = {
             ...formValue,
-            checklist_items: formValue.checklistItems,
+            checklistItems: formValue.checklistItems,
             // member: this.selectedMember,
             members: members,
             labels: labelIds, // <-- truyền mảng id nhãn
-            list_id: this.card.listId
+            listId: this.card.listId,
+            boardId: this.board.id
         };
+        delete updateData.id;
         this._scrumboardService.updateCard(this.card.id, updateData).subscribe();
     }
 

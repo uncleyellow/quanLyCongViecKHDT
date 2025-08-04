@@ -36,7 +36,6 @@ const login = async (reqBody) => {
   try {
     const { email, password } = reqBody
     const user = await userModel.getUserByEmail(email)
-    console.log(user)
     if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
     // Hash password before comparing with database
     const hashedPassword = crypto.createHash('sha256').update(password).digest('hex')

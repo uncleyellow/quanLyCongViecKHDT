@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-catch */
 import { cardModel } from '../models/cardModel'
 import { v4 as uuidv4 } from 'uuid'
+import { formatDateTimeForMySQL } from '../utils/formatters'
 
 const getList = async (reqBody) => {
   try {
@@ -12,9 +13,20 @@ const getList = async (reqBody) => {
 }
 
 const createNew = async (reqBody) => {
-  console.log(reqBody)
   try {
     reqBody.id = uuidv4()
+
+    // Format datetime fields for MySQL
+    if (reqBody.dueDate) {
+      reqBody.dueDate = formatDateTimeForMySQL(reqBody.dueDate)
+    }
+    if (reqBody.startDate) {
+      reqBody.startDate = formatDateTimeForMySQL(reqBody.startDate)
+    }
+    if (reqBody.endDate) {
+      reqBody.endDate = formatDateTimeForMySQL(reqBody.endDate)
+    }
+
     const newList = await cardModel.createNew(reqBody)
     return newList
   } catch (error) { throw error }
@@ -29,7 +41,21 @@ const getDetail = async (reqBody) => {
 
 const update = async (reqBody, reqBodyUpdate) => {
   reqBodyUpdate.archived = reqBodyUpdate.archived === true ? 1 : 0
-  reqBodyUpdate.cardOrderIds = JSON.stringify(reqBodyUpdate.cardOrderIds)
+  reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+  console.log(reqBodyUpdate)
+  // Format datetime fields for MySQL
+  if (reqBodyUpdate.dueDate) {
+    reqBodyUpdate.dueDate = formatDateTimeForMySQL(reqBodyUpdate.dueDate)
+  }
+  if (reqBodyUpdate.startDate) {
+    reqBodyUpdate.startDate = formatDateTimeForMySQL(reqBodyUpdate.startDate)
+  }
+  if (reqBodyUpdate.endDate) {
+    reqBodyUpdate.endDate = formatDateTimeForMySQL(reqBodyUpdate.endDate)
+  }
+  console.log(reqBodyUpdate)
+  const labels = JSON.stringify(reqBodyUpdate.labels)
+  delete reqBodyUpdate.labels
   try {
     const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
     return updatedList
@@ -37,6 +63,21 @@ const update = async (reqBody, reqBodyUpdate) => {
 }
 
 const updatePartial = async (reqBody, reqBodyUpdate) => {
+  reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+
+  // Format datetime fields for MySQL
+  if (reqBodyUpdate.dueDate) {
+    reqBodyUpdate.dueDate = formatDateTimeForMySQL(reqBodyUpdate.dueDate)
+  }
+  if (reqBodyUpdate.startDate) {
+    reqBodyUpdate.startDate = formatDateTimeForMySQL(reqBodyUpdate.startDate)
+  }
+  if (reqBodyUpdate.endDate) {
+    reqBodyUpdate.endDate = formatDateTimeForMySQL(reqBodyUpdate.endDate)
+  }
+
+  const labels = JSON.stringify(reqBodyUpdate.labels)
+  delete reqBodyUpdate.labels
   try {
     const updatedList = await cardModel.updatePartial(reqBody, reqBodyUpdate)
     return updatedList

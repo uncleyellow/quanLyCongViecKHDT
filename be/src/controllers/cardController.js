@@ -23,9 +23,7 @@ const getList = async (req, res, next) => {
 
 const createNew = async (req, res, next) => {
     try {
-        console.log(req.body)
         const { userId } = req.user
-        console.log(userId)
         const newList = await cardService.createNew({ ...req.body, createdBy: userId })
         const responseObject = {
             code: StatusCodes.CREATED,

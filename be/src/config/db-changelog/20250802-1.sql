@@ -107,3 +107,25 @@ ADD CONSTRAINT fk_users_company FOREIGN KEY (companyId)
 REFERENCES companies (id) ON DELETE SET NULL ON UPDATE CASCADE,
 ADD CONSTRAINT fk_users_department FOREIGN KEY (departmentId)
 REFERENCES departments (id) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Cập nhật lại bảng boardMembers
+-- Bước 1: Xóa foreign key
+ALTER TABLE board_members
+DROP FOREIGN KEY board_members_ibfk_1,
+DROP FOREIGN KEY board_members_ibfk_2;
+
+-- Bước 2: Đổi tên bảng
+RENAME TABLE board_members TO boardMembers;
+
+-- Bước 3: Đổi tên các cột sang camelCase
+ALTER TABLE boardMembers
+CHANGE COLUMN board_id boardId VARCHAR(36) NOT NULL,
+CHANGE COLUMN member_id memberId VARCHAR(36) NOT NULL,
+CHANGE COLUMN joined_at joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP;
+
+-- Bước 4: Thêm lại foreign key với tên cột mới
+ALTER TABLE boardMembers
+ADD CONSTRAINT boardMembers_ibfk_1 FOREIGN KEY (boardId)
+REFERENCES boards (id) ON DELETE CASCADE,
+ADD CONSTRAINT boardMembers_ibfk_2 FOREIGN KEY (memberId)
+REFERENCES members (id) ON DELETE CASCADE;

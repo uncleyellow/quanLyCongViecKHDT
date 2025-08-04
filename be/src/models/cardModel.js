@@ -11,9 +11,24 @@ const CARD_TABLE_SCHEMA = Joi.object({
     title: Joi.string().max(255).required().trim().strict(),
     description: Joi.string().allow(null).default(null),
     position: Joi.number().integer().default(0),
-    dueDate: Joi.date().allow(null).default(null),
+    dueDate: Joi.alternatives().try(
+        Joi.date().iso(),
+        Joi.date()
+    ).allow(null).default(null),
     type: Joi.string().max(50).default('normal'),
-    checklistItems: Joi.string().allow(null).default(null),
+    checklistItems: Joi.alternatives().try(
+        Joi.string().allow(null),
+        Joi.array().items(
+            Joi.alternatives().try(
+                Joi.string().allow(null),
+                Joi.object()
+            )
+        ).allow(null)
+    ).default(null),
+    labels: Joi.alternatives().try(
+        Joi.string().allow(null),
+        Joi.array().items(Joi.string().uuid().allow(null))
+    ).default(null),
     startDate: Joi.date().allow(null).default(null),
     endDate: Joi.date().allow(null).default(null),
     member: Joi.string().max(255).allow(null).default(null),
@@ -47,7 +62,6 @@ const getList = async (data) => {
 }
 
 const createNew = async (data) => {
-    console.log(data)
     try {
         const validData = await validateBeforeCreate(data)
         const dataToInsertCleaned = {}
@@ -88,24 +102,24 @@ const createNew = async (data) => {
 
 const getDetail = async (data) => {
     try {
-        const query = `SELECT * FROM ${CARD_TABLE_NAME} WHERE id = ? AND boardId = ?`
-        const listDetail = await db.query(query, [data.id, data.boardId])
+        const query = `SELECT * FROM ${CARD_TABLE_NAME} WHERE id = ?`
+        const listDetail = await db.query(query, [data.id])
         return listDetail[0][0]
     } catch (error) { throw new Error(error) }
 }
 
 const update = async (data, dataUpdate) => {
     try {
-        const query = `UPDATE ${CARD_TABLE_NAME} SET ? WHERE id = ? AND boardId = ?`
-        const updatedList = await db.query(query, [dataUpdate, data.id, dataUpdate.boardId])
+        const query = `UPDATE ${CARD_TABLE_NAME} SET ? WHERE id = ?`
+        const updatedList = await db.query(query, [dataUpdate, data.id])
         return updatedList[0]
     } catch (error) { throw new Error(error) }
 }
 
 const updatePartial = async (data, dataUpdate) => {
     try {
-        const query = `UPDATE ${CARD_TABLE_NAME} SET ? WHERE id = ? AND boardId = ?`
-        const updatedList = await db.query(query, [dataUpdate, data.id, data.boardId])
+        const query = `UPDATE ${CARD_TABLE_NAME} SET ? WHERE id = ?`
+        const updatedList = await db.query(query, [dataUpdate, data.id])
         return updatedList[0]
     } catch (error) { throw new Error(error) }
 }

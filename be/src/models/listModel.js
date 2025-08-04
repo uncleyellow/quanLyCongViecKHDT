@@ -57,12 +57,9 @@ const getDetail = async (data) => {
 }
 
 const update = async (data, dataUpdate) => {
-    console.log(dataUpdate)
-    console.log(data)
     try {
         const query = `UPDATE ${LIST_TABLE_NAME} SET ? WHERE id = ? AND boardId = ?`
         const updatedList = await db.query(query, [dataUpdate, data.id, dataUpdate.boardId])
-        console.log(updatedList)
         return updatedList[0]
     } catch (error) { throw new Error(error) }
 }

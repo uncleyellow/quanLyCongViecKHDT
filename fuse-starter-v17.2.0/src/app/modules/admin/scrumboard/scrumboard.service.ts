@@ -452,8 +452,8 @@ export class ScrumboardService
      */
     copyCard(cardId: string, destListId: string, destBoardId: string): Observable<any> {
         return this._httpClient.post(`${environment.apiBaseUrl}/api/cards/${cardId}/copy`, {
-            list_id: destListId,
-            board_id: destBoardId
+            listId: destListId,
+            boardId: destBoardId
         });
     }
 
@@ -466,8 +466,8 @@ export class ScrumboardService
      */
     moveCard(cardId: string, destListId: string, destBoardId: string): Observable<any> {
         return this._httpClient.put(`${environment.apiBaseUrl}/api/cards/${cardId}/move`, {
-            list_id: destListId,
-            board_id: destBoardId
+            listId: destListId,
+            boardId: destBoardId
         });
     }
 
@@ -514,9 +514,41 @@ export class ScrumboardService
      * @param text
      */
     addChecklistItem(cardId: string, text: string): Observable<any> {
-        return this._httpClient.post(`${environment.apiBaseUrl}/api/cards/${cardId}/checklist`, {
-            text: text
-        });
+        // return this._httpClient.post(`${environment.apiBaseUrl}/api/cards/${cardId}/checklist`, {
+        //     text: text
+        // });
+        
+        // Lấy thông tin card hiện tại để có checklistItems
+        return this._httpClient.get(`${environment.apiBaseUrl}/cards/${cardId}`).pipe(
+            switchMap((res: any) => {
+                const card = res.data;
+                // Lấy checklistItems hiện tại hoặc tạo mới nếu chưa có
+                const currentChecklistItems = card.checklistItems || [];
+                
+                // Thêm item mới vào checklist
+                const newChecklistItems = [
+                    ...currentChecklistItems,
+                    {
+                        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Tạo ID tạm thời unique
+                        checked: false,
+                        text: text
+                    }
+                ];
+                
+                // Cập nhật card với checklist mới
+                return this._httpClient.patch(`${environment.apiBaseUrl}/cards/${cardId}`, {
+                    checklistItems: newChecklistItems
+                }).pipe(
+                    map((response: any) => {
+                        // Handle API response format
+                        if (response && response.data) {
+                            return response.data;
+                        }
+                        return response;
+                    })
+                );
+            })
+        );
     }
 
     /**
