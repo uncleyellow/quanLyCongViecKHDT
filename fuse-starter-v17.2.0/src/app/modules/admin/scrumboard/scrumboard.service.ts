@@ -113,13 +113,15 @@ export class ScrumboardService {
      * @param board
      */
     createBoard(board: Board, ownerEmail: string): Observable<Board> {
-        debugger
-        const userStr = localStorage.getItem('user');
-        ownerEmail == userStr
-        return this._httpClient.post<Board>(`${environment.apiBaseUrl}/api/boards`, {
-            ...board,
-            owner_email: ownerEmail
-        }).pipe(map((response: any) => {
+        // debugger
+        // const userStr = localStorage.getItem('user');
+        // ownerEmail == userStr
+        const createBoardPayload = {
+            title: board.title,
+            description: board.description,
+            icon: board.icon,
+        }
+        return this._httpClient.post<Board>(`${environment.apiBaseUrl}/boards`, createBoardPayload).pipe(map((response: any) => {
             // Handle API response with { data: {...} }
             if (response && response.data) {
                 return new Board(response.data);
@@ -141,7 +143,7 @@ export class ScrumboardService {
      * @param board
      */
     updateBoard(id: string, board: Board): Observable<Board> {
-        return this._httpClient.put<Board>(`${environment.apiBaseUrl}/api/boards/${id}`, board)
+        return this._httpClient.put<Board>(`${environment.apiBaseUrl}/boards/${id}`, board)
             .pipe(map((response: any) => {
                 // Handle API response with { data: {...} }
                 if (response && response.data) {
@@ -163,7 +165,7 @@ export class ScrumboardService {
      * @param id
      */
     deleteBoard(id: string): Observable<any> {
-        return this._httpClient.delete(`${environment.apiBaseUrl}/api/boards/${id}`);
+        return this._httpClient.delete(`${environment.apiBaseUrl}/boards/${id}`);
     }
 
     /**

@@ -3,6 +3,7 @@ import { boardModel } from '../models/boardModel'
 import { listService } from './listService'
 import { cardModel } from '../models/cardModel'
 import { boardMemberModel } from '../models/boardMemberModel'
+import { v4 as uuidv4 } from 'uuid'
 
 const getList = async (reqBody) => {
   try {
@@ -14,7 +15,13 @@ const getList = async (reqBody) => {
 }
 
 const createNew = async (reqBody) => {
+  console.log(reqBody)
   try {
+    reqBody.id = uuidv4()
+    reqBody.createdBy = reqBody.userId
+    reqBody.updatedBy = reqBody.userId
+    reqBody.ownerId = reqBody.userId
+    delete reqBody.userId
     const newBoard = await boardModel.createNew(reqBody)
     return newBoard
   } catch (error) { throw error }
@@ -189,7 +196,7 @@ const reorder = async (reqBody, reorderData) => {
 const updateViewConfig = async (reqBody, reqBodyUpdate) => {
   try {
     const updatedBoard = await boardModel.updateViewConfig(reqBody, reqBodyUpdate)
-    
+
     // Return complete board data with lists and cards like getDetail method
     if (updatedBoard && updatedBoard.id) {
       // Parse listOrderIds từ JSON string nếu cần
@@ -252,7 +259,7 @@ const updateViewConfig = async (reqBody, reqBodyUpdate) => {
       // Cập nhật lại listOrderIds đã parse
       updatedBoard.listOrderIds = listOrderIds
     }
-    
+
     return updatedBoard
   } catch (error) { throw error }
 }

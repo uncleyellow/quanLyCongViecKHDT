@@ -55,7 +55,7 @@ const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
     const { deletedAt, createdAt, updatedAt, ...dataToInsert } = validData
-    const query = `INSERT INTO ${BOARD_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : value).join(', ')})`
+    const query = `INSERT INTO ${BOARD_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : (value === null || value.length == 0 ? 'NULL' : value)).join(', ')})`
     const createdBoard = await db.query(query)
     return createdBoard[0].insertId
   } catch (error) {
