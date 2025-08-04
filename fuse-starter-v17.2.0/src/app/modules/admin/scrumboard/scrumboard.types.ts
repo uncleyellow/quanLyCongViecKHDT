@@ -28,6 +28,7 @@ export interface IList
     id?: string | null;
     boardId: string;
     title: string;
+    color?: string;
     createdAt?: string | null;
     archived?: boolean;
     cards: ICard[];

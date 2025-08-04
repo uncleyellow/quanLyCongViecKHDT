@@ -9,6 +9,7 @@ import { Board, Card, CreateCard, CreateList, List, Member, UpdateList } from 'a
 import { ViewConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 import { MatDialog } from '@angular/material/dialog';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
+import { ChangeColorDialogComponent } from './change-color-dialog.component';
 
 @Component({
     selector: 'scrumboard-board',
@@ -130,9 +131,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     /**
      * Add new list
      *
-     * @param title
+     * @param data
      */
-    addList(title: string): void {
+    addList(data: {title: string, color: string}): void {
         // Limit the max list count
         if (this.board.lists.length >= this._maxListCount) {
             return;
@@ -141,7 +142,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         // Create a new list model
         const newList = new CreateList({
             boardId: this.board.id,
-            title: title,
+            title: data.title,
+            color: data.color
         });
 
 
@@ -184,6 +186,39 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         // Update the list
         this._scrumboardService.updateList(list.id, updateList).subscribe(() => {
             this.reloadBoard();
+        });
+    }
+
+    /**
+     * Change list color
+     *
+     * @param list
+     */
+    changeListColor(list: List): void {
+        const dialogRef = this._matDialog.open(ChangeColorDialogComponent, {
+            data: {
+                currentColor: list.color,
+                listTitle: list.title
+            },
+            width: '500px',
+            maxHeight: '80vh'
+        });
+
+        dialogRef.afterClosed().subscribe((newColor: string) => {
+            if (newColor && newColor !== list.color) {
+                const updateList = new UpdateList({
+                    boardId: list.boardId,
+                    title: list.title,
+                    color: newColor,
+                    archived: list.archived,
+                    cardOrderIds: list.cardOrderIds
+                });
+
+                // Update the list
+                this._scrumboardService.updateList(list.id, updateList).subscribe(() => {
+                    this.reloadBoard();
+                });
+            }
         });
     }
 

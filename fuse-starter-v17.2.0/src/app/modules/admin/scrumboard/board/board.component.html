@@ -51,7 +51,9 @@
                 <!-- List -->
                 <ng-container *ngFor="let list of board.lists; trackBy: trackByFn">
                     <div
-                        class="flex-0 w-72 p-2 mx-2 rounded-2xl bg-default"
+                        class="flex-0 w-72 p-2 mx-2 rounded-2xl"
+                        [style.background-color]="list.color + '20'"
+                        [style.border]="'2px solid ' + list.color + '40'"
                         cdkDrag
                         [cdkDragLockAxis]="'x'">
 
@@ -90,6 +92,14 @@
                                     </button>
                                     <button
                                         mat-menu-item
+                                        (click)="changeListColor(list)">
+                                        <mat-icon
+                                            class="icon-size-5"
+                                            [svgIcon]="'heroicons_solid:color-swatch'"></mat-icon>
+                                        Đổi màu list
+                                    </button>
+                                    <button
+                                        mat-menu-item
                                         (click)="deleteList(list.id)">
                                         <mat-icon
                                             class="icon-size-5"
@@ -101,7 +111,9 @@
                         </div>
 
                         <!-- Cards -->
-                        <div class="mt-2 rounded-xl bg-gray-400 bg-opacity-12 dark:bg-transparent dark:border">
+                        <div class="mt-2 rounded-xl"
+                             [style.background-color]="list.color + '10'"
+                             [style.border]="'1px solid ' + list.color + '30'">
                             <div
                                 [id]="list.id"
                                 class="p-3 pb-0"
@@ -112,7 +124,9 @@
                                 <!-- Card -->
                                 <ng-container *ngFor="let card of list.cards; trackBy: trackByFn">
                                     <a
-                                        class="flex flex-col items-start mb-3 p-5 space-y-3 shadow rounded-lg overflow-hidden bg-card"
+                                        class="flex flex-col items-start mb-3 p-5 space-y-3 shadow rounded-lg overflow-hidden"
+                                        [style.background-color]="list.color + '15'"
+                                        [style.border-left]="'4px solid ' + list.color"
                                         [routerLink]="['card', card.id]"
                                         cdkDrag>
                                         <!-- Cover image -->

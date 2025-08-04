@@ -16,4 +16,9 @@ REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE boards
 ADD COLUMN viewConfig JSON DEFAULT NULL;
 
+-- Add color column to lists table
+ALTER TABLE lists
+ADD COLUMN color varchar(20) DEFAULT NULL AFTER title;
+
+
 -----DONE 

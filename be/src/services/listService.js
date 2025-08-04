@@ -44,7 +44,7 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
 
 const deleteItem = async (reqBody) => {
   try {
-    const deletedList = await listModel.deleteList(reqBody)
+    const deletedList = await listModel.deleteItem(reqBody)
     return deletedList
   } catch (error) { throw error }
 }

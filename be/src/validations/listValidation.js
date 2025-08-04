@@ -7,6 +7,7 @@ const createNew = async (req, res, next) => {
     const correctCondition = Joi.object({
         boardId: Joi.string().length(36).required().strict(),
         title: Joi.string().min(3).max(255).required().trim().strict(),
+        color: Joi.string().min(3).max(20).trim().strict()
     })
 
     try {
@@ -22,7 +23,8 @@ const update = async (req, res, next) => {
         boardId: Joi.string().uuid(),
         title: Joi.string().min(3).max(255).trim().strict(),
         archived: Joi.boolean(),
-        cardOrderIds: Joi.array().items(Joi.string().uuid()).default([])
+        cardOrderIds: Joi.array().items(Joi.string().uuid()).default([]),
+        color: Joi.string().min(3).max(20).trim().strict()
     })
 
     try {

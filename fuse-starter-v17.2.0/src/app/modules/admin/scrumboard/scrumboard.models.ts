@@ -88,6 +88,7 @@ export class List implements Required<IList>
     id: string | null;
     boardId: string;
     title: string;
+    color: string;
     cards: Card[];
     createdAt: string | null;
     archived: boolean;
@@ -106,6 +107,7 @@ export class List implements Required<IList>
         this.id = list.id || null;
         this.boardId = list.boardId;
         this.title = list.title;
+        this.color = list.color || '#3B82F6';
         this.cards = [];
         this.createdAt = list.createdAt || null;
         this.archived = list.archived || false;
@@ -135,14 +137,16 @@ export class CreateList implements Partial<IList>
 {
     boardId: string;
     title: string;
+    color: string;
 
     /**
      * Constructor
      */
-    constructor(data: { boardId: string; title: string })
+    constructor(data: { boardId: string; title: string; color?: string })
     {
         this.boardId = data.boardId;
         this.title = data.title;
+        this.color = data.color || '#3B82F6';
     }
 }
 
@@ -150,16 +154,18 @@ export class UpdateList implements Partial<IList>
 {
     boardId: string;
     title: string;
+    color?: string;
     archived?: boolean;
     cardOrderIds?: string[];
 
     /**
      * Constructor
      */
-    constructor(data: { boardId: string; title: string; archived?: boolean; cardOrderIds?: string[] })
+    constructor(data: { boardId: string; title: string; color?: string; archived?: boolean; cardOrderIds?: string[] })
     {
         this.boardId = data.boardId;
         this.title = data.title;
+        this.color = data.color;
         this.archived = data.archived ?? false;
         this.cardOrderIds = data.cardOrderIds ?? [];
     }

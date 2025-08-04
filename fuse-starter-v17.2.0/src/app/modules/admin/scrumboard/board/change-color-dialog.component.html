@@ -1,0 +1,67 @@
+<div class="flex flex-col flex-auto md:w-120 md:min-w-120 max-h-120 -m-6 overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex flex-0 items-center justify-between h-16 pr-3 sm:pr-5 pl-6 sm:pl-8 bg-primary text-on-primary">
+        <div class="text-lg font-medium">Đổi màu list</div>
+        <button mat-icon-button (click)="matDialogRef.close()" [tabIndex]="-1">
+            <mat-icon class="text-current" [svgIcon]="'heroicons_outline:x'"></mat-icon>
+        </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto">
+        
+        <div class="text-sm text-gray-600">
+            Chọn màu sắc cho list "{{ data.listTitle }}"
+        </div>
+
+        <!-- Color picker -->
+        <div class="w-full">
+            <label class="text-sm font-medium text-gray-700 mb-3 block">Màu sắc:</label>
+            <div class="grid grid-cols-3 gap-3">
+                <ng-container *ngFor="let colorOption of availableColors">
+                    <button
+                        type="button"
+                        class="flex flex-col items-center p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-md"
+                        [class.border-blue-500]="colorForm.get('color').value === colorOption.value"
+                        [class.border-gray-300]="colorForm.get('color').value !== colorOption.value"
+                        [style.background-color]="colorOption.value + '20'"
+                        (click)="selectColor(colorOption.value)">
+                        
+                        <div 
+                            class="w-12 h-12 rounded-full mb-2 border-2 border-white shadow-sm"
+                            [style.background-color]="colorOption.value">
+                        </div>
+                        
+                        <span class="text-xs font-medium text-gray-700">
+                            {{ colorOption.name }}
+                        </span>
+                    </button>
+                </ng-container>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="w-full">
+            <label class="text-sm font-medium text-gray-700 mb-2 block">Xem trước:</label>
+            <div 
+                class="p-4 rounded-lg border-2"
+                [style.background-color]="colorForm.get('color').value + '20'"
+                [style.border-color]="colorForm.get('color').value + '40'">
+                <div class="text-sm font-medium text-gray-800">
+                    {{ data.listTitle }}
+                </div>
+                <div class="text-xs text-gray-600 mt-1">
+                    Màu sắc này sẽ được áp dụng cho list và các card trong list
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-2 justify-end p-6 sm:p-8 border-t">
+        <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
+        <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
+    </div>
+</div> 
