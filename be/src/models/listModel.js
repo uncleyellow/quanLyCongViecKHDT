@@ -81,6 +81,15 @@ const deleteItem = async (data) => {
     } catch (error) { throw new Error(error) }
 }
 
+const reorder = async (data, reorderData) => {
+    try {
+        const { cardOrderIds } = reorderData
+        const query = `UPDATE ${LIST_TABLE_NAME} SET cardOrderIds = ?, updatedAt = NOW() WHERE id = ? AND deletedAt IS NULL`
+        const updatedList = await db.query(query, [JSON.stringify(cardOrderIds), data.id])
+        return updatedList[0]
+    } catch (error) { throw new Error(error) }
+}
+
 export const listModel = {
     LIST_TABLE_NAME,
     LIST_TABLE_SCHEMA,
@@ -89,5 +98,6 @@ export const listModel = {
     getDetail,
     update,
     updatePartial,
-    deleteItem
+    deleteItem,
+    reorder
 }

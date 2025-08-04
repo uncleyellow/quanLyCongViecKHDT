@@ -56,10 +56,10 @@ const getListsByBoard = async (boardId) => {
   } catch (error) { throw error }
 }
 
-const updateCardOrder = async (listId, cardOrderIds) => {
+const reorder = async (reqBody, reorderData) => {
   try {
-    const result = await listModel.updateCardOrder(listId, cardOrderIds)
-    return result
+    const reorderedList = await listModel.reorder(reqBody, reorderData)
+    return reorderedList
   } catch (error) { throw error }
 }
 
@@ -78,6 +78,6 @@ export const listService = {
   updatePartial,
   deleteItem,
   getListsByBoard,
-  updateCardOrder,
+  reorder,
   pushCardOrderIds
 }

@@ -352,7 +352,7 @@ Router.route('/board/:boardId')
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-Router.route('/:listId/card-order')
-    .put(verifyToken, listValidation.updateCardOrder, listController.updateCardOrder)
+Router.route('/:id/reorder')
+    .patch(verifyToken, listValidation.reorder, listController.reorder)
    
 export const listRoute = Router

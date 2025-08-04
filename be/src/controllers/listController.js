@@ -105,16 +105,15 @@ const getListsByBoard = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
-const updateCardOrder = async (req, res, next) => {
+const reorder = async (req, res, next) => {
     try {
-        const { listId } = req.params
-        const { cardOrderIds } = req.body
-        const result = await listService.updateCardOrder(listId, cardOrderIds)
+        const { userId } = req.user
+        const reorderedList = await listService.reorder({ ...req.params, userId: userId }, req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
-            message: 'Card order updated successfully',
-            data: result
+            message: 'List reordered successfully',
+            data: reorderedList
         }
         res.status(StatusCodes.OK).json(responseObject)
     } catch (error) { next(error) }
@@ -128,5 +127,5 @@ export const listController = {
     updatePartial,
     deleteItem,
     getListsByBoard,
-    updateCardOrder
+    reorder
 }
