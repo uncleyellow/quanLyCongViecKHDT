@@ -62,12 +62,13 @@ const update = async (reqBody, reqBodyUpdate) => {
 
   const newMembers = members.map(member => ({
     boardId: reqBodyUpdate.boardId,
-    memberId: member,
+    memberId: member.memberId,
     role: 'member'
   }))
 
-  const newBoardMember = await boardMemberModel.createNewMany(newMembers)
-  console.log(newBoardMember)
+  // Sử dụng hàm mới để kiểm tra trước khi thêm
+  const newBoardMember = await boardMemberModel.addMembersIfNotExists(newMembers)
+  console.log('Board members result:', newBoardMember)
   try {
     const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
     return updatedList

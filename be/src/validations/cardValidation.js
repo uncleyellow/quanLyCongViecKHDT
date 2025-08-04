@@ -54,7 +54,7 @@ const update = async (req, res, next) => {
         ).default(null),
         members: Joi.alternatives().try(
             Joi.string().allow(null),
-            Joi.array().items(Joi.string().uuid().allow(null))
+            Joi.array().items(Joi.object().allow(null))
         ).default(null)
     })
 

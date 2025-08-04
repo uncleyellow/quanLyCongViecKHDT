@@ -177,8 +177,75 @@ const getBoardMembersCount = async (boardId) => {
     const query = `SELECT COUNT(*) as count FROM ${BOARD_MEMBER_TABLE_NAME} WHERE boardId = ?`
     const result = await db.query(query, [boardId])
     return result[0][0].count
-  } catch (error) {
-    throw new Error(error)
+  } catch (error) { 
+    throw new Error(error) 
+  }
+}
+
+const checkMemberExists = async (boardId, memberId) => {
+  try {
+    const query = `SELECT COUNT(*) as count FROM ${BOARD_MEMBER_TABLE_NAME} WHERE boardId = ? AND memberId = ?`
+    const result = await db.query(query, [boardId, memberId])
+    return result[0][0].count > 0
+  } catch (error) { 
+    throw new Error(error) 
+  }
+}
+
+const addMemberIfNotExists = async (boardId, memberId, role = 'member') => {
+  try {
+    // Kiểm tra xem member đã tồn tại chưa
+    const exists = await checkMemberExists(boardId, memberId)
+    
+    if (!exists) {
+      // Nếu chưa tồn tại thì thêm mới
+      const data = {
+        boardId,
+        memberId,
+        role
+      }
+      return await createNew(data)
+    } else {
+      // Nếu đã tồn tại thì trả về thông báo
+      return { message: 'Member already exists', exists: true }
+    }
+  } catch (error) { 
+    throw new Error(error) 
+  }
+}
+
+const addMembersIfNotExists = async (membersArray) => {
+  try {
+    if (!Array.isArray(membersArray) || membersArray.length === 0) {
+      throw new Error('Input must be a non-empty array')
+    }
+
+    const results = []
+    
+    for (const member of membersArray) {
+      const { boardId, memberId, role = 'member' } = member
+      
+      // Kiểm tra xem member đã tồn tại chưa
+      const exists = await checkMemberExists(boardId, memberId)
+      
+      if (!exists) {
+        // Nếu chưa tồn tại thì thêm mới
+        const data = {
+          boardId,
+          memberId,
+          role
+        }
+        const result = await createNew(data)
+        results.push({ memberId, added: true, result })
+      } else {
+        // Nếu đã tồn tại thì ghi log
+        results.push({ memberId, added: false, message: 'Member already exists' })
+      }
+    }
+    
+    return results
+  } catch (error) { 
+    throw new Error(error) 
   }
 }
 
@@ -195,5 +262,8 @@ export const boardMemberModel = {
   addMember,
   isMemberOfBoard,
   getMemberRole,
-  getBoardMembersCount
+  getBoardMembersCount,
+  checkMemberExists,
+  addMemberIfNotExists,
+  addMembersIfNotExists
 } 
