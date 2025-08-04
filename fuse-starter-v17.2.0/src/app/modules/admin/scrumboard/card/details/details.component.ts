@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDe
 import { UntypedFormBuilder, UntypedFormGroup, Validators, FormArray, FormControl } from '@angular/forms';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatDialogRef } from '@angular/material/dialog';
-import { debounceTime, Subject, takeUntil, tap } from 'rxjs';
+import { debounceTime, Subject, takeUntil, tap, skip } from 'rxjs';
 import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
@@ -126,14 +126,15 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                     this.card = assign(this.card, value);
                 }),
                 debounceTime(300),
+                skip(1), // Bỏ qua lần đầu tiên (khi form được setValue)
                 takeUntil(this._unsubscribeAll)
             )
-            .subscribe((value) => {
+            .subscribe((value: any) => {
                 const cardId = value.id;
                 delete value.id;
 
                 // Update the card on the server
-                this._scrumboardService.updateCard(cardId, value).subscribe();
+                this._scrumboardService.updateCard(cardId, value as Card).subscribe();
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
