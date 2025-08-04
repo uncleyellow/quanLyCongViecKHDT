@@ -293,19 +293,27 @@ export class ScrumboardService
     updateCard(cardId: string, card: Card): Observable<Card>
     {
         return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, card)
-            .pipe(map((response: any) => {
-                // Handle API response with { data: {...} }
-                if (response && response.data) {
-                    return new Card(response.data);
-                }
-                // Fallback: if response itself is the card data
-                if (response && response.id) {
-                    return new Card(response);
-                }
-                // Unexpected format
-                console.error('Unexpected update card response format:', response);
-                return new Card({ boardId: card.boardId, listId: card.listId, position: card.position, title: card.title });
-            }));
+            .pipe(
+                map((response: any) => {
+                    // Handle API response with { data: {...} }
+                    if (response && response.data) {
+                        return new Card(response.data);
+                    }
+                    // Fallback: if response itself is the card data
+                    if (response && response.id) {
+                        return new Card(response);
+                    }
+                    // Unexpected format
+                    console.error('Unexpected update card response format:', response);
+                    return new Card({ boardId: card.boardId, listId: card.listId, position: card.position, title: card.title });
+                }),
+                tap((updatedCard) => {
+                    // Fetch lại board sau khi cập nhật card thành công
+                    if (card.boardId) {
+                        this.getBoard(card.boardId).subscribe();
+                    }
+                })
+            );
     }
 
     /**
