@@ -20,7 +20,8 @@
             </a>
             <button
                 class="ml-3"
-                mat-stroked-button>
+                mat-stroked-button
+                (click)="openViewConfigDialog()">
                 <mat-icon
                     class="icon-size-5"
                     [svgIcon]="'heroicons_solid:cog'"></mat-icon>
@@ -123,9 +124,29 @@
                                             </div>
                                         </ng-container>
                                         <!-- Title -->
-                                        <div class="text-lg font-medium leading-5">{{card.title}}</div>
+                                        <div *ngIf="board.viewConfig?.showTitle !== false" class="text-lg font-medium leading-5">{{card.title}}</div>
+                                        
+                                        <!-- Description -->
+                                        <div *ngIf="board.viewConfig?.showDescription !== false && card.description" class="text-sm text-gray-600 line-clamp-2">
+                                            {{card.description}}
+                                        </div>
+                                        
+                                        <!-- Status -->
+                                        <div *ngIf="board.viewConfig?.showStatus !== false && card.status" class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                            {{card.status}}
+                                        </div>
+                                        
+                                        <!-- Type -->
+                                        <div *ngIf="board.viewConfig?.showType !== false && card.type" class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                            {{card.type}}
+                                        </div>
+                                        
+                                        <!-- Checklist Progress -->
+                                        <div *ngIf="board.viewConfig?.showChecklist !== false && card.checklistItems && card.checklistItems.length > 0" class="text-xs text-gray-500">
+                                            {{getChecklistProgress(card)}} hoàn thành
+                                        </div>
                                         <!-- Labels -->
-                                        <ng-container *ngIf="card.labels.length">
+                                        <ng-container *ngIf="board.viewConfig?.showLabels !== false && card.labels.length">
                                             <div>
                                                 <div class="flex flex-wrap -mx-1 -mb-2">
                                                     <ng-container *ngFor="let label of card.labels; trackBy: trackByFn">
@@ -137,7 +158,7 @@
                                             </div>
                                         </ng-container>
                                         <!-- Due date -->
-                                        <ng-container *ngIf="card.dueDate">
+                                        <ng-container *ngIf="board.viewConfig?.showDueDate !== false && card.dueDate">
                                             <div
                                                 class="flex items-center rounded text-sm font-medium leading-5 text-secondary"
                                                 [ngClass]="{'text-red-600': isOverdue(card.dueDate)}">
@@ -150,7 +171,7 @@
                                             </div>
                                         </ng-container>
                                         <!-- Members -->
-                                        <ng-container *ngIf="card.members && card.members.length">
+                                        <ng-container *ngIf="board.viewConfig?.showMembers !== false && card.members && card.members.length">
                                             <div class="flex items-center mt-2">
                                                 <ng-container *ngFor="let member of card.members">
                                                     <img

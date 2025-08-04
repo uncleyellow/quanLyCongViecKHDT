@@ -105,6 +105,21 @@ const reorder = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+const updateViewConfig = async (req, res, next) => {
+    try {
+        const { userId } = req.user
+        const { viewConfig } = req.body
+        const updatedBoard = await boardService.updateViewConfig({ ...req.params, userId: userId }, { viewConfig })
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Board view config updated successfully',
+            data: updatedBoard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
 export const boardController = {
     getList,
     createNew,
@@ -112,5 +127,6 @@ export const boardController = {
     update,
     updatePartial,
     deleteItem,
-    reorder
+    reorder,
+    updateViewConfig
 }

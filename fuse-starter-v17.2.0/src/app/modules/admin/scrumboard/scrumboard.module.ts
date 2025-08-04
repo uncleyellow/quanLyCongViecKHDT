@@ -23,6 +23,7 @@ import { ScrumboardComponent } from './scrumboard.component';
 import { scrumboardRoutes } from './scrumboard.routing';
 import { AddBoardDialogComponent } from './boards/add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment';
+import { ViewConfigDialogComponent } from './board/view-config-dialog.component';
 
 
 @NgModule({
@@ -35,7 +36,8 @@ import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment
         ScrumboardCardComponent,
         ScrumboardCardDetailsComponent,
         AddBoardDialogComponent,
-        ShareBoardDialogComponent
+        ShareBoardDialogComponent,
+        ViewConfigDialogComponent
     ],
     imports     : [
         RouterModule.forChild(scrumboardRoutes),

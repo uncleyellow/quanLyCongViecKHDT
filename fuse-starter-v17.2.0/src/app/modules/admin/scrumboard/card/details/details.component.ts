@@ -279,7 +279,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
 
             // Tạo item mới tạm thời để hiển thị ngay lập tức
             const tempItem = {
-                id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 text: newItemText,
                 checked: false
             };
@@ -296,11 +296,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
             // Thêm item mới vào checklist
             const newChecklistItems = [
                 ...currentChecklistItems,
-                {
-                    id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Tạo ID tạm thời unique
-                    checked: false,
-                    text: newItemText
-                }
+                // {
+                //     id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Tạo ID tạm thời unique
+                //     checked: false,
+                //     text: newItemText
+                // }
             ];
             // Gọi API để lưu vào database
             this._scrumboardService.updateChecklistItem(this.card.id, newChecklistItems).subscribe((response: any) => {
@@ -337,7 +337,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
             this._changeDetectorRef.markForCheck();
 
             // Gọi API để xóa khỏi database bằng PATCH method
-            if (itemId && !itemId.startsWith('temp_')) {
+            if (itemId) {
                 // Sử dụng PATCH để cập nhật checklistItems mới (không có item bị xóa)
                 this._scrumboardService.updateChecklistItem(this.card.id, this.card.checklistItems).subscribe(() => {
                     // Xóa thành công, không cần làm gì thêm
@@ -352,6 +352,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     }
 
     toggleChecklistItem(i: number) {
+        debugger
         if (this.card.checklistItems && this.card.checklistItems[i]) {
             const item = this.card.checklistItems[i];
             const itemId = item.id;
@@ -361,7 +362,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
             this._changeDetectorRef.markForCheck();
 
             // Gọi API để cập nhật database
-            if (itemId && !itemId.startsWith('temp_')) {
+            if (itemId) {
                 this._scrumboardService.updateChecklistItem(this.card.id, this.card.checklistItems).subscribe(() => {
                     // Cập nhật thành công, không cần làm gì thêm
                 }, (error) => {

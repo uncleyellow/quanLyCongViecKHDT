@@ -113,7 +113,17 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                         lastActivity: null,
                         lists: [],
                         labels: [],
-                        members: []
+                        members: [],
+                        viewConfig: {
+                            showTitle: true,
+                            showDescription: true,
+                            showDueDate: true,
+                            showMembers: true,
+                            showLabels: true,
+                            showChecklist: true,
+                            showStatus: true,
+                            showType: true
+                        }
                     }, user.email).subscribe((newBoard) => {
                         if(newBoard){
                             this.fetch(user.email);

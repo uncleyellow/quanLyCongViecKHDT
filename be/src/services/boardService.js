@@ -186,6 +186,77 @@ const reorder = async (reqBody, reorderData) => {
   } catch (error) { throw error }
 }
 
+const updateViewConfig = async (reqBody, reqBodyUpdate) => {
+  try {
+    const updatedBoard = await boardModel.updateViewConfig(reqBody, reqBodyUpdate)
+    
+    // Return complete board data with lists and cards like getDetail method
+    if (updatedBoard && updatedBoard.id) {
+      // Parse listOrderIds từ JSON string nếu cần
+      let listOrderIds = updatedBoard.listOrderIds
+      if (typeof listOrderIds === 'string') {
+        try {
+          listOrderIds = JSON.parse(listOrderIds)
+        } catch (error) {
+          listOrderIds = []
+        }
+      }
+
+      // Lấy danh sách các list thuộc board này
+      let lists = await listService.getList({ boardId: updatedBoard.id })
+
+      // Với mỗi list, lấy danh sách card trong list đó
+      if (lists && lists.length > 0) {
+        // Lấy cards cho từng list song song và thêm thông tin board members cho mỗi card
+        lists = await Promise.all(
+          lists.map(async (list) => {
+            const cards = await cardModel.getList({ boardId: updatedBoard.id, listId: list.id })
+
+            // Thêm thông tin board members cho mỗi card
+            const cardsWithMembers = await Promise.all(
+              cards.map(async (card) => {
+                // Lấy danh sách board members
+                const boardMembers = await boardMemberModel.getBoardMembers(updatedBoard.id)
+
+                return {
+                  ...card,
+                  members: boardMembers || []
+                }
+              })
+            )
+
+            return { ...list, cards: cardsWithMembers }
+          })
+        )
+      }
+
+      // Sắp xếp lists theo listOrderIds
+      if (listOrderIds && Array.isArray(listOrderIds) && lists.length > 0) {
+        const listMap = new Map(lists.map(list => [list.id, list]))
+        const sortedLists = []
+        listOrderIds.forEach(listId => {
+          if (listMap.has(listId)) {
+            sortedLists.push(listMap.get(listId))
+            listMap.delete(listId)
+          }
+        })
+        // Thêm các list còn lại (nếu có) vào cuối
+        listMap.forEach(list => {
+          sortedLists.push(list)
+        })
+        updatedBoard.lists = sortedLists
+      } else {
+        updatedBoard.lists = lists
+      }
+
+      // Cập nhật lại listOrderIds đã parse
+      updatedBoard.listOrderIds = listOrderIds
+    }
+    
+    return updatedBoard
+  } catch (error) { throw error }
+}
+
 export const boardService = {
   getList,
   createNew,
@@ -193,5 +264,6 @@ export const boardService = {
   update,
   updatePartial,
   deleteItem,
-  reorder
+  reorder,
+  updateViewConfig
 }

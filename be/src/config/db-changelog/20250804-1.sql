@@ -12,4 +12,8 @@ ALTER TABLE boardMembers
 ADD CONSTRAINT boardMembers_ibfk_2 FOREIGN KEY (memberId)
 REFERENCES users (id) ON DELETE CASCADE;
 
+-- Add viewConfig column to boards table
+ALTER TABLE boards
+ADD COLUMN viewConfig JSON DEFAULT NULL;
+
 -----DONE 

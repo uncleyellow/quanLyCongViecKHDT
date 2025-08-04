@@ -1,0 +1,89 @@
+<div class="flex flex-col flex-auto md:w-auto md:min-w-auto max-h-auto -m-6 overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex flex-0 items-center justify-between h-16 pr-3 sm:pr-5 pl-6 sm:pl-8 bg-primary text-on-primary">
+        <div class="text-lg font-medium">Tùy chọn hiển thị</div>
+        <button mat-icon-button (click)="matDialogRef.close()" [tabIndex]="-1">
+            <mat-icon class="text-current" [svgIcon]="'heroicons_outline:x'"></mat-icon>
+        </button>
+    </div>
+
+    <!-- Form -->
+    <form class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto" [formGroup]="viewConfigForm">
+
+        <div class="text-sm text-gray-600 mb-4">
+            Chọn những trường dữ liệu sẽ được hiển thị trong danh sách card của board này
+        </div>
+
+        <!-- Title -->
+        <mat-checkbox formControlName="showTitle" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Tiêu đề</div>
+                <div class="text-sm text-gray-600">Hiển thị tiêu đề của card</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Description -->
+        <mat-checkbox formControlName="showDescription" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Mô tả</div>
+                <div class="text-sm text-gray-600">Hiển thị mô tả công việc</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Due Date -->
+        <mat-checkbox formControlName="showDueDate" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Ngày hết hạn</div>
+                <div class="text-sm text-gray-600">Hiển thị ngày hết hạn của công việc</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Members -->
+        <mat-checkbox formControlName="showMembers" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Thành viên</div>
+                <div class="text-sm text-gray-600">Hiển thị avatar của thành viên phụ trách</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Labels -->
+        <mat-checkbox formControlName="showLabels" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Nhãn</div>
+                <div class="text-sm text-gray-600">Hiển thị các nhãn của card</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Checklist -->
+        <mat-checkbox formControlName="showChecklist" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Checklist</div>
+                <div class="text-sm text-gray-600">Hiển thị tiến độ checklist (ví dụ: 2/5)</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Status -->
+        <mat-checkbox formControlName="showStatus" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Trạng thái</div>
+                <div class="text-sm text-gray-600">Hiển thị trạng thái của card</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Type -->
+        <mat-checkbox formControlName="showType" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Loại công việc</div>
+                <div class="text-sm text-gray-600">Hiển thị loại công việc</div>
+            </div>
+        </mat-checkbox>
+
+    </form>
+
+    <!-- Actions -->
+    <div class="flex gap-2 justify-end p-6 sm:p-8 border-t">
+        <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
+        <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
+    </div>
+</div> 

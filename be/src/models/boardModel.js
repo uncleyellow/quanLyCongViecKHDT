@@ -15,6 +15,16 @@ const BOARD_TABLE_SCHEMA = Joi.object({
   companyId: Joi.string().uuid().allow(null).default(null),
   departmentId: Joi.string().uuid().allow(null).default(null),
   listOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  viewConfig: Joi.object({
+    showTitle: Joi.boolean().default(true),
+    showDescription: Joi.boolean().default(true),
+    showDueDate: Joi.boolean().default(true),
+    showMembers: Joi.boolean().default(true),
+    showLabels: Joi.boolean().default(true),
+    showChecklist: Joi.boolean().default(true),
+    showStatus: Joi.boolean().default(true),
+    showType: Joi.boolean().default(true)
+  }).allow(null).default(null),
   createdBy: Joi.string().uuid().allow(null).default(null),
   updatedBy: Joi.string().uuid().allow(null).default(null),
   deletedBy: Joi.string().uuid().allow(null).default(null),
@@ -98,6 +108,19 @@ const reorder = async (data, reorderData) => {
   } catch (error) { throw new Error(error) }
 }
 
+const updateViewConfig = async (data, dataUpdate) => {
+  try {
+    const { viewConfig } = dataUpdate
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET viewConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const updatedBoard = await db.query(query, [JSON.stringify(viewConfig), data.id, data.userId])
+    
+    // Return the updated board details
+    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
+    return boardDetail[0][0]
+  } catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_TABLE_NAME,
   BOARD_TABLE_SCHEMA,
@@ -107,5 +130,6 @@ export const boardModel = {
   update,
   updatePartial,
   deleteNote,
-  reorder
+  reorder,
+  updateViewConfig
 }

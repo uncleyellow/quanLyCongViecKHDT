@@ -1,4 +1,4 @@
-import { IBoard, ICard, ILabel, IList, IMember } from 'app/modules/admin/scrumboard/scrumboard.types';
+import { IBoard, ICard, ILabel, IList, IMember, ViewConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 
 // -----------------------------------------------------------------------------------------------------
 // @ Board
@@ -13,6 +13,7 @@ export class Board implements Required<IBoard>
     lists: List[];
     labels: Label[];
     members: Member[];
+    viewConfig: ViewConfig;
 
     /**
      * Constructor
@@ -27,6 +28,16 @@ export class Board implements Required<IBoard>
         this.lists = [];
         this.labels = [];
         this.members = [];
+        this.viewConfig = board.viewConfig || {
+            showTitle: true,
+            showDescription: true,
+            showDueDate: true,
+            showMembers: true,
+            showLabels: true,
+            showChecklist: true,
+            showStatus: true,
+            showType: true
+        };
 
         // Lists
         if ( board.lists )
