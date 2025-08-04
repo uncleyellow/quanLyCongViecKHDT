@@ -553,4 +553,23 @@ export class ScrumboardService {
             })
         );
     }
+
+    /**
+     * Update board order
+     *
+     * @param boardOrderIds
+     */
+    updateBoardOrder(boardOrderIds: string[]): Observable<any> {
+        return this._httpClient.patch(`${environment.apiBaseUrl}/users/board-order`, {
+            boardOrderIds: boardOrderIds
+        }).pipe(
+            map((response: any) => {
+                // Handle API response format
+                if (response && response.data) {
+                    return response.data;
+                }
+                return response;
+            })
+        );
+    }
 }

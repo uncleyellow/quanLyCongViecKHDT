@@ -144,6 +144,16 @@ const changePassword = async (userId, newPasswordHash) => {
   }
 }
 
+const updateBoardOrder = async (userId, boardOrderIds) => {
+  try {
+    const query = `UPDATE ${USER_TABLE_NAME} SET boardOrderIds = ?, updatedAt = NOW() WHERE id = ?`
+    const result = await db.query(query, [JSON.stringify(boardOrderIds), userId])
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const userModel = {
   USER_TABLE_NAME,
   USER_TABLE_SCHEMA,
@@ -156,5 +166,6 @@ export const userModel = {
   getUsersByType,
   update,
   deleteUser,
-  changePassword
+  changePassword,
+  updateBoardOrder
 }

@@ -11,11 +11,30 @@
         </div>
 
         <!-- Boards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 md:mt-16">
+        <div 
+            class="flex flex-wrap justify-center gap-4 mt-8 md:mt-16"
+            cdkDropList
+            [cdkDropListData]="boards"
+            [cdkDropListOrientation]="'horizontal'"
+            (cdkDropListDropped)="boardDropped($event)">
+            
+            <!-- Drag placeholder -->
+            <div *cdkDropListPlaceholder class="w-56 min-h-32 border-2 border-dashed border-blue-400 rounded-lg bg-blue-50 flex items-center justify-center transition-all duration-200 flex-shrink-0">
+                <div class="text-blue-600 text-sm font-medium flex items-center">
+                    <mat-icon class="mr-2 text-blue-500">drag_indicator</mat-icon>
+                    Thả board vào đây
+                </div>
+            </div>
+            
             <ng-container *ngFor="let board of boards; trackBy: trackByFn">
                 <a
-                    class="flex flex-col items-start w-56 p-6 rounded-lg shadow bg-card rounded-lg hover:shadow-xl transition-shadow duration-150 ease-in-out"
-                    [routerLink]="[board.id]">
+                    class="flex flex-col items-start w-56 p-6 rounded-lg shadow bg-card rounded-lg hover:shadow-xl transition-shadow duration-150 ease-in-out board-card board-item relative flex-shrink-0"
+                    [routerLink]="[board.id]"
+                    cdkDrag>
+                    <!-- Drag handle -->
+                    <div class="drag-handle" cdkDragHandle>
+                        <mat-icon class="text-gray-400 hover:text-gray-600">drag_indicator</mat-icon>
+                    </div>
                     <div class="flex items-center justify-center p-4 rounded-full bg-primary-50 text-primary-700 dark:bg-primary dark:text-on-primary">
                         <mat-icon
                             class="text-current"
@@ -55,7 +74,7 @@
                 </a>
             </ng-container>
             <!-- New board -->
-            <div class="flex flex-col items-center justify-center w-56 rounded-lg cursor-pointer border-2 border-gray-300 border-dashed hover:bg-hover transition-colors duration-150 ease-in-out" (click)="createNewBoard()">
+            <div class="flex flex-col items-center justify-center w-56 rounded-lg cursor-pointer border-2 border-gray-300 border-dashed hover:bg-hover transition-colors duration-150 ease-in-out flex-shrink-0" (click)="createNewBoard()">
                 <mat-icon
                     class="icon-size-12 text-hint"
                     [svgIcon]="'heroicons_outline:plus'"></mat-icon>

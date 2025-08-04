@@ -61,8 +61,35 @@ const checkPasswordChangeRequired = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const updateBoardOrder = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const { boardOrderIds } = req.body
+
+    // Validate input
+    if (!boardOrderIds || !Array.isArray(boardOrderIds)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        code: StatusCodes.BAD_REQUEST,
+        status: 'error',
+        message: 'boardOrderIds must be an array'
+      })
+    }
+
+    const result = await userService.updateBoardOrder(userId, boardOrderIds)
+
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Board order updated successfully',
+      data: result
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   getMe,
   changePassword,
-  checkPasswordChangeRequired
+  checkPasswordChangeRequired,
+  updateBoardOrder
 }

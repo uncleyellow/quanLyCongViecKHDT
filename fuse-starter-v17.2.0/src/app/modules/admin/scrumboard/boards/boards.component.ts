@@ -7,10 +7,12 @@ import { UserService } from 'app/core/user/user.service';
 import { MatDialog } from '@angular/material/dialog';
 import { AddBoardDialogComponent } from './add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './share-board-dialog.compoment';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 @Component({
     selector       : 'scrumboard-boards',
     templateUrl    : './boards.component.html',
+    styleUrls      : ['./boards.component.scss'],
     encapsulation  : ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -179,6 +181,29 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
         this._scrumboardService.addMemberToBoard(board.id, member.id).subscribe(() => {
             // Thông báo thành công
             console.log('Member added to board successfully');
+        });
+    }
+
+    /**
+     * Board dropped
+     *
+     * @param event
+     */
+    boardDropped(event: CdkDragDrop<Board[]>): void {
+        // Move the item
+        moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+
+        // Update board order in backend
+        const boardIds = event.container.data.map(board => board.id);
+        this._scrumboardService.updateBoardOrder(boardIds).subscribe(() => {
+            // Refresh the boards list
+            const userStr = localStorage.getItem('user');
+            let email = '';
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                email = user.email;
+            }
+            this.fetch(email);
         });
     }
 }

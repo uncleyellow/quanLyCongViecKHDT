@@ -38,7 +38,19 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   }
 }
 
+const updateBoardOrder = async (userId, boardOrderIds) => {
+  try {
+    // Cập nhật thứ tự board cho user
+    await userModel.updateBoardOrder(userId, boardOrderIds)
+    
+    return { message: 'Board order updated successfully' }
+  } catch (error) {
+    throw error
+  }
+}
+
 export const userService = {
   getMe,
-  changePassword
+  changePassword,
+  updateBoardOrder
 }

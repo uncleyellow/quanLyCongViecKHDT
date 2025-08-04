@@ -8,6 +8,40 @@ import { v4 as uuidv4 } from 'uuid'
 const getList = async (reqBody) => {
   try {
     const boardList = await boardModel.getList(reqBody)
+    
+    // Lấy thông tin user để biết boardOrderIds
+    const { userModel } = await import('../models/userModel')
+    const user = await userModel.findOneById(reqBody.userId)
+    
+    if (user && user.boardOrderIds) {
+      // Parse boardOrderIds từ JSON string nếu cần
+      let boardOrderIds = user.boardOrderIds
+      if (typeof boardOrderIds === 'string') {
+        try {
+          boardOrderIds = JSON.parse(boardOrderIds)
+        } catch (error) {
+          boardOrderIds = []
+        }
+      }
+      
+      // Sắp xếp board theo boardOrderIds
+      if (boardOrderIds && Array.isArray(boardOrderIds) && boardList.length > 0) {
+        const boardMap = new Map(boardList.map(board => [board.id, board]))
+        const sortedBoards = []
+        boardOrderIds.forEach(boardId => {
+          if (boardMap.has(boardId)) {
+            sortedBoards.push(boardMap.get(boardId))
+            boardMap.delete(boardId)
+          }
+        })
+        // Thêm các board còn lại (nếu có) vào cuối
+        boardMap.forEach(board => {
+          sortedBoards.push(board)
+        })
+        return sortedBoards
+      }
+    }
+    
     return boardList
   } catch (error) {
     throw error

@@ -142,4 +142,50 @@ Router.route('/change-password')
 Router.route('/check-password-change')
   .get(verifyToken, userController.checkPasswordChangeRequired)
 
+/**
+ * @swagger
+ * /users/board-order:
+ *   patch:
+ *     summary: Update board order for current user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - boardOrderIds
+ *             properties:
+ *               boardOrderIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: Array of board IDs in the desired order
+ *     responses:
+ *       200:
+ *         description: Board order updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request - validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+Router.route('/board-order')
+  .patch(verifyToken, userController.updateBoardOrder)
+
 export const userRoute = Router
