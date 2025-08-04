@@ -79,6 +79,37 @@
             </div>
         </mat-checkbox>
 
+        <!-- Divider -->
+        <div class="w-full border-t border-gray-200 my-6"></div>
+
+        <!-- Recurring Config Section -->
+        <div class="w-full">
+            <div class="font-medium text-lg mb-4">Cấu hình công việc hàng ngày</div>
+            
+            <!-- Is Recurring -->
+            <mat-checkbox formControlName="isRecurring" class="flex items-center mb-4">
+                <div class="ml-3">
+                    <div class="font-medium">Thiết lập board dạng công việc hàng ngày?</div>
+                    <div class="text-sm text-gray-600">Khi bật, tất cả card trong board này sẽ được coi là công việc hàng ngày</div>
+                </div>
+            </mat-checkbox>
+
+            <!-- Completed List -->
+            <div class="w-full">
+                <div class="font-medium mb-2">Đánh dấu là hoàn thành khi card được chuyển sang:</div>
+                <mat-form-field class="w-full">
+                    <mat-label>Chọn list</mat-label>
+                    <mat-select formControlName="completedListId">
+                        <mat-option value="">Không chọn</mat-option>
+                        <mat-option *ngFor="let list of lists" [value]="list.id">
+                            {{list.title}}
+                        </mat-option>
+                    </mat-select>
+                    <mat-hint>Khi card được kéo vào list này, nó sẽ được đánh dấu là hoàn thành</mat-hint>
+                </mat-form-field>
+            </div>
+        </div>
+
     </form>
 
     <!-- Actions -->

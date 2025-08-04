@@ -10,7 +10,23 @@ import { swaggerUi, specs, swaggerOptions, customSwaggerHtml } from './src/confi
 const START_SERVER = () => {
   const app = express()
 
+  // CORS configuration
   app.use(cors(corsOptions))
+  
+  // Thêm headers CORS cho tất cả routes
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin)
+    res.header('Access-Control-Allow-Credentials', true)
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200)
+    } else {
+      next()
+    }
+  })
 
   // Enable req.body json data
   app.use(express.json())

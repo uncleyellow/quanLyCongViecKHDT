@@ -16,7 +16,7 @@ const validateBeforeCreate = async (data) => {
   try {
     return await BOARD_MEMBER_TABLE_SCHEMA.validateAsync(data, { abortEarly: false })
   } catch (error) {
-    console.log('error:', error)
+    console.error('error:', error)
     throw new Error(error)
   }
 }
@@ -34,7 +34,6 @@ const createNew = async (data) => {
 }
 
 const createNewMany = async (dataArray) => {
-  console.log('dataArray:', dataArray)
   try {
     if (!Array.isArray(dataArray) || dataArray.length === 0) {
       throw new Error('Input must be a non-empty array')
@@ -66,7 +65,7 @@ const createNewMany = async (dataArray) => {
     const result = await db.query(query)
     return result[0].insertId
   } catch (error) {
-    console.log('error:', error)
+    console.error('error:', error)
     throw new Error(error)
   }
 }

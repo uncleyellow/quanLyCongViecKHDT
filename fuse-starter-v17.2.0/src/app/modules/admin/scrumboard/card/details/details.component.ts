@@ -388,8 +388,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
             } catch { }
         }
         // Xử lý members từ card thực tế
-        let members: string[] = [];
-        
+        let members: any[] = [];
+        debugger
         // Lấy members hiện tại từ card
         if (this.card.members && Array.isArray(this.card.members)) {
             members = [...this.card.members];
@@ -399,8 +399,14 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
         
         // Nếu card chưa có members, set người tạo là member đầu tiên
         if (members.length === 0 && creatorId) {
-            members = [creatorId];
+            members.push({
+                memberId: creatorId,
+                cardId: this.card.id,
+                role: 'member'
+            })
+            // members = [creatorId];
         }
+        debugger
         
         // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp)
         if (this.selectedMember && !members.includes(this.selectedMember)) {

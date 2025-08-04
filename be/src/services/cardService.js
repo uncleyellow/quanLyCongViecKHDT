@@ -2,7 +2,8 @@
 import { cardModel } from '../models/cardModel'
 import { v4 as uuidv4 } from 'uuid'
 import { formatDateTimeForMySQL } from '../utils/formatters'
-import { boardMemberModel } from '~/models/boardMemberModel'
+import { boardMemberModel } from '../models/boardMemberModel'
+import { cardMemberModel } from '../models/cardMemberModel'
 
 const getList = async (reqBody) => {
   try {
@@ -28,8 +29,9 @@ const createNew = async (reqBody) => {
       reqBody.endDate = formatDateTimeForMySQL(reqBody.endDate)
     }
 
-    const newList = await cardModel.createNew(reqBody)
-    return newList
+    const newCard = await cardModel.createNew(reqBody)
+    const newCardMember = await cardMemberModel.addMemberIfNotExists(reqBody.id, reqBody.createdBy, 'member')
+    return newCard
   } catch (error) { throw error }
 }
 
@@ -41,7 +43,6 @@ const getDetail = async (reqBody) => {
 }
 
 const update = async (reqBody, reqBodyUpdate) => {
-  console.log(reqBodyUpdate)
   reqBodyUpdate.archived = reqBodyUpdate.archived === true ? 1 : 0
   reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
   // Format datetime fields for MySQL
@@ -61,14 +62,13 @@ const update = async (reqBody, reqBodyUpdate) => {
   delete reqBodyUpdate.members
 
   const newMembers = members.map(member => ({
-    boardId: reqBodyUpdate.boardId,
+    cardId: reqBody.id,
     memberId: member.memberId,
     role: 'member'
   }))
 
   // Sử dụng hàm mới để kiểm tra trước khi thêm
-  const newBoardMember = await boardMemberModel.addMembersIfNotExists(newMembers)
-  console.log('Board members result:', newBoardMember)
+  const newCardMember = await cardMemberModel.addMembersIfNotExists(newMembers)
   try {
     const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
     return updatedList

@@ -9,6 +9,7 @@ export interface IBoard
     labels?: ILabel[];
     members?: IMember[];
     viewConfig?: ViewConfig;
+    recurringConfig?: RecurringConfig;
 }
 
 export interface ViewConfig
@@ -21,6 +22,12 @@ export interface ViewConfig
     showChecklist?: boolean;
     showStatus?: boolean;
     showType?: boolean;
+}
+
+export interface RecurringConfig
+{
+    isRecurring?: boolean;
+    completedListId?: string | null;
 }
 
 export interface IList

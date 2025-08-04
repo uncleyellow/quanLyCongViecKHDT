@@ -120,6 +120,21 @@ const updateViewConfig = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+const updateRecurringConfig = async (req, res, next) => {
+    try {
+        const { userId } = req.user
+        const { recurringConfig } = req.body
+        const updatedBoard = await boardService.updateRecurringConfig({ ...req.params, userId: userId }, { recurringConfig })
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Board recurring config updated successfully',
+            data: updatedBoard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
 export const boardController = {
     getList,
     createNew,
@@ -128,5 +143,6 @@ export const boardController = {
     updatePartial,
     deleteItem,
     reorder,
-    updateViewConfig
+    updateViewConfig,
+    updateRecurringConfig
 }

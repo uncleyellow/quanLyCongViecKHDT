@@ -1,0 +1,48 @@
+<div class="flex flex-col flex-auto md:w-auto md:min-w-auto max-h-auto -m-6 overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex flex-0 items-center justify-between h-16 pr-3 sm:pr-5 pl-6 sm:pl-8 bg-primary text-on-primary">
+        <div class="text-lg font-medium">Cấu hình công việc hàng ngày</div>
+        <button mat-icon-button (click)="matDialogRef.close()" [tabIndex]="-1">
+            <mat-icon class="text-current" [svgIcon]="'heroicons_outline:x'"></mat-icon>
+        </button>
+    </div>
+
+    <!-- Form -->
+    <form class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto" [formGroup]="recurringConfigForm">
+
+        <div class="text-sm text-gray-600 mb-4">
+            Cấu hình board này để quản lý công việc hàng ngày
+        </div>
+
+        <!-- Is Recurring -->
+        <mat-checkbox formControlName="isRecurring" class="flex items-center">
+            <div class="ml-3">
+                <div class="font-medium">Thiết lập board dạng công việc hàng ngày?</div>
+                <div class="text-sm text-gray-600">Khi bật, tất cả card trong board này sẽ được coi là công việc hàng ngày</div>
+            </div>
+        </mat-checkbox>
+
+        <!-- Completed List -->
+        <div class="w-full">
+            <div class="font-medium mb-2">Đánh dấu là hoàn thành khi card được chuyển sang:</div>
+            <mat-form-field class="w-full">
+                <mat-label>Chọn list</mat-label>
+                <mat-select formControlName="completedListId">
+                    <mat-option value="">Không chọn</mat-option>
+                    <mat-option *ngFor="let list of lists" [value]="list.id">
+                        {{list.title}}
+                    </mat-option>
+                </mat-select>
+                <mat-hint>Khi card được kéo vào list này, nó sẽ được đánh dấu là hoàn thành</mat-hint>
+            </mat-form-field>
+        </div>
+
+    </form>
+
+    <!-- Actions -->
+    <div class="flex gap-2 justify-end p-6 sm:p-8 border-t">
+        <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
+        <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
+    </div>
+</div> 

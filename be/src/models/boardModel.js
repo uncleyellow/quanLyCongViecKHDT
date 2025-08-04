@@ -25,6 +25,10 @@ const BOARD_TABLE_SCHEMA = Joi.object({
     showStatus: Joi.boolean().default(true),
     showType: Joi.boolean().default(true)
   }).allow(null).default(null),
+  recurringConfig: Joi.object({
+    isRecurring: Joi.boolean().default(false),
+    completedListId: Joi.string().uuid().allow(null).default(null)
+  }).allow(null).default(null),
   createdBy: Joi.string().uuid().allow(null).default(null),
   updatedBy: Joi.string().uuid().allow(null).default(null),
   deletedBy: Joi.string().uuid().allow(null).default(null),
@@ -121,6 +125,19 @@ const updateViewConfig = async (data, dataUpdate) => {
   } catch (error) { throw new Error(error) }
 }
 
+const updateRecurringConfig = async (data, dataUpdate) => {
+  try {
+    const { recurringConfig } = dataUpdate
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET recurringConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const updatedBoard = await db.query(query, [JSON.stringify(recurringConfig), data.id, data.userId])
+    
+    // Return the updated board details
+    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
+    return boardDetail[0][0]
+  } catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_TABLE_NAME,
   BOARD_TABLE_SCHEMA,
@@ -131,5 +148,6 @@ export const boardModel = {
   updatePartial,
   deleteNote,
   reorder,
-  updateViewConfig
+  updateViewConfig,
+  updateRecurringConfig
 }

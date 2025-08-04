@@ -421,4 +421,70 @@ Router.route('/:id/reorder')
 Router.route('/:id/view-config')
   .patch(verifyToken, boardController.updateViewConfig) // update board view config
 
+/**
+ * @swagger
+ * /boards/{id}/recurring-config:
+ *   patch:
+ *     summary: Update board recurring configuration
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Board ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - recurringConfig
+ *             properties:
+ *               recurringConfig:
+ *                 type: object
+ *                 properties:
+ *                   isRecurring:
+ *                     type: boolean
+ *                     default: false
+ *                     description: Whether this board is for recurring tasks
+ *                   completedListId:
+ *                     type: string
+ *                     format: uuid
+ *                     nullable: true
+ *                     description: ID of the list where cards are marked as completed
+ *     responses:
+ *       200:
+ *         description: Recurring configuration updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+Router.route('/:id/recurring-config')
+  .patch(verifyToken, boardController.updateRecurringConfig) // update board recurring config
+
 export const boardRoute = Router

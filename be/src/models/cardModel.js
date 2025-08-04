@@ -92,7 +92,6 @@ const createNew = async (data) => {
             .join(', ')
 
         const query = `INSERT INTO ${CARD_TABLE_NAME} (${columns}) VALUES (${values})`
-        console.log(query)
         const createdList = await db.query(query)
         return createdList[0].insertId
     } catch (error) {

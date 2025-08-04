@@ -125,6 +125,10 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                             showChecklist: true,
                             showStatus: true,
                             showType: true
+                        },
+                        recurringConfig: {
+                            isRecurring: false,
+                            completedListId: null
                         }
                     }, user.email).subscribe((newBoard) => {
                         if(newBoard){

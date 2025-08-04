@@ -20,5 +20,28 @@ ADD COLUMN viewConfig JSON DEFAULT NULL;
 ALTER TABLE lists
 ADD COLUMN color varchar(20) DEFAULT NULL AFTER title;
 
+-- Add cardMembers table
+CREATE TABLE cardMembers (
+  cardId varchar(36) NOT NULL,
+  memberId varchar(36) NOT NULL,
+  joinedAt datetime DEFAULT CURRENT_TIMESTAMP,
+  role varchar(50) DEFAULT 'member',
+  PRIMARY KEY (cardId, memberId)
+)
+ENGINE = INNODB,
+AVG_ROW_LENGTH = 2048,
+CHARACTER SET utf8mb4,
+COLLATE utf8mb4_0900_ai_ci;
+
+-- Ràng buộc khóa ngoại đến bảng cards
+ALTER TABLE cardMembers
+ADD CONSTRAINT cardMembers_ibfk_1 FOREIGN KEY (cardId)
+REFERENCES cards (id) ON DELETE CASCADE;
+
+-- Ràng buộc khóa ngoại đến bảng users
+ALTER TABLE cardMembers
+ADD CONSTRAINT cardMembers_ibfk_2 FOREIGN KEY (memberId)
+REFERENCES users (id) ON DELETE CASCADE;
+
 
 -----DONE 

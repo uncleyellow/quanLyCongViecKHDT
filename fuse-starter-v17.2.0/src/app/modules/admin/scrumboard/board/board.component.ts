@@ -6,7 +6,7 @@ import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 import { Board, Card, CreateCard, CreateList, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
-import { ViewConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
+import { ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 import { MatDialog } from '@angular/material/dialog';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
 import { ChangeColorDialogComponent } from './change-color-dialog.component';
@@ -99,15 +99,28 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
                     showChecklist: true,
                     showStatus: true,
                     showType: true
-                }
+                },
+                recurringConfig: this.board?.recurringConfig || {
+                    isRecurring: false,
+                    completedListId: null
+                },
+                lists: this.board?.lists || []
             },
-            width: '500px',
+            width: '600px',
             maxHeight: '80vh'
         });
 
-        dialogRef.afterClosed().subscribe((result: ViewConfig) => {
+        dialogRef.afterClosed().subscribe((result: { viewConfig: ViewConfig; recurringConfig: RecurringConfig }) => {
             if (result && this.board) {
-                this._scrumboardService.updateBoardViewConfig(this.board.id, result).subscribe((updatedBoard) => {
+                // Update view config
+                this._scrumboardService.updateBoardViewConfig(this.board.id, result.viewConfig).subscribe((updatedBoard) => {
+                    // Update the board with the complete data returned from backend
+                    this.board = updatedBoard;
+                    this._changeDetectorRef.markForCheck();
+                });
+
+                // Update recurring config
+                this._scrumboardService.updateBoardRecurringConfig(this.board.id, result.recurringConfig).subscribe((updatedBoard) => {
                     // Update the board with the complete data returned from backend
                     this.board = updatedBoard;
                     this._changeDetectorRef.markForCheck();

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
 import { Board, Card, CreateCard, CreateList, Label, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
-import { ViewConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
+import { ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 // import { environment } from 'app/modules/admin/scrumboard/environments/environment';
 import { users as mockUsers } from 'app/mock-api/common/user/data';
 import { environment } from 'environments/environment.local';
@@ -188,6 +188,39 @@ export class ScrumboardService {
                     }
                     // Unexpected format
                     console.error('Unexpected update view config response format:', response);
+                    return new Board({ title: 'Unknown' });
+                }),
+                tap(board => {
+                    // Update the current board if it matches
+                    this._board.pipe(take(1)).subscribe(currentBoard => {
+                        if (currentBoard && currentBoard.id === id) {
+                            this._board.next(board);
+                        }
+                    });
+                })
+            );
+    }
+
+    /**
+     * Update board recurring config
+     *
+     * @param id
+     * @param recurringConfig
+     */
+    updateBoardRecurringConfig(id: string, recurringConfig: RecurringConfig): Observable<Board> {
+        return this._httpClient.patch<Board>(`${environment.apiBaseUrl}/boards/${id}/recurring-config`, { recurringConfig })
+            .pipe(
+                map((response: any) => {
+                    // Handle API response with { data: {...} }
+                    if (response && response.data) {
+                        return new Board(response.data);
+                    }
+                    // Fallback: if response itself is the board data
+                    if (response && response.id) {
+                        return new Board(response);
+                    }
+                    // Unexpected format
+                    console.error('Unexpected update recurring config response format:', response);
                     return new Board({ title: 'Unknown' });
                 }),
                 tap(board => {

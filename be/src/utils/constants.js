@@ -6,7 +6,9 @@
 
 export const WHITELIST_DOMAINS = [
     // 'http://localhost:4200',
-    'https://my-assistant.salution.site'
+    'https://my-assistant.salution.site',
+    'https://ratraco-task-management.web.app',
+    'https://ratraco-task-management.salution.site'
 ]
 
 export const BOARD_TYPES = {

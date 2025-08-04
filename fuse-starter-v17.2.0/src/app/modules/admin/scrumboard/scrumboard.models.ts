@@ -1,4 +1,4 @@
-import { IBoard, ICard, ILabel, IList, IMember, ViewConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
+import { IBoard, ICard, ILabel, IList, IMember, ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 
 // -----------------------------------------------------------------------------------------------------
 // @ Board
@@ -14,6 +14,7 @@ export class Board implements Required<IBoard>
     labels: Label[];
     members: Member[];
     viewConfig: ViewConfig;
+    recurringConfig: RecurringConfig;
 
     /**
      * Constructor
@@ -37,6 +38,11 @@ export class Board implements Required<IBoard>
             showChecklist: true,
             showStatus: true,
             showType: true
+        };
+
+        this.recurringConfig = board.recurringConfig || {
+            isRecurring: false,
+            completedListId: null
         };
 
         // Lists
