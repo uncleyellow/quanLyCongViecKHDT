@@ -140,17 +140,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
                 this._changeDetectorRef.markForCheck();
             });
 
-        // Khi load card:
-        const checklistFormArray = this.cardForm.get('checklistItems') as FormArray;
-        checklistFormArray.clear();
-        if (this.card && this.card.checklistItems) {
-            this.card.checklistItems.forEach(item => {
-                checklistFormArray.push(this._formBuilder.group({
-                    text: [item.text],
-                    checked: [item.checked]
-                }));
-            });
-        }
+        // Không cần khởi tạo checklist form array nữa vì đã chuyển sang sử dụng card.checklistItems trực tiếp
     }
 
     /**
@@ -299,35 +289,94 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
         return item.id || index;
     }
 
-    get checklistItems(): FormArray {
-        return this.cardForm.get('checklistItems') as FormArray;
-    }
+    // Không cần getter checklistItems nữa vì đã chuyển sang sử dụng card.checklistItems trực tiếp
 
     addChecklistItem() {
         if (this.newChecklistText && this.newChecklistText.trim()) {
-            // Sử dụng API checklist mới
-            this._scrumboardService.addChecklistItem(this.card.id, this.newChecklistText.trim()).subscribe(() => {
-                // Reload card để lấy checklist mới
-                this._scrumboardService.getCard(this.card.id).subscribe(updatedCard => {
-                    this.card = updatedCard;
+            const newItemText = this.newChecklistText.trim();
+            
+            // Tạo item mới tạm thời để hiển thị ngay lập tức
+            const tempItem = {
+                id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                text: newItemText,
+                checked: false
+            };
+            
+            // Thêm item mới vào UI ngay lập tức
+            if (!this.card.checklistItems) {
+                this.card.checklistItems = [];
+            }
+            this.card.checklistItems.push(tempItem);
+            this._changeDetectorRef.markForCheck();
+            
+            // Gọi API để lưu vào database
+            this._scrumboardService.addChecklistItem(this.card.id, newItemText).subscribe((response: any) => {
+                // Cập nhật item với ID thật từ server (nếu có)
+                if (response && response.data) {
+                    const serverItem = response.data;
+                    const tempIndex = this.card.checklistItems.findIndex(item => item.id === tempItem.id);
+                    if (tempIndex !== -1) {
+                        this.card.checklistItems[tempIndex] = serverItem;
+                        this._changeDetectorRef.markForCheck();
+                    }
+                }
+            }, (error) => {
+                // Nếu có lỗi, xóa item tạm thời
+                const tempIndex = this.card.checklistItems.findIndex(item => item.id === tempItem.id);
+                if (tempIndex !== -1) {
+                    this.card.checklistItems.splice(tempIndex, 1);
                     this._changeDetectorRef.markForCheck();
-                });
+                }
+                console.error('Error adding checklist item:', error);
             });
+            
             this.newChecklistText = '';
         }
     }
 
     removeChecklistItem(i: number) {
         if (this.card.checklistItems && this.card.checklistItems[i]) {
-            // Sử dụng API checklist mới
-            const itemId = this.card.checklistItems[i].id;
-            if (itemId) {
+            const itemToRemove = this.card.checklistItems[i];
+            const itemId = itemToRemove.id;
+            
+            // Xóa item khỏi UI ngay lập tức
+            this.card.checklistItems.splice(i, 1);
+            this._changeDetectorRef.markForCheck();
+            
+            // Gọi API để xóa khỏi database
+            if (itemId && !itemId.startsWith('temp_')) {
                 this._scrumboardService.deleteChecklistItem(this.card.id, itemId).subscribe(() => {
-                    // Reload card để lấy checklist mới
-                    this._scrumboardService.getCard(this.card.id).subscribe(updatedCard => {
-                        this.card = updatedCard;
-                        this._changeDetectorRef.markForCheck();
-                    });
+                    // Xóa thành công, không cần làm gì thêm
+                }, (error) => {
+                    // Nếu có lỗi, thêm lại item vào UI
+                    this.card.checklistItems.splice(i, 0, itemToRemove);
+                    this._changeDetectorRef.markForCheck();
+                    console.error('Error removing checklist item:', error);
+                });
+            }
+        }
+    }
+
+    toggleChecklistItem(i: number) {
+        if (this.card.checklistItems && this.card.checklistItems[i]) {
+            const item = this.card.checklistItems[i];
+            const itemId = item.id;
+            
+            // Toggle trạng thái checked ngay lập tức
+            item.checked = !item.checked;
+            this._changeDetectorRef.markForCheck();
+            
+            // Gọi API để cập nhật database
+            if (itemId && !itemId.startsWith('temp_')) {
+                this._scrumboardService.updateChecklistItem(this.card.id, itemId, {
+                    checked: item.checked
+                }).subscribe(() => {
+                    // Cập nhật thành công, không cần làm gì thêm
+                }, (error) => {
+                    // Nếu có lỗi, revert lại trạng thái
+                    item.checked = !item.checked;
+                    this._changeDetectorRef.markForCheck();
+                    console.error('Error updating checklist item:', error);
                 });
             }
         }
@@ -365,7 +414,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy
 
         const updateData = {
             ...formValue,
-            checklistItems: formValue.checklistItems,
+            checklistItems: this.card.checklistItems, // Sử dụng checklistItems từ card object
             // member: this.selectedMember,
             members: members,
             labels: labelIds, // <-- truyền mảng id nhãn

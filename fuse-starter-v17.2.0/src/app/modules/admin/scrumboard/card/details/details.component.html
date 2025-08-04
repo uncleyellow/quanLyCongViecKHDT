@@ -127,9 +127,21 @@
         <!-- Checklist -->
         <div>
             <div class="font-medium mb-2">Checklist</div>
-            <div formArrayName="checklistItems" *ngIf="checklistItems">
-                <div *ngFor="let item of checklistItems.controls; let i = index" [formGroupName]="i">
-                    <mat-checkbox formControlName="checked">{{item.get('text').value}}</mat-checkbox>
+            <div *ngIf="card.checklistItems && card.checklistItems.length > 0">
+                <div *ngFor="let item of card.checklistItems; let i = index" class="flex items-center mb-2">
+                    <mat-checkbox 
+                        [checked]="item.checked" 
+                        (change)="toggleChecklistItem(i)"
+                        class="mr-2">
+                    </mat-checkbox>
+                    <span class="flex-1" [class.line-through]="item.checked">{{item.text}}</span>
+                    <button 
+                        mat-icon-button 
+                        color="warn" 
+                        (click)="removeChecklistItem(i)"
+                        class="ml-2">
+                        <mat-icon>delete</mat-icon>
+                    </button>
                 </div>
             </div>
             <div class="flex items-center">
