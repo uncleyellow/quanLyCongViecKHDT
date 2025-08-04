@@ -22,7 +22,6 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     cardForm: UntypedFormGroup;
     labels: Label[];
     filteredLabels: Label[];
-    members: Member[] = [];
     newChecklistText: string = '';
     selectedMember: string = '';
     newLabels: string = '';
@@ -49,11 +48,7 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
      * On init
      */
     ngOnInit(): void {
-        // Lấy danh sách members từ mock data
-        this._scrumboardService.getMembers().subscribe(members => {
-            this.members = members;
-            this._changeDetectorRef.markForCheck();
-        });
+        // Không cần lấy mock data nữa, sẽ sử dụng card.members thực tế
 
         // Get the board
         this._scrumboardService.board$
@@ -84,7 +79,12 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                     if (foundListId) break;
                 }
                 this.card.listId = foundListId;
-                this.selectedMember = card.members || '';
+                // Sử dụng members thực tế từ card
+                if (card.members && Array.isArray(card.members) && card.members.length > 0) {
+                    this.selectedMember = card.members[0]; // Lấy member đầu tiên làm selected
+                } else {
+                    this.selectedMember = '';
+                }
                 this.newLabels = ''; // reset khi mở
             });
 
@@ -386,12 +386,22 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                 creatorId = user.id;
             } catch { }
         }
+        // Xử lý members từ card thực tế
+        let members: string[] = [];
+        
+        // Lấy members hiện tại từ card
+        if (this.card.members && Array.isArray(this.card.members)) {
+            members = [...this.card.members];
+        } else if (this.card.members && typeof this.card.members === 'string') {
+            members = [this.card.members];
+        }
+        
         // Nếu card chưa có members, set người tạo là member đầu tiên
-        let members: string[] = Array.isArray(this.card.members) && this.card.members.length ? [...this.card.members] : (this.card.members.length > 0 ? [this.card.members] : []);
         if (members.length === 0 && creatorId) {
             members = [creatorId];
         }
-        // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp, không xóa creator)
+        
+        // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp)
         if (this.selectedMember && !members.includes(this.selectedMember)) {
             members.push(this.selectedMember);
         }

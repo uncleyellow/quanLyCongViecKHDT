@@ -2,46 +2,26 @@
 
     <!-- Header -->
     <div class="flex flex-0 items-center justify-between h-16 pr-3 sm:pr-5 pl-6 sm:pl-8 bg-primary text-on-primary">
-        <div class="text-lg font-medium">Card</div>
-        <button
-            mat-icon-button
-            (click)="matDialogRef.close()"
-            [tabIndex]="-1">
-            <mat-icon
-                class="text-current"
-                [svgIcon]="'heroicons_outline:x'"></mat-icon>
+        <div class="text-lg font-medium">Công việc</div>
+        <button mat-icon-button (click)="matDialogRef.close()" [tabIndex]="-1">
+            <mat-icon class="text-current" [svgIcon]="'heroicons_outline:x'"></mat-icon>
         </button>
     </div>
 
     <!-- Card form -->
-    <form
-        class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto"
-        [formGroup]="cardForm">
+    <form class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto" [formGroup]="cardForm">
 
         <!-- Title -->
-        <mat-form-field
-            class="w-full"
-            [subscriptSizing]="'dynamic'">
+        <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
             <mat-label>Tiêu đề card</mat-label>
-            <textarea
-                matInput
-                [formControlName]="'title'"
-                [rows]="1"
-                cdkTextareaAutosize
-                [cdkAutosizeMinRows]="1">
+            <textarea matInput [formControlName]="'title'" [rows]="1" cdkTextareaAutosize [cdkAutosizeMinRows]="1">
             </textarea>
         </mat-form-field>
 
         <!-- Description -->
-        <mat-form-field
-            class="w-full"
-            [subscriptSizing]="'dynamic'">
+        <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
             <mat-label>Mô tả công việc</mat-label>
-            <textarea
-                matInput
-                [formControlName]="'description'"
-                [rows]="1"
-                cdkTextareaAutosize
+            <textarea matInput [formControlName]="'description'" [rows]="1" cdkTextareaAutosize
                 [cdkAutosizeMinRows]="1">
             </textarea>
         </mat-form-field>
@@ -49,38 +29,24 @@
         <!-- Due date -->
         <div>
             <div class="font-medium">Ngày hết hạn</div>
-            <div
-                class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
+            <div class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
                 [ngClass]="{'text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700': !card.dueDate,
                             'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': card.dueDate && !isOverdue(card.dueDate),
-                            'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': card.dueDate && isOverdue(card.dueDate)}"
-                (click)="dueDatePicker.open()">
-                <mat-icon
-                    class="icon-size-5 text-current"
-                    [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
+                            'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': card.dueDate && isOverdue(card.dueDate)}" (click)="dueDatePicker.open()">
+                <mat-icon class="icon-size-5 text-current" [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
                 <span class="ml-2 text-md font-medium">
                     <ng-container *ngIf="card.dueDate">{{card.dueDate | date:'longDate'}}</ng-container>
                     <ng-container *ngIf="!card.dueDate">Not set</ng-container>
                 </span>
-                <mat-form-field
-                    class="fuse-mat-dense invisible absolute inset-0 -mt-2.5 opacity-0 pointer-events-none"
+                <mat-form-field class="fuse-mat-dense invisible absolute inset-0 -mt-2.5 opacity-0 pointer-events-none"
                     [subscriptSizing]="'dynamic'">
-                    <input
-                        matInput
-                        [formControlName]="'dueDate'"
-                        [matDatepicker]="dueDatePicker">
+                    <input matInput [formControlName]="'dueDate'" [matDatepicker]="dueDatePicker">
                     <mat-datepicker #dueDatePicker>
                         <mat-datepicker-actions>
-                            <button
-                                mat-button
-                                (click)="cardForm.get('dueDate').setValue(null)"
-                                matDatepickerCancel>
+                            <button mat-button (click)="cardForm.get('dueDate').setValue(null)" matDatepickerCancel>
                                 Clear
                             </button>
-                            <button
-                                mat-flat-button
-                                [color]="'primary'"
-                                matDatepickerApply>
+                            <button mat-flat-button [color]="'primary'" matDatepickerApply>
                                 Select
                             </button>
                         </mat-datepicker-actions>
@@ -96,15 +62,9 @@
                 <!-- Header -->
                 <div class="flex items-center my-2 mx-3">
                     <div class="flex items-center flex-auto min-w-0">
-                        <mat-icon
-                            class="icon-size-5"
-                            [svgIcon]="'heroicons_solid:search'"></mat-icon>
-                        <input
-                            class="min-w-0 ml-2 py-1 border-0"
-                            type="text"
-                            placeholder="Enter label name"
-                            (input)="filterLabels($event)"
-                            (keydown)="filterLabelsInputKeyDown($event)"
+                        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:search'"></mat-icon>
+                        <input class="min-w-0 ml-2 py-1 border-0" type="text" placeholder="Enter label name"
+                            (input)="filterLabels($event)" (keydown)="filterLabelsInputKeyDown($event)"
                             [maxLength]="50">
                     </div>
                 </div>
@@ -112,11 +72,8 @@
                 <div class="max-h-40 leading-none overflow-y-auto border-t">
                     <!-- Labels -->
                     <ng-container *ngFor="let label of filteredLabels; trackBy: trackByFn">
-                        <mat-checkbox
-                            class="flex items-center h-10 min-h-10 pl-1 pr-4"
-                            [color]="'primary'"
-                            [checked]="hasLabel(label)"
-                            (change)="toggleProductTag(label, $event)">
+                        <mat-checkbox class="flex items-center h-10 min-h-10 pl-1 pr-4" [color]="'primary'"
+                            [checked]="hasLabel(label)" (change)="toggleProductTag(label, $event)">
                             {{label.title}}
                         </mat-checkbox>
                     </ng-container>
@@ -129,23 +86,17 @@
             <div class="font-medium mb-2">Checklist</div>
             <div *ngIf="card.checklistItems && card.checklistItems.length > 0">
                 <div *ngFor="let item of card.checklistItems; let i = index" class="flex items-center mb-2">
-                    <mat-checkbox 
-                        [checked]="item.checked" 
-                        (change)="toggleChecklistItem(i)"
-                        class="mr-2">
+                    <mat-checkbox [checked]="item.checked" (change)="toggleChecklistItem(i)" class="mr-2">
                     </mat-checkbox>
                     <span class="flex-1" [class.line-through]="item.checked">{{item.text}}</span>
-                    <button 
-                        mat-icon-button 
-                        color="warn" 
-                        (click)="removeChecklistItem(i)"
-                        class="ml-2">
+                    <button mat-icon-button color="warn" (click)="removeChecklistItem(i)" class="ml-2">
                         <mat-icon>delete</mat-icon>
                     </button>
                 </div>
             </div>
             <div class="flex items-center">
-                <input [(ngModel)]="newChecklistText" placeholder="Thêm mục..." class="flex-1 mr-2 mat-input-element" [ngModelOptions]="{standalone: true}">
+                <input [(ngModel)]="newChecklistText" placeholder="Thêm mục..." class="flex-1 mr-2 mat-input-element"
+                    [ngModelOptions]="{standalone: true}">
                 <button mat-mini-fab color="primary" (click)="addChecklistItem()" type="button">
                     <mat-icon>add</mat-icon>
                 </button>
@@ -158,24 +109,50 @@
             <input matInput [(ngModel)]="newLabels" name="newLabels" [ngModelOptions]="{standalone: true}">
         </mat-form-field>
 
-        <div class="flex gap-2 justify-end mt-4">
-            <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
-            <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
-        </div>
+        <div class="font-medium">Thành viên phụ trách</div>
+        <mat-select [(ngModel)]="selectedMember" name="selectedMember" [ngModelOptions]="{standalone: true}">
+
+            <mat-option *ngIf="card.members.length === 0" value="">Không có</mat-option>
+            <mat-option *ngFor="let member of card.members" [value]="member.id">
+                <div class="flex items-center">
+                    <ng-container *ngIf="member.avatar; else noAvatar">
+                        <img [src]="member.avatar" alt="{{member.name}}"
+                            class="w-6 h-6 rounded-full mr-2 object-cover" />
+                    </ng-container>
+                    <ng-template #noAvatar>
+                        <span class="w-6 h-6 rounded-full mr-2 bg-gray-300 flex items-center justify-center text-xs">
+                            {{ member.name.charAt(0).toUpperCase() }}
+                        </span>
+                    </ng-template>
+                    {{ member.name }}
+                </div>
+            </mat-option>
+        </mat-select>
+
 
     </form>
 </div>
 
 <!-- Member ngoài form -->
-<div class="w-full mt-4">
-    <div class="font-medium">Thành viên phụ trách</div>
-    <mat-select [(ngModel)]="selectedMember" name="selectedMember" [ngModelOptions]="{standalone: true}">
-        <mat-option value="">Không có</mat-option>
-        <mat-option *ngFor="let member of members" [value]="member.id">
-            <div class="flex items-center">
-                <img [src]="member.avatar" [alt]="member.name" class="w-6 h-6 rounded-full mr-2">
-                {{ member.name }}
-            </div>
-        </mat-option>
-    </mat-select>
+<div class="w-full flex justify-between items-end mt-4 bg-white">
+    <div *ngFor="let member of card.members" [value]="member.id" class="relative group">
+        <ng-container *ngIf="member.avatar; else noAvatarOverview">
+            <img [src]="member.avatar" alt="{{member.name}}" class="w-6 h-6 rounded-full mr-2 object-cover cursor-pointer" />
+        </ng-container>
+        <ng-template #noAvatarOverview>
+            <span class="w-6 h-6 rounded-full mr-2 bg-gray-300 flex items-center justify-center text-xs cursor-pointer">
+                {{ member.name.charAt(0).toUpperCase() }}
+            </span>
+        </ng-template>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+            {{ member.name }}
+        </div>
+    </div>
+
+
+    <div class="flex gap-2 justify-end mt-4">
+        <button mat-stroked-button type="button" (click)="onCancel()">Huỷ</button>
+        <button mat-flat-button color="primary" type="button" (click)="onSave()">Lưu</button>
+    </div>
 </div>

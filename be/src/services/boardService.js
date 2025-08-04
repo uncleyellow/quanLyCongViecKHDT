@@ -2,6 +2,7 @@
 import { boardModel } from '../models/boardModel'
 import { listService } from './listService'
 import { cardModel } from '../models/cardModel'
+import { boardMemberModel } from '../models/boardMemberModel'
 
 const getList = async (reqBody) => {
   try {
@@ -41,11 +42,25 @@ const getDetail = async (reqBody) => {
         // Import cardService ở đầu file nếu cần, hoặc require tại đây nếu chưa có
         // Để tránh require lặp lại, import ở đầu file: import { cardModel } from '../models/cardModel'
         // Nhưng ở đây sẽ require trực tiếp để tránh lỗi nếu chưa import
-        // Lấy cards cho từng list song song
+        // Lấy cards cho từng list song song và thêm thông tin board members cho mỗi card
         lists = await Promise.all(
           lists.map(async (list) => {
             const cards = await cardModel.getList({ boardId: boardDetail.id, listId: list.id })
-            return { ...list, cards }
+
+            // Thêm thông tin board members cho mỗi card
+            const cardsWithMembers = await Promise.all(
+              cards.map(async (card) => {
+                // Lấy danh sách board members
+                const boardMembers = await boardMemberModel.getBoardMembers(boardDetail.id)
+
+                return {
+                  ...card,
+                  members: boardMembers || []
+                }
+              })
+            )
+
+            return { ...list, cards: cardsWithMembers }
           })
         )
       }
@@ -100,7 +115,7 @@ const deleteItem = async (reqBody) => {
 const reorder = async (reqBody, reorderData) => {
   try {
     const reorderedBoard = await boardModel.reorder(reqBody, reorderData)
-    
+
     // Lấy danh sách lists đã được sắp xếp theo thứ tự mới
     if (reorderedBoard && reorderedBoard.id) {
       // Parse listOrderIds từ JSON string nếu cần
@@ -112,35 +127,61 @@ const reorder = async (reqBody, reorderData) => {
           listOrderIds = []
         }
       }
-      
+
       const lists = await listService.getList({ boardId: reorderedBoard.id })
-      
-      // Sắp xếp lists theo listOrderIds mới
-      if (listOrderIds && Array.isArray(listOrderIds) && lists.length > 0) {
-        const listMap = new Map(lists.map(list => [list.id, list]))
-        
-        const sortedLists = []
-        listOrderIds.forEach(listId => {
-          if (listMap.has(listId)) {
-            sortedLists.push(listMap.get(listId))
-            listMap.delete(listId)
-          }
-        })
-        
-        // Thêm các list còn lại vào cuối
-        listMap.forEach(list => {
-          sortedLists.push(list)
-        })
-        
-        reorderedBoard.lists = sortedLists
+
+      // Lấy cards cho từng list và thêm thông tin board members
+      if (lists && lists.length > 0) {
+        const listsWithCards = await Promise.all(
+          lists.map(async (list) => {
+            const cards = await cardModel.getList({ boardId: reorderedBoard.id, listId: list.id })
+
+            // Thêm thông tin board members cho mỗi card
+            const cardsWithMembers = await Promise.all(
+              cards.map(async (card) => {
+                // Lấy danh sách board members
+                const boardMembers = await boardMemberModel.getBoardMembers(reorderedBoard.id)
+
+                return {
+                  ...card,
+                  boardMembers: boardMembers || []
+                }
+              })
+            )
+
+            return { ...list, cards: cardsWithMembers }
+          })
+        )
+
+        // Sắp xếp lists theo listOrderIds mới
+        if (listOrderIds && Array.isArray(listOrderIds) && listsWithCards.length > 0) {
+          const listMap = new Map(listsWithCards.map(list => [list.id, list]))
+
+          const sortedLists = []
+          listOrderIds.forEach(listId => {
+            if (listMap.has(listId)) {
+              sortedLists.push(listMap.get(listId))
+              listMap.delete(listId)
+            }
+          })
+
+          // Thêm các list còn lại vào cuối
+          listMap.forEach(list => {
+            sortedLists.push(list)
+          })
+
+          reorderedBoard.lists = sortedLists
+        } else {
+          reorderedBoard.lists = listsWithCards
+        }
       } else {
         reorderedBoard.lists = lists
       }
-      
+
       // Cập nhật lại listOrderIds đã parse
       reorderedBoard.listOrderIds = listOrderIds
     }
-    
+
     return reorderedBoard
   } catch (error) { throw error }
 }
