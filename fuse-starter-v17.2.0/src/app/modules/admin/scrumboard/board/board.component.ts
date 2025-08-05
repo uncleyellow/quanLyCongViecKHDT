@@ -314,15 +314,68 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
             // Transfer the item
             transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
 
+            // Get the moved card
+            const movedCard = event.container.data[event.currentIndex];
+            const newListId = event.container.id;
+            const previousListId = event.previousContainer.id;
+
             // Update the card's list id
-            event.container.data[event.currentIndex].listId = event.container.id;
+            movedCard.listId = newListId;
+
+            // Check if the new list is the completed list in recurring config
+            if (this.board.recurringConfig?.isRecurring && 
+                this.board.recurringConfig?.completedListId === newListId) {
+                // Update status to "done" when moved to completed list
+                movedCard.status = 'done';
+            }
+
+            // Update the card via API
+            this._scrumboardService.updateCard(movedCard.id, movedCard).subscribe({
+                next: () => {
+                    // After updating the card, reorder cards in both lists
+                    const newListCardIds = event.container.data.map(card => card.id);
+                    const previousListCardIds = event.previousContainer.data.map(card => card.id);
+                    
+                    // Reorder cards in the new list
+                    this._scrumboardService.reorderCards(newListId, newListCardIds).subscribe({
+                        next: () => {
+                            // Reorder cards in the previous list
+                            this._scrumboardService.reorderCards(previousListId, previousListCardIds).subscribe({
+                                next: () => {
+                                    this.reloadBoard();
+                                },
+                                error: (error) => {
+                                    console.error('Error reordering cards in previous list:', error);
+                                    this.reloadBoard();
+                                }
+                            });
+                        },
+                        error: (error) => {
+                            console.error('Error reordering cards in new list:', error);
+                            this.reloadBoard();
+                        }
+                    });
+                },
+                error: (error) => {
+                    console.error('Error updating card:', error);
+                    this.reloadBoard();
+                }
+            });
         }
 
-        // Sử dụng API reorder mới thay vì update từng card
-        const cardIds = event.container.data.map(card => card.id);
-        this._scrumboardService.reorderCards(event.container.id, cardIds).subscribe(() => {
-            this.reloadBoard();
-        });
+        // If it's just reordering within the same list
+        if (event.previousContainer === event.container) {
+            const cardIds = event.container.data.map(card => card.id);
+            this._scrumboardService.reorderCards(event.container.id, cardIds).subscribe({
+                next: () => {
+                    this.reloadBoard();
+                },
+                error: (error) => {
+                    console.error('Error reordering cards within same list:', error);
+                    this.reloadBoard();
+                }
+            });
+        }
     }
 
     /**

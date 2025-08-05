@@ -345,7 +345,20 @@ export class ScrumboardService {
      * @param card
      */
     updateCard(cardId: string, card: Card): Observable<Card> {
-        return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, card)
+        // Filter only allowed fields according to backend validation
+        const allowedFields = {
+            title: card.title,
+            description: card.description,
+            dueDate: card.dueDate,
+            listId: card.listId,
+            boardId: card.boardId,
+            status: card.status,
+            checklistItems: card.checklistItems,
+            labels: card.labels,
+            members: card.members
+        };
+
+        return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, allowedFields)
             .pipe(
                 map((response: any) => {
                     // Handle API response with { data: {...} }
