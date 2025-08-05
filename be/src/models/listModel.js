@@ -8,6 +8,7 @@ const LIST_TABLE_SCHEMA = Joi.object({
     id: Joi.string().uuid().required(),
     boardId: Joi.string().uuid().required(),
     title: Joi.string().max(255).required().trim().strict(),
+    color: Joi.string().max(20).default('#3B82F6').trim().strict(),
     archived: Joi.number().integer().valid(0, 1).default(0),
     cardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
     createdBy: Joi.string().uuid().allow(null).default(null),
@@ -30,7 +31,7 @@ const validateBeforeCreate = async (data) => {
 
 const getList = async (data) => {
     try {
-        const query = `SELECT * FROM ${LIST_TABLE_NAME} WHERE boardId = ?`
+        const query = `SELECT * FROM ${LIST_TABLE_NAME} WHERE boardId = ? AND deletedAt IS NULL`
         const listData = await db.query(query, [data.boardId])
         return listData[0]
     } catch (error) { throw new Error(error) }
@@ -50,36 +51,42 @@ const createNew = async (data) => {
 
 const getDetail = async (data) => {
     try {
-        const query = `SELECT * FROM ${LIST_TABLE_NAME} WHERE id = ? AND boardId = ?`
+        const query = `SELECT * FROM ${LIST_TABLE_NAME} WHERE id = ? AND boardId = ? AND deletedAt IS NULL`
         const listDetail = await db.query(query, [data.id, data.boardId])
         return listDetail[0][0]
     } catch (error) { throw new Error(error) }
 }
 
 const update = async (data, dataUpdate) => {
-    console.log(dataUpdate)
-    console.log(data)
     try {
-        const query = `UPDATE ${LIST_TABLE_NAME} SET ? WHERE id = ? AND boardId = ?`
+        const query = `UPDATE ${LIST_TABLE_NAME} SET ? WHERE id = ? AND boardId = ? AND deletedAt IS NULL`
         const updatedList = await db.query(query, [dataUpdate, data.id, dataUpdate.boardId])
-        console.log(updatedList)
         return updatedList[0]
     } catch (error) { throw new Error(error) }
 }
 
 const updatePartial = async (data, dataUpdate) => {
     try {
-        const query = `UPDATE ${LIST_TABLE_NAME} SET ? WHERE id = ? AND boardId = ?`
+        const query = `UPDATE ${LIST_TABLE_NAME} SET ? WHERE id = ? AND boardId = ? AND deletedAt IS NULL`
         const updatedList = await db.query(query, [dataUpdate, data.id, data.boardId])
         return updatedList[0]
     } catch (error) { throw new Error(error) }
 }
 
-const deleteNote = async (data) => {
+const deleteItem = async (data) => {
     try {
-        const query = `DELETE FROM ${LIST_TABLE_NAME} WHERE id = ? AND boardId = ?`
-        const deletedList = await db.query(query, [data.id, data.boardId])
+        const query = `UPDATE ${LIST_TABLE_NAME} SET deletedAt = NOW(), deletedBy = ? WHERE id = ?`
+        const deletedList = await db.query(query, [data.userId, data.id])
         return deletedList[0]
+    } catch (error) { throw new Error(error) }
+}
+
+const reorder = async (data, reorderData) => {
+    try {
+        const { cardOrderIds } = reorderData
+        const query = `UPDATE ${LIST_TABLE_NAME} SET cardOrderIds = ?, updatedAt = NOW() WHERE id = ? AND deletedAt IS NULL`
+        const updatedList = await db.query(query, [JSON.stringify(cardOrderIds), data.id])
+        return updatedList[0]
     } catch (error) { throw new Error(error) }
 }
 
@@ -91,5 +98,6 @@ export const listModel = {
     getDetail,
     update,
     updatePartial,
-    deleteNote
+    deleteItem,
+    reorder
 }

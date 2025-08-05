@@ -15,6 +15,20 @@ const BOARD_TABLE_SCHEMA = Joi.object({
   companyId: Joi.string().uuid().allow(null).default(null),
   departmentId: Joi.string().uuid().allow(null).default(null),
   listOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  viewConfig: Joi.object({
+    showTitle: Joi.boolean().default(true),
+    showDescription: Joi.boolean().default(true),
+    showDueDate: Joi.boolean().default(true),
+    showMembers: Joi.boolean().default(true),
+    showLabels: Joi.boolean().default(true),
+    showChecklist: Joi.boolean().default(true),
+    showStatus: Joi.boolean().default(true),
+    showType: Joi.boolean().default(true)
+  }).allow(null).default(null),
+  recurringConfig: Joi.object({
+    isRecurring: Joi.boolean().default(false),
+    completedListId: Joi.string().uuid().allow(null).default(null)
+  }).allow(null).default(null),
   createdBy: Joi.string().uuid().allow(null).default(null),
   updatedBy: Joi.string().uuid().allow(null).default(null),
   deletedBy: Joi.string().uuid().allow(null).default(null),
@@ -45,7 +59,7 @@ const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
     const { deletedAt, createdAt, updatedAt, ...dataToInsert } = validData
-    const query = `INSERT INTO ${BOARD_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : value).join(', ')})`
+    const query = `INSERT INTO ${BOARD_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : (value === null || value.length == 0 ? 'NULL' : value)).join(', ')})`
     const createdBoard = await db.query(query)
     return createdBoard[0].insertId
   } catch (error) {
@@ -98,6 +112,32 @@ const reorder = async (data, reorderData) => {
   } catch (error) { throw new Error(error) }
 }
 
+const updateViewConfig = async (data, dataUpdate) => {
+  try {
+    const { viewConfig } = dataUpdate
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET viewConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const updatedBoard = await db.query(query, [JSON.stringify(viewConfig), data.id, data.userId])
+    
+    // Return the updated board details
+    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
+    return boardDetail[0][0]
+  } catch (error) { throw new Error(error) }
+}
+
+const updateRecurringConfig = async (data, dataUpdate) => {
+  try {
+    const { recurringConfig } = dataUpdate
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET recurringConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const updatedBoard = await db.query(query, [JSON.stringify(recurringConfig), data.id, data.userId])
+    
+    // Return the updated board details
+    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
+    return boardDetail[0][0]
+  } catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_TABLE_NAME,
   BOARD_TABLE_SCHEMA,
@@ -107,5 +147,7 @@ export const boardModel = {
   update,
   updatePartial,
   deleteNote,
-  reorder
+  reorder,
+  updateViewConfig,
+  updateRecurringConfig
 }

@@ -6,6 +6,10 @@ import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 import { Board, Card, CreateCard, CreateList, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
+import { MatDialog } from '@angular/material/dialog';
+import { ViewConfigDialogComponent } from './view-config-dialog.component';
+import { ChangeColorDialogComponent } from './change-color-dialog.component';
 
 @Component({
     selector: 'scrumboard-board',
@@ -32,7 +36,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         private _changeDetectorRef: ChangeDetectorRef,
         private _formBuilder: UntypedFormBuilder,
         private _fuseConfirmationService: FuseConfirmationService,
-        private _scrumboardService: ScrumboardService
+        private _scrumboardService: ScrumboardService,
+        private _matDialog: MatDialog
     ) {
     }
 
@@ -80,6 +85,51 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     // -----------------------------------------------------------------------------------------------------
 
     /**
+     * Open view config dialog
+     */
+    openViewConfigDialog(): void {
+        const dialogRef = this._matDialog.open(ViewConfigDialogComponent, {
+            data: {
+                viewConfig: this.board?.viewConfig || {
+                    showTitle: true,
+                    showDescription: true,
+                    showDueDate: true,
+                    showMembers: true,
+                    showLabels: true,
+                    showChecklist: true,
+                    showStatus: true,
+                    showType: true
+                },
+                recurringConfig: this.board?.recurringConfig || {
+                    isRecurring: false,
+                    completedListId: null
+                },
+                lists: this.board?.lists || []
+            },
+            width: '600px',
+            maxHeight: '80vh'
+        });
+
+        dialogRef.afterClosed().subscribe((result: { viewConfig: ViewConfig; recurringConfig: RecurringConfig }) => {
+            if (result && this.board) {
+                // Update view config
+                this._scrumboardService.updateBoardViewConfig(this.board.id, result.viewConfig).subscribe((updatedBoard) => {
+                    // Update the board with the complete data returned from backend
+                    this.board = updatedBoard;
+                    this._changeDetectorRef.markForCheck();
+                });
+
+                // Update recurring config
+                this._scrumboardService.updateBoardRecurringConfig(this.board.id, result.recurringConfig).subscribe((updatedBoard) => {
+                    // Update the board with the complete data returned from backend
+                    this.board = updatedBoard;
+                    this._changeDetectorRef.markForCheck();
+                });
+            }
+        });
+    }
+
+    /**
      * Focus on the given element to start editing the list title
      *
      * @param listTitleInput
@@ -94,9 +144,9 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     /**
      * Add new list
      *
-     * @param title
+     * @param data
      */
-    addList(title: string): void {
+    addList(data: {title: string, color: string}): void {
         // Limit the max list count
         if (this.board.lists.length >= this._maxListCount) {
             return;
@@ -105,7 +155,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         // Create a new list model
         const newList = new CreateList({
             boardId: this.board.id,
-            title: title,
+            title: data.title,
+            color: data.color
         });
 
 
@@ -148,6 +199,39 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         // Update the list
         this._scrumboardService.updateList(list.id, updateList).subscribe(() => {
             this.reloadBoard();
+        });
+    }
+
+    /**
+     * Change list color
+     *
+     * @param list
+     */
+    changeListColor(list: List): void {
+        const dialogRef = this._matDialog.open(ChangeColorDialogComponent, {
+            data: {
+                currentColor: list.color,
+                listTitle: list.title
+            },
+            width: '500px',
+            maxHeight: '80vh'
+        });
+
+        dialogRef.afterClosed().subscribe((newColor: string) => {
+            if (newColor && newColor !== list.color) {
+                const updateList = new UpdateList({
+                    boardId: list.boardId,
+                    title: list.title,
+                    color: newColor,
+                    archived: list.archived,
+                    cardOrderIds: list.cardOrderIds
+                });
+
+                // Update the list
+                this._scrumboardService.updateList(list.id, updateList).subscribe(() => {
+                    this.reloadBoard();
+                });
+            }
         });
     }
 
@@ -278,6 +362,19 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     getMemberName(memberId: string): string {
         const member = this.members.find(m => m.id === memberId);
         return member ? member.name : 'Unknown';
+    }
+
+    /**
+     * Get checklist progress string
+     *
+     * @param card
+     */
+    getChecklistProgress(card: Card): string {
+        if (!card.checklistItems || card.checklistItems.length === 0) {
+            return '';
+        }
+        const completed = card.checklistItems.filter(item => item.checked).length;
+        return `${completed}/${card.checklistItems.length}`;
     }
 
     // -----------------------------------------------------------------------------------------------------

@@ -7,6 +7,7 @@ const createNew = async (req, res, next) => {
     const correctCondition = Joi.object({
         boardId: Joi.string().length(36).required().strict(),
         title: Joi.string().min(3).max(255).required().trim().strict(),
+        color: Joi.string().min(3).max(20).trim().strict()
     })
 
     try {
@@ -22,7 +23,8 @@ const update = async (req, res, next) => {
         boardId: Joi.string().uuid(),
         title: Joi.string().min(3).max(255).trim().strict(),
         archived: Joi.boolean(),
-        cardOrderIds: Joi.array().items(Joi.string().uuid()).default([])
+        cardOrderIds: Joi.array().items(Joi.string().uuid()).default([]),
+        color: Joi.string().min(3).max(20).trim().strict()
     })
 
     try {
@@ -47,9 +49,13 @@ const updatePartial = async (req, res, next) => {
     }
 }
 
-const updateCardOrder = async (req, res, next) => {
+const reorder = async (req, res, next) => {
     const correctCondition = Joi.object({
-        cardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).required()
+        cardOrderIds: Joi.array().items(Joi.string().uuid()).required().messages({
+            'any.required': 'cardOrderIds is required',
+            'array.base': 'cardOrderIds must be an array',
+            'array.items': 'cardOrderIds must contain valid UUID strings'
+        })
     })
 
     try {
@@ -64,5 +70,5 @@ export const listValidation = {
     createNew,
     update,
     updatePartial,
-    updateCardOrder
+    reorder
 } 

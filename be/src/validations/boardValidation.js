@@ -13,7 +13,7 @@ const createNew = async (req, res, next) => {
             'string.trim': 'Title must not contain leading or trailing spaces',
         }),
         description: Joi.string().required().min(3).max(256).trim().strict(),
-        type: Joi.string().valid(BOARD_TYPES.PUBLIC, BOARD_TYPES.PRIVATE).required()
+        icon: Joi.string().required()
     })
 
     try {

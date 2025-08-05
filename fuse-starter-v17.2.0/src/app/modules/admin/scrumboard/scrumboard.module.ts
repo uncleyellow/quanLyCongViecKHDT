@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatLuxonDateModule, MAT_LUXON_DATE_FORMATS } from '@angular/material-luxon-adapter';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
 import { SharedModule } from 'app/shared/shared.module';
 import { ScrumboardBoardAddCardComponent } from './board/add-card/add-card.component';
 import { ScrumboardBoardAddListComponent } from './board/add-list/add-list.component';
@@ -23,6 +24,9 @@ import { ScrumboardComponent } from './scrumboard.component';
 import { scrumboardRoutes } from './scrumboard.routing';
 import { AddBoardDialogComponent } from './boards/add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment';
+import { ViewConfigDialogComponent } from './board/view-config-dialog.component';
+import { ChangeColorDialogComponent } from './board/change-color-dialog.component';
+import { RecurringConfigDialogComponent } from './board/recurring-config-dialog.component';
 
 
 @NgModule({
@@ -35,7 +39,10 @@ import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment
         ScrumboardCardComponent,
         ScrumboardCardDetailsComponent,
         AddBoardDialogComponent,
-        ShareBoardDialogComponent
+        ShareBoardDialogComponent,
+        ViewConfigDialogComponent,
+        ChangeColorDialogComponent,
+        RecurringConfigDialogComponent
     ],
     imports     : [
         RouterModule.forChild(scrumboardRoutes),
@@ -50,6 +57,7 @@ import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment
         MatLuxonDateModule,
         MatMenuModule,
         MatProgressBarModule,
+        MatSelectModule,
         SharedModule,
         MatOptionModule
     ],

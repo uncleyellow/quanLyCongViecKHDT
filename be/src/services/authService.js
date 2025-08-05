@@ -36,11 +36,10 @@ const login = async (reqBody) => {
   try {
     const { email, password } = reqBody
     const user = await userModel.getUserByEmail(email)
-    console.log(user)
     if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
     // Hash password before comparing with database
     const hashedPassword = crypto.createHash('sha256').update(password).digest('hex')
-    const isPasswordCorrect = user.password_hash === hashedPassword
+    const isPasswordCorrect = user.passwordHash === hashedPassword
     if (!isPasswordCorrect) throw new ApiError(StatusCodes.UNAUTHORIZED, 'Unauthorized: Invalid credentials')
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '14d' })

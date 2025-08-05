@@ -8,6 +8,26 @@ export interface IBoard
     lists?: IList[];
     labels?: ILabel[];
     members?: IMember[];
+    viewConfig?: ViewConfig;
+    recurringConfig?: RecurringConfig;
+}
+
+export interface ViewConfig
+{
+    showTitle?: boolean;
+    showDescription?: boolean;
+    showDueDate?: boolean;
+    showMembers?: boolean;
+    showLabels?: boolean;
+    showChecklist?: boolean;
+    showStatus?: boolean;
+    showType?: boolean;
+}
+
+export interface RecurringConfig
+{
+    isRecurring?: boolean;
+    completedListId?: string | null;
 }
 
 export interface IList
@@ -15,6 +35,7 @@ export interface IList
     id?: string | null;
     boardId: string;
     title: string;
+    color?: string;
     createdAt?: string | null;
     archived?: boolean;
     cards: ICard[];

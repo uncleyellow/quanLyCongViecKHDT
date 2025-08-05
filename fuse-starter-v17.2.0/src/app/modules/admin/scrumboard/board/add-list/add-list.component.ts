@@ -11,7 +11,7 @@ export class ScrumboardBoardAddListComponent implements OnInit
 {
     @ViewChild('titleInput') titleInput: ElementRef;
     @Input() buttonTitle: string = 'Add a list';
-    @Output() readonly saved: EventEmitter<string> = new EventEmitter<string>();
+    @Output() readonly saved: EventEmitter<{title: string, color: string}> = new EventEmitter<{title: string, color: string}>();
 
     form: UntypedFormGroup;
     formVisible: boolean = false;
@@ -37,7 +37,8 @@ export class ScrumboardBoardAddListComponent implements OnInit
     {
         // Initialize the new list form
         this.form = this._formBuilder.group({
-            title: ['']
+            title: [''],
+            color: ['#3B82F6']
         });
     }
 
@@ -50,8 +51,9 @@ export class ScrumboardBoardAddListComponent implements OnInit
      */
     save(): void
     {
-        // Get the new list title
+        // Get the new list title and color
         const title = this.form.get('title').value;
+        const color = this.form.get('color').value;
 
         // Return, if the title is empty
         if ( !title || title.trim() === '' )
@@ -60,10 +62,14 @@ export class ScrumboardBoardAddListComponent implements OnInit
         }
 
         // Execute the observable
-        this.saved.next(title.trim());
+        this.saved.next({
+            title: title.trim(),
+            color: color
+        });
 
-        // Clear the new list title and hide the form
+        // Clear the form and hide it
         this.form.get('title').setValue('');
+        this.form.get('color').setValue('#3B82F6');
         this.formVisible = false;
 
         // Mark for check
