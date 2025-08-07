@@ -619,6 +619,52 @@ export class ScrumboardService {
         return this._httpClient.put<any>(`${environment.apiBaseUrl}/boards/order`, { boardOrderIds });
     }
 
+    /**
+     * Get filtered board data
+     */
+    getFilteredBoard(boardId: string, filterCriteria: any): Observable<Board> {
+        return this._httpClient.get<Board>(`${environment.apiBaseUrl}/boards/${boardId}/filter`, {
+            params: filterCriteria
+        }).pipe(
+            map((response: any) => {
+                // Handle API response with { statusCode: 200, message: '...', data: {...} }
+                if (response && response.data) {
+                    return new Board(response.data);
+                }
+                // Fallback: if response itself is the board data
+                if (response && response.id) {
+                    return new Board(response);
+                }
+                // Unexpected format
+                console.error('Unexpected filtered board response format:', response);
+                return new Board({
+                    id: '',
+                    title: '',
+                    description: '',
+                    icon: '',
+                    lastActivity: null,
+                    lists: [],
+                    labels: [],
+                    members: [],
+                    viewConfig: {
+                        showTitle: true,
+                        showDescription: true,
+                        showDueDate: true,
+                        showMembers: true,
+                        showLabels: true,
+                        showChecklist: true,
+                        showStatus: true,
+                        showType: true
+                    },
+                    recurringConfig: {
+                        isRecurring: false,
+                        completedListId: null
+                    }
+                });
+            })
+        );
+    }
+
     // -----------------------------------------------------------------------------------------------------
     // @ Time Tracking Methods
     // -----------------------------------------------------------------------------------------------------

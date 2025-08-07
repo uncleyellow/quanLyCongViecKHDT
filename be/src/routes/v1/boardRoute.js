@@ -487,4 +487,8 @@ Router.route('/:id/view-config')
 Router.route('/:id/recurring-config')
   .patch(verifyToken, boardController.updateRecurringConfig) // update board recurring config
 
+// Get filtered board
+Router.route('/:boardId/filter')
+  .get(verifyToken, boardController.getFilteredBoard) // get filtered board
+
 export const boardRoute = Router

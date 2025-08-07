@@ -11,6 +11,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
 import { ChangeColorDialogComponent } from './change-color-dialog.component';
+import { FilterDialogComponent } from './filter-dialog.component';
 
 @Component({
     selector: 'scrumboard-board',
@@ -20,9 +21,43 @@ import { ChangeColorDialogComponent } from './change-color-dialog.component';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ScrumboardBoardComponent implements OnInit, OnDestroy {
-    board: Board;
+    board: Board = new Board({
+        id: '',
+        title: '',
+        description: '',
+        icon: '',
+        lastActivity: null,
+        lists: [],
+        labels: [],
+        members: [],
+        viewConfig: {
+            showTitle: true,
+            showDescription: true,
+            showDueDate: true,
+            showMembers: true,
+            showLabels: true,
+            showChecklist: true,
+            showStatus: true,
+            showType: true
+        },
+        recurringConfig: {
+            isRecurring: false,
+            completedListId: null
+        }
+    });
     listTitleForm: UntypedFormGroup;
     members: Member[] = [];
+
+    // Filter properties
+    isFilterApplied: boolean = false;
+    filterCriteria: any = {
+        member: '',
+        title: '',
+        description: '',
+        status: '',
+        startDate: null,
+        endDate: null
+    };
 
     // Private
     private readonly _positionStep: number = 65536;
@@ -51,6 +86,16 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
      * On init
      */
     ngOnInit(): void {
+        // Get the board
+        this._scrumboardService.board$
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe((board) => {
+                this.board = board;
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+            });
+
         // Lấy danh sách members từ mock data
         this._scrumboardService.getMembers().subscribe(members => {
             this.members = members;
@@ -61,16 +106,6 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         this.listTitleForm = this._formBuilder.group({
             title: ['']
         });
-
-        // Get the board
-        this._scrumboardService.board$
-            .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((board: Board) => {
-                this.board = { ...board };
-
-                // Mark for check
-                this._changeDetectorRef.markForCheck();
-            });
     }
 
     /**
@@ -609,6 +644,77 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
 
         this.snackBar.open('Đã xuất dữ liệu thành công!', 'Đóng', {
             duration: 3000
+        });
+    }
+
+    /**
+     * Open filter dialog
+     */
+    openFilterDialog(): void {
+        const dialogRef = this._matDialog.open(FilterDialogComponent, {
+            data: {
+                members: this.members,
+                currentFilters: this.filterCriteria
+            },
+            width: '600px',
+            maxHeight: '80vh'
+        });
+
+        dialogRef.afterClosed().subscribe((filterData) => {
+            if (filterData) {
+                this.applyFilters(filterData);
+            }
+        });
+    }
+
+    /**
+     * Apply filters using backend API
+     */
+    applyFilters(filterData?: any): void {
+        if (filterData) {
+            this.filterCriteria = filterData;
+        }
+
+        // Call backend API to get filtered data
+        this._scrumboardService.getFilteredBoard(this.board.id, this.filterCriteria).subscribe({
+            next: (filteredBoard) => {
+                this.board = filteredBoard;
+                this.isFilterApplied = true;
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error applying filters:', error);
+                this.snackBar.open('Có lỗi xảy ra khi áp dụng bộ lọc', 'Đóng', {
+                    duration: 3000
+                });
+            }
+        });
+    }
+
+    /**
+     * Clear all filters and restore original data
+     */
+    clearFilters(): void {
+        // Reset filter criteria
+        this.filterCriteria = {
+            member: '',
+            title: '',
+            description: '',
+            status: '',
+            startDate: null,
+            endDate: null
+        };
+
+        // Reload original board data
+        this._scrumboardService.getBoard(this.board.id).subscribe({
+            next: (board) => {
+                this.board = board;
+                this.isFilterApplied = false;
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error clearing filters:', error);
+            }
         });
     }
 

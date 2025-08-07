@@ -1,0 +1,102 @@
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold">Lọc công việc</h2>
+        <button mat-icon-button (click)="onCancel()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <form [formGroup]="filterForm" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Member Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Thành viên</label>
+                <mat-form-field class="w-full">
+                    <mat-select formControlName="member" placeholder="Chọn thành viên">
+                        <mat-option value="">Tất cả</mat-option>
+                        <mat-option *ngFor="let member of members" [value]="member.id">
+                            {{ member.name }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <!-- Title Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên công việc</label>
+                <mat-form-field class="w-full">
+                    <input matInput formControlName="title" placeholder="Nhập tên công việc...">
+                </mat-form-field>
+            </div>
+
+            <!-- Description Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                <mat-form-field class="w-full">
+                    <input matInput formControlName="description" placeholder="Nhập từ khóa mô tả...">
+                </mat-form-field>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                <mat-form-field class="w-full">
+                    <mat-select formControlName="status" placeholder="Chọn trạng thái">
+                        <mat-option value="">Tất cả</mat-option>
+                        <mat-option value="todo">Chưa làm</mat-option>
+                        <mat-option value="in-progress">Đang làm</mat-option>
+                        <mat-option value="done">Hoàn thành</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <!-- Time Range Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian tạo</label>
+                <mat-form-field class="w-full">
+                    <input matInput [matDatepicker]="startDatePicker" formControlName="startDate" placeholder="Từ ngày">
+                    <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+                    <mat-datepicker #startDatePicker></mat-datepicker>
+                </mat-form-field>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                <mat-form-field class="w-full">
+                    <input matInput [matDatepicker]="endDatePicker" formControlName="endDate" placeholder="Đến ngày">
+                    <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+                    <mat-datepicker #endDatePicker></mat-datepicker>
+                </mat-form-field>
+            </div>
+        </div>
+
+        <!-- Filter Actions -->
+        <div class="flex justify-end gap-2 pt-4 border-t">
+            <button 
+                type="button"
+                mat-stroked-button 
+                (click)="onClear()"
+                class="flex items-center gap-2">
+                <mat-icon>clear</mat-icon>
+                Xóa bộ lọc
+            </button>
+            <button 
+                type="button"
+                mat-stroked-button 
+                (click)="onCancel()"
+                class="flex items-center gap-2">
+                <mat-icon>cancel</mat-icon>
+                Hủy
+            </button>
+            <button 
+                type="button"
+                mat-flat-button 
+                color="primary" 
+                (click)="onApply()"
+                class="flex items-center gap-2">
+                <mat-icon>filter_list</mat-icon>
+                Áp dụng
+            </button>
+        </div>
+    </form>
+</div>

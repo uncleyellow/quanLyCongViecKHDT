@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -28,6 +29,7 @@ import { ShareBoardDialogComponent } from './boards/share-board-dialog.compoment
 import { ViewConfigDialogComponent } from './board/view-config-dialog.component';
 import { ChangeColorDialogComponent } from './board/change-color-dialog.component';
 import { RecurringConfigDialogComponent } from './board/recurring-config-dialog.component';
+import { FilterDialogComponent } from './board/filter-dialog.component';
 
 
 @NgModule({
@@ -43,7 +45,8 @@ import { RecurringConfigDialogComponent } from './board/recurring-config-dialog.
         ShareBoardDialogComponent,
         ViewConfigDialogComponent,
         ChangeColorDialogComponent,
-        RecurringConfigDialogComponent
+        RecurringConfigDialogComponent,
+        FilterDialogComponent
     ],
     imports     : [
         RouterModule.forChild(scrumboardRoutes),
@@ -61,7 +64,8 @@ import { RecurringConfigDialogComponent } from './board/recurring-config-dialog.
         MatSelectModule,
         MatSnackBarModule,
         SharedModule,
-        MatOptionModule
+        MatOptionModule,
+        FormsModule
     ],
     providers   : [
         {
