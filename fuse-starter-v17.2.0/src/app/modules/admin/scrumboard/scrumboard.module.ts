@@ -13,6 +13,7 @@ import { MatLuxonDateModule, MAT_LUXON_DATE_FORMATS } from '@angular/material-lu
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { SharedModule } from 'app/shared/shared.module';
 import { ScrumboardBoardAddCardComponent } from './board/add-card/add-card.component';
 import { ScrumboardBoardAddListComponent } from './board/add-list/add-list.component';
@@ -58,6 +59,7 @@ import { RecurringConfigDialogComponent } from './board/recurring-config-dialog.
         MatMenuModule,
         MatProgressBarModule,
         MatSelectModule,
+        MatSnackBarModule,
         SharedModule,
         MatOptionModule
     ],

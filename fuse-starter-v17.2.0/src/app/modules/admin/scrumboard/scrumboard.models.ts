@@ -232,6 +232,7 @@ export class CreateCard implements Partial<ICard>
     title: string;
     type: string;
     status: string;
+    dueDate?: string | null;
 
     /**
      * Constructor
@@ -243,6 +244,7 @@ export class CreateCard implements Partial<ICard>
         this.title = card.title;
         this.type = card.type ?? 'normal';
         this.status = card.status ?? 'todo';
+        this.dueDate = card.dueDate ?? null;
     }
 }
 

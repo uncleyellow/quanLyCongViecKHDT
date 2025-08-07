@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, firstValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 import { Board, Card, CreateCard, CreateList, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
 import { ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
 import { ChangeColorDialogComponent } from './change-color-dialog.component';
 
@@ -37,7 +38,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         private _formBuilder: UntypedFormBuilder,
         private _fuseConfirmationService: FuseConfirmationService,
         private _scrumboardService: ScrumboardService,
-        private _matDialog: MatDialog
+        private _matDialog: MatDialog,
+        private snackBar: MatSnackBar
     ) {
     }
 
@@ -428,6 +430,101 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         }
         const completed = card.checklistItems.filter(item => item.checked).length;
         return `${completed}/${card.checklistItems.length}`;
+    }
+
+    /**
+     * Refresh recurring board - duplicate cards with today's deadline
+     */
+    refreshRecurringBoard(): void {
+        if (!this.board.recurringConfig?.isRecurring) {
+            return;
+        }
+
+        // Show loading message
+        this.snackBar.open('Đang làm mới công việc...', 'Đóng', {
+            duration: 2000
+        });
+
+        // Get today's date in proper format for backend
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+        
+        console.log('Today date string:', todayString);
+        
+        // Get all cards from all lists in the board
+        const allCards = this.board.lists.flatMap(list => list.cards);
+        
+        if (allCards.length === 0) {
+            this.snackBar.open('Không có công việc nào để làm mới', 'Đóng', {
+                duration: 3000
+            });
+            return;
+        }
+
+        // Create new cards without dueDate first
+        const newCardsObservables = allCards.map(card => {
+            const newCard = {
+                boardId: this.board.id,
+                listId: card.listId,
+                title: card.title,
+                type: card.type,
+                status: card.status
+                // Remove dueDate to avoid format issues
+            };
+            
+            console.log('Creating card with data:', newCard);
+            return this._scrumboardService.createCard(card.listId, newCard);
+        });
+
+        // Execute all card creation observables
+        const allObservables = newCardsObservables.map(obs => firstValueFrom(obs));
+        
+        Promise.all(allObservables)
+            .then((createdCards) => {
+                console.log('Created cards:', createdCards);
+                
+                // Filter out cards with null or undefined ids
+                const validCards = createdCards.filter(card => card && card.id);
+                
+                if (validCards.length === 0) {
+                    this.snackBar.open('Không thể tạo card mới', 'Đóng', {
+                        duration: 3000
+                    });
+                    return;
+                }
+
+                // Update dueDate for all created cards
+                const updateObservables = validCards.map(card => {
+                    console.log('Updating card:', card.id, 'with dueDate:', todayString);
+                    
+                    const updatedCard = new Card({
+                        ...card,
+                        dueDate: todayString
+                    });
+                    return this._scrumboardService.updateCard(card.id, updatedCard);
+                });
+
+                const updatePromises = updateObservables.map(obs => firstValueFrom(obs));
+                
+                return Promise.all(updatePromises);
+            })
+            .then(() => {
+                this.snackBar.open('Đã làm mới công việc thành công!', 'Đóng', {
+                    duration: 3000
+                });
+                
+                // Reload board to show updated data
+                this.reloadBoard();
+            })
+            .catch(error => {
+                console.error('Error refreshing recurring board:', error);
+                this.snackBar.open('Có lỗi xảy ra khi làm mới công việc', 'Đóng', {
+                    duration: 3000
+                });
+            });
     }
 
     // -----------------------------------------------------------------------------------------------------

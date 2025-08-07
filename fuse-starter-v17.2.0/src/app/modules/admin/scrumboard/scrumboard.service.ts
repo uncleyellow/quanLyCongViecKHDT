@@ -322,14 +322,20 @@ export class ScrumboardService {
      * @param card
      */
     createCard(listId: string, card: CreateCard): Observable<Card> {
+        console.log('Creating card with data:', card);
+        
         return this._httpClient.post<Card>(`${environment.apiBaseUrl}/cards`, card)
             .pipe(map((response: any) => {
+                console.log('Create card API response:', response);
+                
                 // Handle API response with { data: {...} }
                 if (response && response.data) {
+                    console.log('Using response.data:', response.data);
                     return new Card(response.data);
                 }
                 // Fallback: if response itself is the card data
                 if (response && response.id) {
+                    console.log('Using response directly:', response);
                     return new Card(response);
                 }
                 // Unexpected format
@@ -345,6 +351,8 @@ export class ScrumboardService {
      * @param card
      */
     updateCard(cardId: string, card: Card): Observable<Card> {
+        console.log('Updating card with ID:', cardId, 'and data:', card);
+        
         // Filter only allowed fields according to backend validation
         const allowedFields = {
             title: card.title,
@@ -361,6 +369,8 @@ export class ScrumboardService {
         return this._httpClient.put<Card>(`${environment.apiBaseUrl}/cards/${cardId}`, allowedFields)
             .pipe(
                 map((response: any) => {
+                    console.log('Update card API response:', response);
+                    
                     // Handle API response with { data: {...} }
                     if (response && response.data) {
                         return new Card(response.data);
