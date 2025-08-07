@@ -25,6 +25,11 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     newChecklistText: string = '';
     selectedMember: string = '';
     newLabels: string = '';
+    // Time tracking properties
+    trackingHistory: any[] = [];
+    currentSessionTime: number = 0;
+    showHistory: boolean = false; // Mặc định là đóng
+    private sessionTimer: any;
 
     // Private
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -147,6 +152,9 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
         // Unsubscribe from all subscriptions
         this._unsubscribeAll.next(null);
         this._unsubscribeAll.complete();
+        
+        // Stop session timer
+        this.stopSessionTimer();
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -373,6 +381,270 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                 });
             }
         }
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // @ Time Tracking Methods
+    // -----------------------------------------------------------------------------------------------------
+
+    /**
+     * Start or resume time tracking (combined method)
+     */
+    startOrResumeTracking(): void {
+        // Nếu đã có trackingStartTime thì resume, ngược lại thì start
+        if (this.card.trackingStartTime) {
+            this.resumeTracking();
+        } else {
+            this.startTracking();
+        }
+    }
+
+    /**
+     * Pause or stop time tracking (combined method)
+     */
+    pauseOrStopTracking(): void {
+        // Nếu đang tracking và có thời gian đã track, thì pause
+        // Nếu không có thời gian track hoặc user muốn kết thúc hoàn toàn, thì stop
+        if (this.card.totalTimeSpent > 0 || this.currentSessionTime > 30) { // Nếu đã track > 30s thì pause
+            this.pauseTracking();
+        } else {
+            this.stopTracking();
+        }
+    }
+
+    /**
+     * Start time tracking
+     */
+    startTracking(): void {
+        this._scrumboardService.startTimeTracking(this.card.id).subscribe({
+            next: () => {
+                this.card.isTracking = 1;
+                this.card.trackingStartTime = new Date().toISOString();
+                this.startSessionTimer();
+                this.loadTrackingHistory();
+                this.refreshCardData(); // Refresh card data from backend
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error starting tracking:', error);
+            }
+        });
+    }
+
+    /**
+     * Pause time tracking
+     */
+    pauseTracking(): void {
+        this._scrumboardService.pauseTimeTracking(this.card.id).subscribe({
+            next: () => {
+                this.card.isTracking = 0;
+                this.card.trackingStartTime = null;
+                this.stopSessionTimer();
+                this.loadTrackingHistory();
+                this.refreshCardData(); // Refresh card data from backend
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error pausing tracking:', error);
+            }
+        });
+    }
+
+    /**
+     * Resume time tracking
+     */
+    resumeTracking(): void {
+        this._scrumboardService.resumeTimeTracking(this.card.id).subscribe({
+            next: () => {
+                this.card.isTracking = 1;
+                this.card.trackingStartTime = new Date().toISOString();
+                this.startSessionTimer();
+                this.loadTrackingHistory();
+                this.refreshCardData(); // Refresh card data from backend
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error resuming tracking:', error);
+            }
+        });
+    }
+
+    /**
+     * Stop time tracking
+     */
+    stopTracking(): void {
+        this._scrumboardService.stopTimeTracking(this.card.id).subscribe({
+            next: () => {
+                this.card.isTracking = 0;
+                this.card.trackingStartTime = null;
+                this.stopSessionTimer();
+                this.loadTrackingHistory();
+                this.refreshCardData(); // Refresh card data from backend
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error stopping tracking:', error);
+            }
+        });
+    }
+
+    /**
+     * Refresh card data from backend
+     */
+    refreshCardData(): void {
+        // Get updated card data from backend
+        this._scrumboardService.getBoard(this.board.id).subscribe({
+            next: (board) => {
+                // Find the current card in the updated board
+                for (const list of board.lists) {
+                    const foundCard = list.cards.find(c => c.id === this.card.id);
+                    if (foundCard) {
+                        // Update card with latest data from backend
+                        this.card.totalTimeSpent = foundCard.totalTimeSpent;
+                        this.card.isTracking = foundCard.isTracking;
+                        this.card.trackingStartTime = foundCard.trackingStartTime;
+                        this.card.trackingPauseTime = foundCard.trackingPauseTime;
+                        console.log('Refreshed card data from backend:', foundCard);
+                        break;
+                    }
+                }
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error refreshing card data:', error);
+            }
+        });
+    }
+
+    /**
+     * Load tracking history
+     */
+    loadTrackingHistory(): void {
+        this._scrumboardService.getTimeTrackingHistory(this.card.id).subscribe({
+            next: (response: any) => {
+                if (response && response.data) {
+                    this.trackingHistory = response.data;
+                    
+                    // Debug logs
+                    console.log('Card totalTimeSpent from backend:', this.card.totalTimeSpent);
+                    console.log('Tracking history:', this.trackingHistory);
+                    
+                    // Tính toán tổng thời gian từ lịch sử nếu card chưa có hoặc để kiểm tra
+                    const totalTimeFromHistory = this.trackingHistory
+                        .filter(record => record.duration > 0)
+                        .reduce((total, record) => total + record.duration, 0);
+                    
+                    console.log('Total time calculated from history:', totalTimeFromHistory);
+                    
+                    // Nếu card chưa có totalTimeSpent hoặc bằng 0, sử dụng từ lịch sử
+                    if (!this.card.totalTimeSpent || this.card.totalTimeSpent === 0) {
+                        if (totalTimeFromHistory > 0) {
+                            this.card.totalTimeSpent = totalTimeFromHistory;
+                            console.log('Updated card totalTimeSpent from history:', this.card.totalTimeSpent);
+                        }
+                    } else {
+                        // Nếu có sự khác biệt lớn, log để debug
+                        const difference = Math.abs(this.card.totalTimeSpent - totalTimeFromHistory);
+                        if (difference > 60) { // Khác biệt hơn 1 phút
+                            console.warn('Large difference between card totalTimeSpent and history:', {
+                                cardTotal: this.card.totalTimeSpent,
+                                historyTotal: totalTimeFromHistory,
+                                difference: difference
+                            });
+                        }
+                    }
+                }
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error loading tracking history:', error);
+            }
+        });
+    }
+
+    /**
+     * Start session timer
+     */
+    private startSessionTimer(): void {
+        this.stopSessionTimer();
+        this.sessionTimer = setInterval(() => {
+            if (this.card.isTracking && this.card.trackingStartTime) {
+                const now = new Date();
+                const startTime = new Date(this.card.trackingStartTime);
+                this.currentSessionTime = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+                this._changeDetectorRef.markForCheck();
+            }
+        }, 1000);
+    }
+
+    /**
+     * Stop session timer
+     */
+    private stopSessionTimer(): void {
+        if (this.sessionTimer) {
+            clearInterval(this.sessionTimer);
+            this.sessionTimer = null;
+        }
+        this.currentSessionTime = 0;
+    }
+
+    /**
+     * Format time in seconds to HH:mm:ss
+     */
+    formatTime(seconds: number): string {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Format date time
+     */
+    formatDateTime(dateTime: string): string {
+        return new Date(dateTime).toLocaleString('vi-VN');
+    }
+
+    /**
+     * Get action text
+     */
+    getActionText(action: string): string {
+        const actionMap = {
+            'start': 'Bắt đầu',
+            'pause': 'Tạm dừng',
+            'resume': 'Tiếp tục',
+            'stop': 'Kết thúc'
+        };
+        return actionMap[action] || action;
+    }
+
+    /**
+     * Toggle history visibility
+     */
+    toggleHistory(): void {
+        this.showHistory = !this.showHistory;
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Reset total time to 0
+     */
+    resetTotalTime(): void {
+        this._scrumboardService.resetTotalTime(this.card.id).subscribe({
+            next: () => {
+                this.card.isTracking = 0;
+                this.card.trackingStartTime = null;
+                this.card.trackingPauseTime = 0;
+                this.stopSessionTimer();
+                this.loadTrackingHistory();
+                this.refreshCardData(); // Refresh card data from backend
+                console.log('Reset totalTimeSpent to 0');
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error resetting totalTimeSpent:', error);
+            }
+        });
     }
 
     // Khi lưu (update card)

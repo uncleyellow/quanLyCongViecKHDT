@@ -66,6 +66,11 @@ export interface ICard
     dependencies?: string | null;
     status?: string;
     labels?: ILabel[];
+    // Tracking time fields
+    totalTimeSpent?: number;
+    isTracking?: number;
+    trackingStartTime?: string | null;
+    trackingPauseTime?: number;
 }
 
 export interface IMember

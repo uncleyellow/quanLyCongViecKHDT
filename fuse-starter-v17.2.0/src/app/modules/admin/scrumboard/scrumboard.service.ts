@@ -616,16 +616,75 @@ export class ScrumboardService {
      * @param boardOrderIds
      */
     updateBoardOrder(boardOrderIds: string[]): Observable<any> {
-        return this._httpClient.patch(`${environment.apiBaseUrl}/users/board-order`, {
-            boardOrderIds: boardOrderIds
-        }).pipe(
-            map((response: any) => {
-                // Handle API response format
-                if (response && response.data) {
-                    return response.data;
-                }
-                return response;
-            })
-        );
+        return this._httpClient.put<any>(`${environment.apiBaseUrl}/boards/order`, { boardOrderIds });
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // @ Time Tracking Methods
+    // -----------------------------------------------------------------------------------------------------
+
+    /**
+     * Start time tracking for a card
+     */
+    startTimeTracking(cardId: string, note?: string): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/tracking`, {
+            cardId,
+            action: 'start',
+            note
+        });
+    }
+
+    /**
+     * Pause time tracking for a card
+     */
+    pauseTimeTracking(cardId: string, note?: string): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/tracking`, {
+            cardId,
+            action: 'pause',
+            note
+        });
+    }
+
+    /**
+     * Resume time tracking for a card
+     */
+    resumeTimeTracking(cardId: string, note?: string): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/tracking`, {
+            cardId,
+            action: 'resume',
+            note
+        });
+    }
+
+    /**
+     * Stop time tracking for a card
+     */
+    stopTimeTracking(cardId: string, note?: string): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/tracking`, {
+            cardId,
+            action: 'stop',
+            note
+        });
+    }
+
+    /**
+     * Get time tracking history for a card
+     */
+    getTimeTrackingHistory(cardId: string): Observable<any> {
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/tracking/${cardId}/history`);
+    }
+
+    /**
+     * Get card time summary
+     */
+    getCardTimeSummary(cardId: string): Observable<any> {
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/tracking/${cardId}/summary`);
+    }
+
+    /**
+     * Reset total time for a card
+     */
+    resetTotalTime(cardId: string): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/tracking/${cardId}/reset`, {});
     }
 }
