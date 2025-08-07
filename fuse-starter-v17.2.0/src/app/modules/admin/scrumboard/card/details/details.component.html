@@ -11,6 +11,104 @@
     <!-- Card form -->
     <form class="flex flex-col flex-0 items-start w-full p-6 sm:p-8 space-y-6 overflow-y-auto" [formGroup]="cardForm">
 
+        <!-- Time Tracking Section - Moved to top -->
+        <div class="w-full">
+            <div class="font-medium mb-3">Theo dõi thời gian</div>
+            
+            <!-- Time Summary -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">Tổng thời gian:</span>
+                    <span class="text-lg font-bold text-blue-600">{{ formatTime(card.totalTimeSpent || 0) }}</span>
+                </div>
+                
+                <div class="flex justify-between items-center mb-2" *ngIf="card.isTracking">
+                    <span class="text-sm font-medium">Phiên hiện tại:</span>
+                    <span class="text-lg font-bold text-green-600">{{ formatTime(currentSessionTime) }}</span>
+                </div>
+                
+                <div class="flex justify-between items-center" *ngIf="card.trackingPauseTime > 0">
+                    <span class="text-sm font-medium">Thời gian tạm dừng:</span>
+                    <span class="text-lg font-bold text-orange-600">{{ formatTime(card.trackingPauseTime) }}</span>
+                </div>
+            </div>
+
+            <!-- Time Tracking Controls -->
+            <div class="flex gap-2 mb-4">
+                <!-- Start/Resume button -->
+                <button 
+                    *ngIf="!card.isTracking"
+                    mat-flat-button 
+                    color="primary" 
+                    (click)="startOrResumeTracking()"
+                    class="flex items-center gap-2">
+                    <mat-icon>play_arrow</mat-icon>
+                    {{ card.trackingStartTime ? 'Tiếp tục' : 'Bắt đầu' }}
+                </button>
+
+                <!-- Pause/Stop button -->
+                <button 
+                    *ngIf="card.isTracking"
+                    mat-flat-button 
+                    color="accent" 
+                    (click)="pauseOrStopTracking()"
+                    class="flex items-center gap-2">
+                    <mat-icon>pause</mat-icon>
+                    Tạm dừng/Kết thúc
+                </button>
+
+                <!-- Reset button -->
+                <button 
+                    mat-stroked-button 
+                    color="warn" 
+                    (click)="resetTotalTime()"
+                    class="flex items-center gap-2">
+                    <mat-icon>restart_alt</mat-icon>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Tracking History Toggle -->
+            <div *ngIf="trackingHistory.length > 0" class="mb-4">
+                <button 
+                    mat-stroked-button 
+                    (click)="toggleHistory()"
+                    class="w-full flex justify-between items-center">
+                    <span>Lịch sử theo dõi ({{ trackingHistory.length }} bản ghi)</span>
+                    <mat-icon>{{ showHistory ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+                
+                <!-- Latest Record Summary -->
+                <div class="mt-2 p-3 bg-blue-50 rounded-lg">
+                    <div class="text-sm font-medium text-blue-800">Bản ghi gần nhất:</div>
+                    <div class="text-xs text-blue-600 mt-1">
+                        {{ getActionText(trackingHistory[0]?.action) }} - {{ formatDateTime(trackingHistory[0]?.startTime) }}
+                        <span *ngIf="trackingHistory[0]?.duration > 0" class="ml-2">
+                            ({{ formatTime(trackingHistory[0]?.duration) }})
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Full History (Collapsible) -->
+                <div *ngIf="showHistory" class="mt-3 max-h-60 overflow-y-auto border rounded">
+                    <div *ngFor="let record of trackingHistory" class="bg-white border-b p-3 last:border-b-0">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-sm font-medium">{{ getActionText(record.action) }}</span>
+                                <span class="text-xs text-gray-500 ml-2">{{ formatDateTime(record.startTime) }}</span>
+                            </div>
+                            <span class="text-sm font-medium text-blue-600" *ngIf="record.duration > 0">
+                                {{ formatTime(record.duration) }}
+                            </span>
+                        </div>
+                        <div *ngIf="record.note" class="text-xs text-gray-600 mt-1">
+                            {{ record.note }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Title -->
         <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
             <mat-label>Tiêu đề card</mat-label>
@@ -62,30 +160,30 @@
                 <!-- Header -->
                 <div class="flex items-center my-2 mx-3">
                     <div class="flex items-center flex-auto min-w-0">
-                        <mat-icon class="icon-size-5" [svgIcon]="'heroicons_solid:search'"></mat-icon>
-                        <input class="min-w-0 ml-2 py-1 border-0" type="text" placeholder="Enter label name"
-                            (input)="filterLabels($event)" (keydown)="filterLabelsInputKeyDown($event)"
-                            [maxLength]="50">
+                        <mat-icon class="icon-size-5 text-current mr-2" [svgIcon]="'heroicons_solid:tag'"></mat-icon>
+                        <span class="text-sm font-medium">Labels</span>
                     </div>
                 </div>
-                <!-- Available labels -->
-                <div class="max-h-40 leading-none overflow-y-auto border-t">
-                    <!-- Labels -->
-                    <ng-container *ngFor="let label of filteredLabels; trackBy: trackByFn">
-                        <mat-checkbox class="flex items-center h-10 min-h-10 pl-1 pr-4" [color]="'primary'"
-                            [checked]="hasLabel(label)" (change)="toggleProductTag(label, $event)">
-                            {{label.title}}
-                        </mat-checkbox>
-                    </ng-container>
+                <!-- Labels list -->
+                <div class="px-3 pb-3">
+                    <div class="flex flex-wrap gap-2">
+                        <div *ngFor="let label of labels" class="flex items-center">
+                            <mat-checkbox [checked]="hasLabel(label)" (change)="toggleProductTag(label, $event)"
+                                class="mr-2">
+                            </mat-checkbox>
+                            <div class="w-3 h-3 rounded-full mr-2" [style.background-color]="label.color"></div>
+                            <span class="text-sm">{{ label.title }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Checklist -->
-        <div>
-            <div class="font-medium mb-2">Checklist</div>
-            <div *ngIf="card.checklistItems && card.checklistItems.length > 0">
-                <div *ngFor="let item of card.checklistItems; let i = index" class="flex items-center mb-2">
+        <div class="w-full">
+            <div class="font-medium mb-3">Checklist</div>
+            <div class="space-y-2 mb-3">
+                <div *ngFor="let item of card.checklistItems; let i = index" class="flex items-center">
                     <mat-checkbox [checked]="item.checked" (change)="toggleChecklistItem(i)" class="mr-2">
                     </mat-checkbox>
                     <span class="flex-1" [class.line-through]="item.checked">{{item.text}}</span>

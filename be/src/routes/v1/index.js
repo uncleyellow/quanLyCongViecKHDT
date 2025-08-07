@@ -5,6 +5,7 @@ import { listRoute } from './listRoute'
 import { cardRoute } from './cardRoute'
 import { authRoute } from './authRoute'
 import { userRoute } from './userRoute'
+import cardTimeTrackingRoute from './cardTimeTrackingRoute'
 
 const Router = express.Router()
 
@@ -28,5 +29,7 @@ Router.use('/lists', listRoute)
 // Card APIs
 Router.use('/cards', cardRoute)
 
+// Card Time Tracking APIs
+Router.use('/cards', cardTimeTrackingRoute)
 
 export const APIs_V1 = Router

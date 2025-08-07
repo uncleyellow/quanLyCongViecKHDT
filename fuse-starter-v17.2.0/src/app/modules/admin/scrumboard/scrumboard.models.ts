@@ -200,6 +200,12 @@ export class Card implements Required<ICard>
     dependencies: string | null;
     status: string;
     labels: Label[];
+    // Tracking time fields
+    totalTimeSpent: number;
+    isTracking: number;
+    trackingStartTime: string | null;
+    trackingPauseTime: number;
+    
     /**
      * Constructor
      */
@@ -222,6 +228,11 @@ export class Card implements Required<ICard>
         this.dependencies = card.dependencies ?? null;
         this.status = card.status ?? 'todo';
         this.labels = [];
+        // Tracking time fields
+        this.totalTimeSpent = card.totalTimeSpent ?? 0;
+        this.isTracking = card.isTracking ?? 0;
+        this.trackingStartTime = card.trackingStartTime ?? null;
+        this.trackingPauseTime = card.trackingPauseTime ?? 0;
     }
 }
 
@@ -232,6 +243,7 @@ export class CreateCard implements Partial<ICard>
     title: string;
     type: string;
     status: string;
+    dueDate?: string | null;
 
     /**
      * Constructor
@@ -243,6 +255,7 @@ export class CreateCard implements Partial<ICard>
         this.title = card.title;
         this.type = card.type ?? 'normal';
         this.status = card.status ?? 'todo';
+        this.dueDate = card.dueDate ?? null;
     }
 }
 

@@ -1,5 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
 import { boardService } from '../services/boardService'
+import { boardModel } from '../models/boardModel'
+import { listModel } from '../models/listModel'
+import { cardModel } from '../models/cardModel'
+import { boardMemberModel } from '../models/boardMemberModel'
+import ApiError from '../utils/ApiError'
 
 const getList = async (req, res, next) => {
     try {
@@ -135,6 +140,120 @@ const updateRecurringConfig = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+
+
+const getFilteredBoard = async (req, res, next) => {
+    try {
+        const { boardId } = req.params;
+        const { userId } = req.user;
+        const filterCriteria = req.query;
+
+        // Get the board with basic info
+        const board = await boardModel.getDetail({ id: boardId, userId: userId });
+        if (!board) {
+            throw new ApiError(404, 'Board not found');
+        }
+
+        // Get all lists for this board
+        const lists = await listModel.getList({ boardId });
+
+        // Apply filters to cards in each list
+        for (let list of lists) {
+            let cards = await cardModel.getList({ boardId: boardId, listId: list.id });
+            console.log(cards)
+            // Apply member filter
+            if (filterCriteria.member && filterCriteria.member !== '') {
+                cards = cards.filter(card => {
+                    if (!card.members || !Array.isArray(card.members)) return false;
+                    return card.members.some(member => member.memberId === filterCriteria.member);
+                });
+            }
+
+            // Apply title filter
+            if (filterCriteria.title && filterCriteria.title.trim() !== '') {
+                const titleLower = filterCriteria.title.toLowerCase();
+                cards = cards.filter(card =>
+                    card.title && card.title.toLowerCase().includes(titleLower)
+                );
+            }
+
+            // Apply description filter
+            if (filterCriteria.description && filterCriteria.description.trim() !== '') {
+                const descLower = filterCriteria.description.toLowerCase();
+                cards = cards.filter(card =>
+                    card.description && card.description.toLowerCase().includes(descLower)
+                );
+            }
+
+            // Apply status filter
+            if (filterCriteria.status && filterCriteria.status !== '') {
+                cards = cards.filter(card => card.status === filterCriteria.status);
+            }
+
+            // Apply date range filter
+            if (filterCriteria.startDate || filterCriteria.endDate) {
+                cards = cards.filter(card => {
+                    const cardDate = new Date(card.createdAt);
+
+                    if (filterCriteria.startDate) {
+                        const startDate = new Date(filterCriteria.startDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        if (cardDate < startDate) return false;
+                    }
+
+                    if (filterCriteria.endDate) {
+                        const endDate = new Date(filterCriteria.endDate);
+                        endDate.setHours(23, 59, 59, 999);
+                        if (cardDate > endDate) return false;
+                    }
+
+                    return true;
+                });
+            }
+
+            // Ensure all cards have required properties
+            for (let card of cards) {
+                // Ensure labels array exists
+                if (!card.labels) {
+                    card.labels = [];
+                }
+
+                // Ensure members array exists
+                if (!card.members) {
+                    card.members = [];
+                }
+
+                // Ensure checklistItems array exists
+                if (!card.checklistItems) {
+                    card.checklistItems = [];
+                }
+            }
+
+            list.cards = cards;
+        }
+
+        // Get board members
+        const members = await boardMemberModel.getBoardMembers(boardId);
+
+        // Ensure board has required properties
+        if (!board.labels) {
+            board.labels = [];
+        }
+
+        const result = {
+            ...board,
+            lists,
+            members
+        };
+
+        res.status(200).json({
+            statusCode: 200,
+            message: 'Filtered board retrieved successfully',
+            data: result
+        });
+    } catch (error) { next(error) }
+}
+
 export const boardController = {
     getList,
     createNew,
@@ -144,5 +263,6 @@ export const boardController = {
     deleteItem,
     reorder,
     updateViewConfig,
-    updateRecurringConfig
+    updateRecurringConfig,
+    getFilteredBoard
 }

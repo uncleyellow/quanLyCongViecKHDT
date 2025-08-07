@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, firstValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 import { Board, Card, CreateCard, CreateList, List, Member, UpdateList } from 'app/modules/admin/scrumboard/scrumboard.models';
 import { ViewConfig, RecurringConfig } from 'app/modules/admin/scrumboard/scrumboard.types';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
 import { ChangeColorDialogComponent } from './change-color-dialog.component';
+import { FilterDialogComponent } from './filter-dialog.component';
 
 @Component({
     selector: 'scrumboard-board',
@@ -19,9 +21,43 @@ import { ChangeColorDialogComponent } from './change-color-dialog.component';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ScrumboardBoardComponent implements OnInit, OnDestroy {
-    board: Board;
+    board: Board = new Board({
+        id: '',
+        title: '',
+        description: '',
+        icon: '',
+        lastActivity: null,
+        lists: [],
+        labels: [],
+        members: [],
+        viewConfig: {
+            showTitle: true,
+            showDescription: true,
+            showDueDate: true,
+            showMembers: true,
+            showLabels: true,
+            showChecklist: true,
+            showStatus: true,
+            showType: true
+        },
+        recurringConfig: {
+            isRecurring: false,
+            completedListId: null
+        }
+    });
     listTitleForm: UntypedFormGroup;
     members: Member[] = [];
+
+    // Filter properties
+    isFilterApplied: boolean = false;
+    filterCriteria: any = {
+        member: '',
+        title: '',
+        description: '',
+        status: '',
+        startDate: null,
+        endDate: null
+    };
 
     // Private
     private readonly _positionStep: number = 65536;
@@ -37,7 +73,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         private _formBuilder: UntypedFormBuilder,
         private _fuseConfirmationService: FuseConfirmationService,
         private _scrumboardService: ScrumboardService,
-        private _matDialog: MatDialog
+        private _matDialog: MatDialog,
+        private snackBar: MatSnackBar
     ) {
     }
 
@@ -49,6 +86,16 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
      * On init
      */
     ngOnInit(): void {
+        // Get the board
+        this._scrumboardService.board$
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe((board) => {
+                this.board = board;
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+            });
+
         // Lấy danh sách members từ mock data
         this._scrumboardService.getMembers().subscribe(members => {
             this.members = members;
@@ -59,16 +106,6 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         this.listTitleForm = this._formBuilder.group({
             title: ['']
         });
-
-        // Get the board
-        this._scrumboardService.board$
-            .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((board: Board) => {
-                this.board = { ...board };
-
-                // Mark for check
-                this._changeDetectorRef.markForCheck();
-            });
     }
 
     /**
@@ -314,15 +351,68 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
             // Transfer the item
             transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
 
+            // Get the moved card
+            const movedCard = event.container.data[event.currentIndex];
+            const newListId = event.container.id;
+            const previousListId = event.previousContainer.id;
+
             // Update the card's list id
-            event.container.data[event.currentIndex].listId = event.container.id;
+            movedCard.listId = newListId;
+
+            // Check if the new list is the completed list in recurring config
+            if (this.board.recurringConfig?.isRecurring && 
+                this.board.recurringConfig?.completedListId === newListId) {
+                // Update status to "done" when moved to completed list
+                movedCard.status = 'done';
+            }
+
+            // Update the card via API
+            this._scrumboardService.updateCard(movedCard.id, movedCard).subscribe({
+                next: () => {
+                    // After updating the card, reorder cards in both lists
+                    const newListCardIds = event.container.data.map(card => card.id);
+                    const previousListCardIds = event.previousContainer.data.map(card => card.id);
+                    
+                    // Reorder cards in the new list
+                    this._scrumboardService.reorderCards(newListId, newListCardIds).subscribe({
+                        next: () => {
+                            // Reorder cards in the previous list
+                            this._scrumboardService.reorderCards(previousListId, previousListCardIds).subscribe({
+                                next: () => {
+                                    this.reloadBoard();
+                                },
+                                error: (error) => {
+                                    console.error('Error reordering cards in previous list:', error);
+                                    this.reloadBoard();
+                                }
+                            });
+                        },
+                        error: (error) => {
+                            console.error('Error reordering cards in new list:', error);
+                            this.reloadBoard();
+                        }
+                    });
+                },
+                error: (error) => {
+                    console.error('Error updating card:', error);
+                    this.reloadBoard();
+                }
+            });
         }
 
-        // Sử dụng API reorder mới thay vì update từng card
-        const cardIds = event.container.data.map(card => card.id);
-        this._scrumboardService.reorderCards(event.container.id, cardIds).subscribe(() => {
-            this.reloadBoard();
-        });
+        // If it's just reordering within the same list
+        if (event.previousContainer === event.container) {
+            const cardIds = event.container.data.map(card => card.id);
+            this._scrumboardService.reorderCards(event.container.id, cardIds).subscribe({
+                next: () => {
+                    this.reloadBoard();
+                },
+                error: (error) => {
+                    console.error('Error reordering cards within same list:', error);
+                    this.reloadBoard();
+                }
+            });
+        }
     }
 
     /**
@@ -375,6 +465,257 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         }
         const completed = card.checklistItems.filter(item => item.checked).length;
         return `${completed}/${card.checklistItems.length}`;
+    }
+
+    /**
+     * Refresh recurring board - duplicate cards with today's deadline
+     */
+    refreshRecurringBoard(): void {
+        if (!this.board.recurringConfig?.isRecurring) {
+            return;
+        }
+
+        // Show loading message
+        this.snackBar.open('Đang làm mới công việc...', 'Đóng', {
+            duration: 2000
+        });
+
+        // Get today's date in proper format for backend
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+        
+        console.log('Today date string:', todayString);
+        
+        // Get all cards from all lists in the board
+        const allCards = this.board.lists.flatMap(list => list.cards);
+        
+        if (allCards.length === 0) {
+            this.snackBar.open('Không có công việc nào để làm mới', 'Đóng', {
+                duration: 3000
+            });
+            return;
+        }
+
+        // Create new cards without dueDate first
+        const newCardsObservables = allCards.map(card => {
+            const newCard = {
+                boardId: this.board.id,
+                listId: card.listId,
+                title: card.title,
+                type: card.type,
+                status: card.status
+                // Remove dueDate to avoid format issues
+            };
+            
+            console.log('Creating card with data:', newCard);
+            return this._scrumboardService.createCard(card.listId, newCard);
+        });
+
+        // Execute all card creation observables
+        const allObservables = newCardsObservables.map(obs => firstValueFrom(obs));
+        
+        Promise.all(allObservables)
+            .then((createdCards) => {
+                console.log('Created cards:', createdCards);
+                
+                // Filter out cards with null or undefined ids
+                const validCards = createdCards.filter(card => card && card.id);
+                
+                if (validCards.length === 0) {
+                    this.snackBar.open('Không thể tạo card mới', 'Đóng', {
+                        duration: 3000
+                    });
+                    return;
+                }
+
+                // Update dueDate for all created cards
+                const updateObservables = validCards.map(card => {
+                    console.log('Updating card:', card.id, 'with dueDate:', todayString);
+                    
+                    const updatedCard = new Card({
+                        ...card,
+                        dueDate: todayString
+                    });
+                    return this._scrumboardService.updateCard(card.id, updatedCard);
+                });
+
+                const updatePromises = updateObservables.map(obs => firstValueFrom(obs));
+                
+                return Promise.all(updatePromises);
+            })
+            .then(() => {
+                this.snackBar.open('Đã làm mới công việc thành công!', 'Đóng', {
+                    duration: 3000
+                });
+                
+                // Reload board to show updated data
+                this.reloadBoard();
+            })
+            .catch(error => {
+                console.error('Error refreshing recurring board:', error);
+                this.snackBar.open('Có lỗi xảy ra khi làm mới công việc', 'Đóng', {
+                    duration: 3000
+                });
+            });
+    }
+
+    /**
+     * Export board data to Excel
+     */
+    exportToExcel(): void {
+        if (!this.board || !this.board.lists) {
+            this.snackBar.open('Không có dữ liệu để xuất', 'Đóng', {
+                duration: 3000
+            });
+            return;
+        }
+
+        // Prepare data for CSV
+        const csvData = [];
+        
+        // Add header row
+        csvData.push([
+            'Danh sách',
+            'Tiêu đề',
+            'Mô tả',
+            'Trạng thái',
+            'Loại',
+            'Deadline',
+            'Thành viên',
+            'Nhãn',
+            'Checklist'
+        ].join(','));
+
+        // Add data rows
+        this.board.lists.forEach(list => {
+            list.cards.forEach(card => {
+                const checklistText = card.checklistItems && card.checklistItems.length > 0 
+                    ? card.checklistItems.map(item => `${item.text} (${item.checked ? 'Hoàn thành' : 'Chưa hoàn thành'})`).join('; ')
+                    : '';
+
+                const labelsText = card.labels && Array.isArray(card.labels) && card.labels.length > 0 
+                    ? card.labels.map(label => label.title).join(', ')
+                    : '';
+
+                const membersText = card.members && Array.isArray(card.members) && card.members.length > 0 
+                    ? card.members.map(member => member.name).join(', ')
+                    : '';
+
+                const row = [
+                    `"${list.title}"`,
+                    `"${card.title}"`,
+                    `"${card.description || ''}"`,
+                    `"${card.status || ''}"`,
+                    `"${card.type || ''}"`,
+                    `"${card.dueDate ? new Date(card.dueDate).toLocaleDateString('vi-VN') : ''}"`,
+                    `"${membersText}"`,
+                    `"${labelsText}"`,
+                    `"${checklistText}"`
+                ].join(',');
+
+                csvData.push(row);
+            });
+        });
+
+        // Create CSV content
+        const csvContent = csvData.join('\n');
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        // Generate filename with current date
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const filename = `${this.board.title}_${dateStr}.csv`;
+
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        this.snackBar.open('Đã xuất dữ liệu thành công!', 'Đóng', {
+            duration: 3000
+        });
+    }
+
+    /**
+     * Open filter dialog
+     */
+    openFilterDialog(): void {
+        const dialogRef = this._matDialog.open(FilterDialogComponent, {
+            data: {
+                members: this.members,
+                currentFilters: this.filterCriteria
+            },
+            width: '600px',
+            maxHeight: '80vh'
+        });
+
+        dialogRef.afterClosed().subscribe((filterData) => {
+            if (filterData) {
+                this.applyFilters(filterData);
+            }
+        });
+    }
+
+    /**
+     * Apply filters using backend API
+     */
+    applyFilters(filterData?: any): void {
+        if (filterData) {
+            this.filterCriteria = filterData;
+        }
+
+        // Call backend API to get filtered data
+        this._scrumboardService.getFilteredBoard(this.board.id, this.filterCriteria).subscribe({
+            next: (filteredBoard) => {
+                this.board = filteredBoard;
+                this.isFilterApplied = true;
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error applying filters:', error);
+                this.snackBar.open('Có lỗi xảy ra khi áp dụng bộ lọc', 'Đóng', {
+                    duration: 3000
+                });
+            }
+        });
+    }
+
+    /**
+     * Clear all filters and restore original data
+     */
+    clearFilters(): void {
+        // Reset filter criteria
+        this.filterCriteria = {
+            member: '',
+            title: '',
+            description: '',
+            status: '',
+            startDate: null,
+            endDate: null
+        };
+
+        // Reload original board data
+        this._scrumboardService.getBoard(this.board.id).subscribe({
+            next: (board) => {
+                this.board = board;
+                this.isFilterApplied = false;
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Error clearing filters:', error);
+            }
+        });
     }
 
     // -----------------------------------------------------------------------------------------------------

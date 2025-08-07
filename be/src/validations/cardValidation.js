@@ -44,6 +44,7 @@ const update = async (req, res, next) => {
         assignees: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).optional(),
         listId: Joi.string().uuid().optional(),
         boardId: Joi.string().uuid().required(),
+        status: Joi.string().valid('todo', 'in_progress', 'done', 'blocked', 'cancelled').optional(),
         checklistItems: Joi.alternatives().try(
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)

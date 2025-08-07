@@ -10,6 +10,46 @@
         </div>
         <!-- Actions -->
         <div class="flex shrink-0 items-center mt-6 sm:mt-0 sm:ml-4">
+            <!-- Export data button -->
+            <button
+                class="mr-3"
+                mat-stroked-button
+                color="primary"
+                (click)="exportToExcel()">
+                <mat-icon
+                    class="icon-size-5"
+                    [svgIcon]="'heroicons_solid:document-text'"></mat-icon>
+                <span class="ml-2">Xuất dữ liệu</span>
+            </button>
+
+            <!-- Filter button -->
+            <button
+                class="mr-3"
+                mat-stroked-button
+                [color]="isFilterApplied ? 'warn' : 'accent'"
+                (click)="openFilterDialog()">
+                <mat-icon
+                    class="icon-size-5"
+                    [svgIcon]="'heroicons_solid:funnel'"></mat-icon>
+                <span class="ml-2">Lọc</span>
+                <span *ngIf="isFilterApplied" class="ml-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                    Đang lọc
+                </span>
+            </button>
+            
+            <!-- Refresh button for recurring boards -->
+            <button
+                *ngIf="board.recurringConfig?.isRecurring"
+                class="mr-3"
+                mat-stroked-button
+                color="accent"
+                (click)="refreshRecurringBoard()">
+                <mat-icon
+                    class="icon-size-5"
+                    [svgIcon]="'heroicons_solid:refresh'"></mat-icon>
+                <span class="ml-2">Làm mới công việc</span>
+            </button>
+            
             <a
                 mat-stroked-button
                 [routerLink]="['..']">
@@ -160,7 +200,7 @@
                                             {{getChecklistProgress(card)}} hoàn thành
                                         </div>
                                         <!-- Labels -->
-                                        <ng-container *ngIf="board.viewConfig?.showLabels !== false && card.labels.length">
+                                        <ng-container *ngIf="board.viewConfig?.showLabels !== false && card.labels && card.labels.length">
                                             <div>
                                                 <div class="flex flex-wrap -mx-1 -mb-2">
                                                     <ng-container *ngFor="let label of card.labels; trackBy: trackByFn">
@@ -202,7 +242,7 @@
                             <!-- New card -->
                             <scrumboard-board-add-card
                                 (saved)="addCard(list, $event)"
-                                [buttonTitle]="list.cards.length ? 'Thêm thẻ khác' : 'Thêm thẻ'">
+                                [buttonTitle]="list.cards && list.cards.length ? 'Thêm thẻ khác' : 'Thêm thẻ'">
                             </scrumboard-board-add-card>
                         </div>
                     </div>
@@ -211,7 +251,7 @@
                 <!-- New list -->
                 <scrumboard-board-add-list
                     (saved)="addList($event)"
-                    [buttonTitle]="board.lists.length ? 'Thêm danh sách khác' : 'Thêm danh sách'">
+                    [buttonTitle]="board.lists && board.lists.length ? 'Thêm danh sách khác' : 'Thêm danh sách'">
                 </scrumboard-board-add-list>
 
             </div>

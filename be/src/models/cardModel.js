@@ -40,7 +40,12 @@ const CARD_TABLE_SCHEMA = Joi.object({
     deletedAt: Joi.date().allow(null).default(null),
     archived: Joi.number().integer().valid(0, 1).default(0),
     dependencies: Joi.string().allow(null).default(null),
-    status: Joi.string().max(50).default('todo')
+    status: Joi.string().max(50).default('todo'),
+    // Tracking time fields
+    totalTimeSpent: Joi.number().integer().default(0), // Total time in seconds
+    isTracking: Joi.number().integer().valid(0, 1).default(0), // 0: not tracking, 1: tracking
+    trackingStartTime: Joi.date().allow(null).default(null),
+    trackingPauseTime: Joi.number().integer().default(0) // Total pause time in seconds
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
@@ -85,6 +90,9 @@ const createNew = async (data) => {
                     return `'${value.replace(/'/g, "''")}'`
                 } else if (value === null) {
                     return 'NULL'
+                } else if (value instanceof Date) {
+                    // Format date for MySQL
+                    return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`
                 } else {
                     return value
                 }
