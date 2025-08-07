@@ -10,6 +10,18 @@
         </div>
         <!-- Actions -->
         <div class="flex shrink-0 items-center mt-6 sm:mt-0 sm:ml-4">
+            <!-- Export Excel button -->
+            <button
+                class="mr-3"
+                mat-stroked-button
+                color="primary"
+                (click)="exportToExcel()">
+                <mat-icon
+                    class="icon-size-5"
+                    [svgIcon]="'heroicons_solid:document-text'"></mat-icon>
+                <span class="ml-2">Xuất dữ liệu</span>
+            </button>
+            
             <!-- Refresh button for recurring boards -->
             <button
                 *ngIf="board.recurringConfig?.isRecurring"

@@ -527,6 +527,91 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
             });
     }
 
+    /**
+     * Export board data to Excel
+     */
+    exportToExcel(): void {
+        if (!this.board || !this.board.lists) {
+            this.snackBar.open('Không có dữ liệu để xuất', 'Đóng', {
+                duration: 3000
+            });
+            return;
+        }
+
+        // Prepare data for CSV
+        const csvData = [];
+        
+        // Add header row
+        csvData.push([
+            'Danh sách',
+            'Tiêu đề',
+            'Mô tả',
+            'Trạng thái',
+            'Loại',
+            'Deadline',
+            'Thành viên',
+            'Nhãn',
+            'Checklist'
+        ].join(','));
+
+        // Add data rows
+        this.board.lists.forEach(list => {
+            list.cards.forEach(card => {
+                const checklistText = card.checklistItems && card.checklistItems.length > 0 
+                    ? card.checklistItems.map(item => `${item.text} (${item.checked ? 'Hoàn thành' : 'Chưa hoàn thành'})`).join('; ')
+                    : '';
+
+                const labelsText = card.labels && Array.isArray(card.labels) && card.labels.length > 0 
+                    ? card.labels.map(label => label.title).join(', ')
+                    : '';
+
+                const membersText = card.members && Array.isArray(card.members) && card.members.length > 0 
+                    ? card.members.map(member => member.name).join(', ')
+                    : '';
+
+                const row = [
+                    `"${list.title}"`,
+                    `"${card.title}"`,
+                    `"${card.description || ''}"`,
+                    `"${card.status || ''}"`,
+                    `"${card.type || ''}"`,
+                    `"${card.dueDate ? new Date(card.dueDate).toLocaleDateString('vi-VN') : ''}"`,
+                    `"${membersText}"`,
+                    `"${labelsText}"`,
+                    `"${checklistText}"`
+                ].join(',');
+
+                csvData.push(row);
+            });
+        });
+
+        // Create CSV content
+        const csvContent = csvData.join('\n');
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        // Generate filename with current date
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const filename = `${this.board.title}_${dateStr}.csv`;
+
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        this.snackBar.open('Đã xuất dữ liệu thành công!', 'Đóng', {
+            duration: 3000
+        });
+    }
+
     // -----------------------------------------------------------------------------------------------------
     // @ Private methods
     // -----------------------------------------------------------------------------------------------------
