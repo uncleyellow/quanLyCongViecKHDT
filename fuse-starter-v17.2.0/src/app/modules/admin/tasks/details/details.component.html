@@ -210,13 +210,13 @@
                 <div class="font-medium">Priority</div>
                 <div
                     class="flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
-                    [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.priority === 0,
-                                'text-gray-800 bg-gray-200 dark:text-gray-100 dark:bg-gray-500': task.priority === 1,
-                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.priority === 2}"
+                    [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.priority === 'low',
+                                'text-gray-800 bg-gray-200 dark:text-gray-100 dark:bg-gray-500': task.priority === 'normal',
+                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.priority === 'high'}"
                     [matMenuTriggerFor]="priorityMenu">
 
                     <!-- Low -->
-                    <ng-container *ngIf="task.priority === 0">
+                    <ng-container *ngIf="task.priority === 'low'">
                         <mat-icon
                             class="icon-size-5 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-down'"></mat-icon>
@@ -224,7 +224,7 @@
                     </ng-container>
 
                     <!-- Normal -->
-                    <ng-container *ngIf="task.priority === 1">
+                    <ng-container *ngIf="task.priority === 'normal'">
                         <mat-icon
                             class="icon-size-4 text-current"
                             [svgIcon]="'heroicons_solid:minus'"></mat-icon>
@@ -232,7 +232,7 @@
                     </ng-container>
 
                     <!-- High -->
-                    <ng-container *ngIf="task.priority === 2">
+                    <ng-container *ngIf="task.priority === 'high'">
                         <mat-icon
                             class="icon-size-4 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-up'"></mat-icon>
@@ -242,9 +242,9 @@
                 <mat-menu #priorityMenu="matMenu">
                     <!-- Low -->
                     <button
-                        [ngClass]="{'bg-hover': task.priority === 0}"
+                        [ngClass]="{'bg-hover': task.priority === 'low'}"
                         mat-menu-item
-                        (click)="setTaskPriority(0)">
+                        (click)="setTaskPriority('low')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">Low</span>
                             <mat-icon
@@ -255,9 +255,9 @@
 
                     <!-- Normal -->
                     <button
-                        [ngClass]="{'bg-hover': task.priority === 1}"
+                        [ngClass]="{'bg-hover': task.priority === 'normal'}"
                         mat-menu-item
-                        (click)="setTaskPriority(1)">
+                        (click)="setTaskPriority('normal')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">Normal</span>
                             <mat-icon
@@ -268,9 +268,9 @@
 
                     <!-- High -->
                     <button
-                        [ngClass]="{'bg-hover': task.priority === 2}"
+                        [ngClass]="{'bg-hover': task.priority === 'high'}"
                         mat-menu-item
-                        (click)="setTaskPriority(2)">
+                        (click)="setTaskPriority('high')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">High</span>
                             <mat-icon

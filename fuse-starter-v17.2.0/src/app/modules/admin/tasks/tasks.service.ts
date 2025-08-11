@@ -226,14 +226,14 @@ export class TasksService
                 if (userCard) {
                     task = {
                         id: userCard.id,
+                        type: 'task',
                         title: userCard.title,
                         notes: userCard.description || '',
                         completed: userCard.status === 'completed' || userCard.status === 'done',
                         dueDate: userCard.dueDate,
-                        priority: 0,
+                        priority: 'normal',
                         tags: [],
-                        order: userCard.position || 0,
-                        type: 'task'
+                        order: userCard.position || 0
                     };
                 }
 

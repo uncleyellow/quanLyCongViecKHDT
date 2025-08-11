@@ -74,7 +74,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             notes    : [''],
             completed: [false],
             dueDate  : [null],
-            priority : [0],
+            priority : ['normal'],
             tags     : [[]],
             order    : [0],
             // Additional UserCard fields
@@ -480,7 +480,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
      *
      * @param priority
      */
-    setTaskPriority(priority): void
+    setTaskPriority(priority: string): void
     {
         // Set the value
         this.taskForm.get('priority').setValue(priority);
@@ -612,7 +612,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 notes: userCard.description || '',
                 completed: userCard.status === 'completed',
                 dueDate: userCard.dueDate,
-                priority: 0, // Default priority
+                priority: task.priority || 'normal', // Use task priority or default to 'normal'
                 tags: [], // Default empty tags
                 order: userCard.position || 0,
                 
