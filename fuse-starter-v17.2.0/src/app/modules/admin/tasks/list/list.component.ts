@@ -178,6 +178,9 @@ export class TasksListComponent implements OnInit, OnDestroy
                     this.createTask('section');
                 }
             });
+
+        // Add scroll event listener for sticky header shadow
+        this.setupScrollListener();
     }
 
     /**
@@ -527,5 +530,30 @@ export class TasksListComponent implements OnInit, OnDestroy
     getIncompleteCount(group: BoardGroup): number
     {
         return group.cards.filter(card => card.status !== 'completed' && card.status !== 'done').length;
+    }
+
+    /**
+     * Setup scroll listener for sticky header shadow effect
+     */
+    private setupScrollListener(): void
+    {
+        // Wait for the DOM to be ready
+        setTimeout(() => {
+            const scrollContainer = this._document.querySelector('.overflow-y-auto');
+            if (scrollContainer) {
+                fromEvent(scrollContainer, 'scroll')
+                    .pipe(takeUntil(this._unsubscribeAll))
+                    .subscribe(() => {
+                        const stickyHeader = this._document.querySelector('.sticky');
+                        if (stickyHeader) {
+                            if (scrollContainer.scrollTop > 0) {
+                                stickyHeader.classList.add('scrolled');
+                            } else {
+                                stickyHeader.classList.remove('scrolled');
+                            }
+                        }
+                    });
+            }
+        }, 100);
     }
 }
