@@ -404,20 +404,45 @@ export class TasksService
                 const currentCards = this._userCards.getValue();
                 if (currentCards) {
                     const cardMap = new Map(currentCards.map(card => [card.id, card]));
-                    const orderedCards = cardOrderIds
-                        .map(cardId => cardMap.get(cardId))
-                        .filter(card => card !== undefined);
+                    const orderedCards: UserCard[] = [];
+                    const completedCards: UserCard[] = [];
+                    
+                    // Process cards in the order specified by cardOrderIds
+                    cardOrderIds.forEach(cardId => {
+                        const card = cardMap.get(cardId);
+                        if (card) {
+                            // Check if card is completed
+                            if (this.isCardCompleted(card)) {
+                                completedCards.push(card);
+                            } else {
+                                orderedCards.push(card);
+                            }
+                            cardMap.delete(cardId);
+                        }
+                    });
                     
                     // Add any remaining cards that weren't in the order list
-                    currentCards.forEach(card => {
-                        if (!cardOrderIds.includes(card.id)) {
+                    cardMap.forEach(card => {
+                        if (this.isCardCompleted(card)) {
+                            completedCards.push(card);
+                        } else {
                             orderedCards.push(card);
                         }
                     });
                     
-                    this._userCards.next(orderedCards);
+                    // Return ordered cards first, then completed cards at the end
+                    this._userCards.next([...orderedCards, ...completedCards]);
                 }
             })
         );
+    }
+
+    /**
+     * Check if a card is completed
+     *
+     * @param card
+     */
+    private isCardCompleted(card: UserCard): boolean {
+        return card.status === 'completed' || card.status === 'done';
     }
 }

@@ -187,28 +187,48 @@ const getAllUserCards = async (userId) => {
       return card
     })
 
-    // Sort cards according to user's preferred order
+    // Sort cards according to user's preferred order and completion status
     if (cardOrderIds.length > 0) {
       const cardMap = new Map(processedCards.map(card => [card.id, card]))
       const orderedCards = []
+      const completedCards = []
       
       // Add cards in the order specified by cardOrderIds
       cardOrderIds.forEach(cardId => {
         if (cardMap.has(cardId)) {
-          orderedCards.push(cardMap.get(cardId))
+          const card = cardMap.get(cardId)
+          // Check if card is completed
+          if (card.status === 'completed') {
+            completedCards.push(card)
+          } else {
+            orderedCards.push(card)
+          }
           cardMap.delete(cardId)
         }
       })
       
-      // Add any remaining cards that weren't in the order list
-      cardMap.forEach(card => {
-        orderedCards.push(card)
-      })
+              // Add any remaining cards that weren't in the order list
+        cardMap.forEach(card => {
+          if (card.status === 'completed') {
+            completedCards.push(card)
+          } else {
+            orderedCards.push(card)
+          }
+        })
       
-      return orderedCards
+      // Return ordered cards first, then completed cards at the end
+      return [...orderedCards, ...completedCards]
     }
 
-    return processedCards
+    // If no custom order, sort by completion status
+    const incompleteCards = processedCards.filter(card => 
+      card.status !== 'completed'
+    )
+    const completedCards = processedCards.filter(card => 
+      card.status === 'completed'
+    )
+    
+    return [...incompleteCards, ...completedCards]
   } catch (error) { throw error }
 }
 
