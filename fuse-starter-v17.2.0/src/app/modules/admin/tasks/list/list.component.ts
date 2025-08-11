@@ -116,6 +116,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((userCards: UserCard[]) => {
                 if (userCards) {
+                    console.log('TasksListComponent received updated userCards:', userCards.length);
                     this.userCards = userCards;
                     this.boardGroups = this.groupTasksByBoard(userCards);
                     this.updateTasksCount();

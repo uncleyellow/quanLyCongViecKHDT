@@ -151,10 +151,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             )
             .subscribe((value) => {
 
-                // Update the task on the server
-                this._tasksService.updateTask(value.id, value).subscribe();
-
-                // Also update the corresponding UserCard if it exists
+                // Update the corresponding UserCard if it exists
                 this.updateUserCard(value);
 
                 // Mark for check
@@ -575,18 +572,60 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             const userCard = userCards?.find(card => card.id === formValue.id);
             
             if (userCard) {
-                // Update the UserCard with form data
-                const updatedUserCard: UserCard = {
-                    ...userCard,
-                    title: formValue.title,
-                    description: formValue.notes,
-                    status: formValue.completed ? 'completed' : formValue.status,
-                    dueDate: formValue.dueDate,
-                    position: formValue.order
-                };
+                // Prepare update data for API
+                const updateData: any = {};
                 
-                // Update the service
-                this._tasksService.updateUserCard(updatedUserCard);
+                // Only update fields that have changed
+                if (formValue.title !== userCard.title) {
+                    updateData.title = formValue.title;
+                }
+                if (formValue.notes !== userCard.description) {
+                    updateData.description = formValue.notes;
+                }
+                if (formValue.completed !== (userCard.status === 'completed')) {
+                    updateData.status = formValue.completed ? 'completed' : 'todo';
+                }
+                if (formValue.dueDate !== userCard.dueDate) {
+                    updateData.dueDate = formValue.dueDate;
+                }
+                if (formValue.order !== userCard.position) {
+                    updateData.position = formValue.order;
+                }
+                if (formValue.startDate !== userCard.startDate) {
+                    updateData.startDate = formValue.startDate;
+                }
+                if (formValue.endDate !== userCard.endDate) {
+                    updateData.endDate = formValue.endDate;
+                }
+                if (formValue.totalTimeSpent !== userCard.totalTimeSpent) {
+                    updateData.totalTimeSpent = formValue.totalTimeSpent;
+                }
+                if (formValue.isTracking !== userCard.isTracking) {
+                    updateData.isTracking = formValue.isTracking;
+                }
+                if (formValue.trackingStartTime !== userCard.trackingStartTime) {
+                    updateData.trackingStartTime = formValue.trackingStartTime;
+                }
+                if (formValue.trackingPauseTime !== userCard.trackingPauseTime) {
+                    updateData.trackingPauseTime = formValue.trackingPauseTime;
+                }
+                
+                // Only call API if there are changes
+                if (Object.keys(updateData).length > 0) {
+                    this._tasksService.updateCard(formValue.id, updateData).subscribe({
+                        next: (response) => {
+                            console.log('Card updated successfully:', response);
+                            
+                            // Option 1: Local state is already updated by the service
+                            // Option 2: Refresh data from server to ensure consistency
+                            // Uncomment the line below if you want to refresh from server
+                            // this._tasksService.refreshUserCards().subscribe();
+                        },
+                        error: (error) => {
+                            console.error('Error updating card:', error);
+                        }
+                    });
+                }
             }
         });
     }

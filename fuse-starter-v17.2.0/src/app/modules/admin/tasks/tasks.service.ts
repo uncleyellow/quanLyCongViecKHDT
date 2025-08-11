@@ -390,6 +390,71 @@ export class TasksService
     }
 
     /**
+     * Update card
+     *
+     * @param cardId
+     * @param updateData
+     */
+    updateCard(cardId: string, updateData: any): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}`, updateData).pipe(
+            tap((response) => {
+                // Update local cards data
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.map(card => {
+                        if (card.id === cardId) {
+                            // Merge the update data with existing card data
+                            const updatedCard = { ...card, ...updateData };
+                            
+                            // Handle special field mappings
+                            if (updateData.title !== undefined) {
+                                updatedCard.title = updateData.title;
+                            }
+                            if (updateData.description !== undefined) {
+                                updatedCard.description = updateData.description;
+                            }
+                            if (updateData.status !== undefined) {
+                                updatedCard.status = updateData.status;
+                            }
+                            if (updateData.dueDate !== undefined) {
+                                updatedCard.dueDate = updateData.dueDate;
+                            }
+                            if (updateData.position !== undefined) {
+                                updatedCard.position = updateData.position;
+                            }
+                            if (updateData.startDate !== undefined) {
+                                updatedCard.startDate = updateData.startDate;
+                            }
+                            if (updateData.endDate !== undefined) {
+                                updatedCard.endDate = updateData.endDate;
+                            }
+                            if (updateData.totalTimeSpent !== undefined) {
+                                updatedCard.totalTimeSpent = updateData.totalTimeSpent;
+                            }
+                            if (updateData.isTracking !== undefined) {
+                                updatedCard.isTracking = updateData.isTracking;
+                            }
+                            if (updateData.trackingStartTime !== undefined) {
+                                updatedCard.trackingStartTime = updateData.trackingStartTime;
+                            }
+                            if (updateData.trackingPauseTime !== undefined) {
+                                updatedCard.trackingPauseTime = updateData.trackingPauseTime;
+                            }
+                            
+                            console.log('Updated card in local state:', updatedCard);
+                            return updatedCard;
+                        }
+                        return card;
+                    });
+                    this._userCards.next(updatedCards);
+                    console.log('Local state updated with new cards:', updatedCards.length);
+                }
+            })
+        );
+    }
+
+    /**
      * Update cards order
      *
      * @param cardOrderIds
@@ -530,5 +595,12 @@ export class TasksService
      */
     getCustomFields(cardId: string): Observable<any> {
         return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields`);
+    }
+
+    /**
+     * Refresh user cards from server
+     */
+    refreshUserCards(): Observable<UserCard[]> {
+        return this.getUserCards();
     }
 }

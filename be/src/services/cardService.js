@@ -77,7 +77,10 @@ const update = async (reqBody, reqBodyUpdate) => {
 }
 
 const updatePartial = async (reqBody, reqBodyUpdate) => {
-  reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+  // Only process checklistItems if it exists
+  if (reqBodyUpdate.checklistItems !== undefined) {
+    reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+  }
 
   // Format datetime fields for MySQL
   if (reqBodyUpdate.dueDate) {
@@ -89,9 +92,15 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
   if (reqBodyUpdate.endDate) {
     reqBodyUpdate.endDate = formatDateTimeForMySQL(reqBodyUpdate.endDate)
   }
+  if (reqBodyUpdate.trackingStartTime) {
+    reqBodyUpdate.trackingStartTime = formatDateTimeForMySQL(reqBodyUpdate.trackingStartTime)
+  }
 
-  const labels = JSON.stringify(reqBodyUpdate.labels)
-  delete reqBodyUpdate.labels
+  // Only process labels if it exists
+  if (reqBodyUpdate.labels !== undefined) {
+    reqBodyUpdate.labels = JSON.stringify(reqBodyUpdate.labels)
+  }
+  
   try {
     const updatedList = await cardModel.updatePartial(reqBody, reqBodyUpdate)
     return updatedList
