@@ -6,7 +6,7 @@ import { MatDrawer } from '@angular/material/sidenav';
 import { filter, fromEvent, Subject, takeUntil } from 'rxjs';
 import { FuseMediaWatcherService } from '@fuse/services/media-watcher';
 import { FuseNavigationService, FuseVerticalNavigationComponent } from '@fuse/components/navigation';
-import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
+import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
 
 @Component({
@@ -23,6 +23,7 @@ export class TasksListComponent implements OnInit, OnDestroy
     selectedTask: Task;
     tags: Tag[];
     tasks: Task[];
+    userCards: UserCard[];
     tasksCount: any = {
         completed : 0,
         incomplete: 0,
@@ -64,39 +65,41 @@ export class TasksListComponent implements OnInit, OnDestroy
                 this._changeDetectorRef.markForCheck();
             });
 
-        // Get the tasks
-        this._tasksService.tasks$
+        // Get the user cards
+        this._tasksService.getUserCards()
             .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((tasks: Task[]) => {
-                this.tasks = tasks;
+            .subscribe((userCards: UserCard[]) => {
+                this.userCards = userCards;
 
-                // Update the counts
-                this.tasksCount.total = this.tasks.filter(task => task.type === 'task').length;
-                this.tasksCount.completed = this.tasks.filter(task => task.type === 'task' && task.completed).length;
-                this.tasksCount.incomplete = this.tasksCount.total - this.tasksCount.completed;
+                // Update the counts based on user cards
+                this.updateTasksCount();
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
 
                 // Update the count on the navigation
-                setTimeout(() => {
+                this.updateNavigationCount();
+            });
 
-                    // Get the component -> navigation data -> item
-                    const mainNavigationComponent = this._fuseNavigationService.getComponent<FuseVerticalNavigationComponent>('mainNavigation');
+        // Subscribe to user cards changes
+        this._tasksService.userCards$
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe((userCards: UserCard[]) => {
+                if (userCards) {
+                    this.userCards = userCards;
+                    this.updateTasksCount();
+                    this.updateNavigationCount();
+                    this._changeDetectorRef.markForCheck();
+                }
+            });
 
-                    // If the main navigation component exists...
-                    if ( mainNavigationComponent )
-                    {
-                        const mainNavigation = mainNavigationComponent.navigation;
-                        const menuItem = this._fuseNavigationService.getItem('apps.tasks', mainNavigation);
-
-                        // Update the subtitle of the item
-                        menuItem.subtitle = this.tasksCount.incomplete + ' remaining tasks';
-
-                        // Refresh the navigation
-                        mainNavigationComponent.refresh();
-                    }
-                });
+        // Get the tasks (keep for compatibility)
+        this._tasksService.tasks$
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe((tasks: Task[]) => {
+                this.tasks = tasks;
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
             });
 
         // Get the task
@@ -226,6 +229,87 @@ export class TasksListComponent implements OnInit, OnDestroy
     }
 
     /**
+     * Refresh cards list
+     */
+    refreshCards(): void
+    {
+        this._tasksService.getUserCards().subscribe();
+    }
+
+    /**
+     * Toggle the completed status of the given card
+     *
+     * @param card
+     */
+    toggleCardCompleted(card: UserCard): void
+    {
+        // Toggle the completed status
+        const newStatus = (card.status === 'completed' || card.status === 'done') ? 'todo' : 'completed';
+        
+        // Update the card status locally for immediate UI feedback
+        const originalStatus = card.status;
+        card.status = newStatus;
+
+        // Update the card on the server
+        this._tasksService.updateCardStatus(card.id, newStatus).subscribe({
+            next: () => {
+                // Update counts after successful update
+                this.updateTasksCount();
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                // Revert the status if update failed
+                card.status = originalStatus;
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+                
+                console.error('Failed to update card status:', error);
+            }
+        });
+    }
+
+    /**
+     * Update tasks count based on current cards
+     */
+    private updateTasksCount(): void
+    {
+        if (this.userCards) {
+            this.tasksCount.total = this.userCards.length;
+            this.tasksCount.completed = this.userCards.filter(card => card.status === 'completed' || card.status === 'done').length;
+            this.tasksCount.incomplete = this.tasksCount.total - this.tasksCount.completed;
+        }
+    }
+
+    /**
+     * Update navigation count
+     */
+    private updateNavigationCount(): void
+    {
+        setTimeout(() => {
+            // Get the component -> navigation data -> item
+            const mainNavigationComponent = this._fuseNavigationService.getComponent<FuseVerticalNavigationComponent>('mainNavigation');
+
+            // If the main navigation component exists...
+            if ( mainNavigationComponent )
+            {
+                const mainNavigation = mainNavigationComponent.navigation;
+                const menuItem = this._fuseNavigationService.getItem('apps.tasks', mainNavigation);
+
+                if (menuItem) {
+                    // Update the subtitle of the item
+                    menuItem.subtitle = this.tasksCount.incomplete + ' remaining tasks';
+
+                    // Refresh the navigation
+                    mainNavigationComponent.refresh();
+                }
+            }
+        });
+    }
+
+    /**
      * Track by function for ngFor loops
      *
      * @param index
@@ -234,5 +318,52 @@ export class TasksListComponent implements OnInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+    /**
+     * Format time spent in seconds to HH:mm:ss
+     *
+     * @param seconds
+     */
+    formatTimeSpent(seconds: number): string
+    {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Check if a date is overdue
+     *
+     * @param dueDate
+     */
+    isOverdue(dueDate: string): boolean
+    {
+        if (!dueDate) return false;
+        const due = new Date(dueDate);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return due < now;
+    }
+
+    /**
+     * Check if a date is due soon (within next 3 days)
+     *
+     * @param dueDate
+     */
+    isDueSoon(dueDate: string): boolean
+    {
+        if (!dueDate) return false;
+        const due = new Date(dueDate);
+        const now = new Date();
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        now.setHours(0, 0, 0, 0);
+        threeDaysFromNow.setHours(23, 59, 59, 999);
+        
+        return due >= now && due <= threeDaysFromNow;
     }
 }

@@ -120,6 +120,25 @@ const updateCardOrder = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+const getAllUserCards = async (req, res, next) => {
+    try {
+        const { userId } = req.user
+        const cards = await cardService.getAllUserCards(userId)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'User cards fetched successfully',
+            pagination: {
+                total: cards.length,
+                page: 1,
+                limit: cards.length
+            },
+            data: cards
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
 export const cardController = {
     getList,
     createNew,
@@ -128,5 +147,6 @@ export const cardController = {
     updatePartial,
     deleteItem,
     getListsByBoard,
-    updateCardOrder
+    updateCardOrder,
+    getAllUserCards
 }

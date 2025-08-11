@@ -164,6 +164,67 @@ Router.route('/')
 
 /**
  * @swagger
+ * /cards/user/all:
+ *   get:
+ *     summary: Get all cards for current user
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User cards retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User cards fetched successfully
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 25
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 25
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Card'
+ *                       - type: object
+ *                         properties:
+ *                           boardTitle:
+ *                             type: string
+ *                             example: "Project Management"
+ *                           listTitle:
+ *                             type: string
+ *                             example: "To Do"
+ *                           listColor:
+ *                             type: string
+ *                             example: "#3498db"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+Router.route('/user/all')
+    .get(verifyToken, cardController.getAllUserCards)
+
+/**
+ * @swagger
  * /cards/{id}:
  *   get:
  *     summary: Get a specific card by ID

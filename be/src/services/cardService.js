@@ -125,6 +125,50 @@ const pushCardOrderIds = async (card) => {
   } catch (error) { throw error }
 }
 
+const getAllUserCards = async (userId) => {
+  try {
+    const cards = await cardModel.getAllUserCards(userId)
+    
+    // Process each card to format data properly
+    const processedCards = cards.map(card => {
+      // Parse JSON fields if they exist
+      if (card.checklistItems && typeof card.checklistItems === 'string') {
+        try {
+          card.checklistItems = JSON.parse(card.checklistItems)
+        } catch (e) {
+          card.checklistItems = []
+        }
+      } else {
+        card.checklistItems = []
+      }
+
+      if (card.labels && typeof card.labels === 'string') {
+        try {
+          card.labels = JSON.parse(card.labels)
+        } catch (e) {
+          card.labels = []
+        }
+      } else {
+        card.labels = []
+      }
+
+      if (card.members && typeof card.members === 'string') {
+        try {
+          card.members = JSON.parse(card.members)
+        } catch (e) {
+          card.members = []
+        }
+      } else {
+        card.members = []
+      }
+
+      return card
+    })
+
+    return processedCards
+  } catch (error) { throw error }
+}
+
 export const cardService = {
   getList,
   createNew,
@@ -134,5 +178,6 @@ export const cardService = {
   deleteItem,
   getListsByBoard,
   updateCardOrder,
-  pushCardOrderIds
+  pushCardOrderIds,
+  getAllUserCards
 }

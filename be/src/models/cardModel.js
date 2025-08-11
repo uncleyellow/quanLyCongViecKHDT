@@ -139,6 +139,22 @@ const deleteNote = async (data) => {
     } catch (error) { throw new Error(error) }
 }
 
+const getAllUserCards = async (userId) => {
+    try {
+        const query = `
+            SELECT c.*, b.title as boardTitle, l.title as listTitle, l.color as listColor
+            FROM ${CARD_TABLE_NAME} c
+            INNER JOIN cardmembers cm ON c.id = cm.cardId
+            INNER JOIN boards b ON c.boardId = b.id
+            INNER JOIN lists l ON c.listId = l.id
+            WHERE cm.memberId = ? AND c.archived = 0
+            ORDER BY c.createdAt DESC
+        `
+        const cards = await db.query(query, [userId])
+        return cards[0]
+    } catch (error) { throw new Error(error) }
+}
+
 export const cardModel = {
     CARD_TABLE_NAME,
     CARD_TABLE_SCHEMA,
@@ -147,5 +163,6 @@ export const cardModel = {
     getDetail,
     update,
     updatePartial,
-    deleteNote
+    deleteNote,
+    getAllUserCards
 }

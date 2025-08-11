@@ -16,3 +16,29 @@ export interface Task
     tags: string[];
     order: number;
 }
+
+export interface UserCard
+{
+    id: string;
+    boardId: string;
+    listId: string;
+    title: string;
+    description: string | null;
+    position: number;
+    dueDate: string | null;
+    type: string;
+    checklistItems: any[];
+    labels: any[];
+    startDate: string | null;
+    endDate: string | null;
+    members: any[];
+    createdAt: string;
+    status: string;
+    totalTimeSpent: number;
+    isTracking: number;
+    trackingStartTime: string | null;
+    trackingPauseTime: number;
+    boardTitle: string;
+    listTitle: string;
+    listColor: string;
+}

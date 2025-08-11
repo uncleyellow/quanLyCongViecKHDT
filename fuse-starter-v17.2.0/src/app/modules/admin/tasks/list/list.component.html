@@ -1,17 +1,10 @@
 <div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden">
 
-    <mat-drawer-container
-        class="flex-auto h-full bg-card dark:bg-transparent"
-        (backdropClick)="onBackdropClicked()">
+    <mat-drawer-container class="flex-auto h-full bg-card dark:bg-transparent" (backdropClick)="onBackdropClicked()">
 
         <!-- Drawer -->
-        <mat-drawer
-            class="w-full sm:w-128 dark:bg-gray-900"
-            [mode]="drawerMode"
-            [opened]="false"
-            [position]="'end'"
-            [disableClose]="true"
-            #matDrawer>
+        <mat-drawer class="w-full sm:w-128 dark:bg-gray-900" [mode]="drawerMode" [opened]="false" [position]="'end'"
+            [disableClose]="true" #matDrawer>
             <router-outlet></router-outlet>
         </mat-drawer>
 
@@ -24,146 +17,127 @@
                 <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between py-8 px-6 md:px-8">
                     <!-- Title -->
                     <div>
-                        <div class="text-4xl font-extrabold tracking-tight leading-none">Tasks</div>
+                        <div class="text-4xl font-extrabold tracking-tight leading-none">Công việc của tôi</div>
                         <div class="ml-0.5 font-medium text-secondary">
-                            <span *ngIf="tasksCount.incomplete === 0">All tasks completed!</span>
-                            <span *ngIf="tasksCount.incomplete !== 0">{{tasksCount.incomplete}} remaining tasks</span>
+                            <span *ngIf="tasksCount.incomplete === 0">Tất cả công việc đã hoàn thành!</span>
+                            <span *ngIf="tasksCount.incomplete !== 0">{{tasksCount.incomplete}} công việc chưa hoàn
+                                thành</span>
                         </div>
                     </div>
                     <!-- Actions -->
                     <div class="mt-4 sm:mt-0">
-                        <!-- Add section button -->
-                        <button
-                            mat-flat-button
-                            [color]="'accent'"
-                            (click)="createTask('section')"
-                            [matTooltip]="'Shortcut: Ctrl + .'">
-                            <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
-                            <span class="ml-2 mr-1">Add Section</span>
-                        </button>
-                        <!-- Add task button -->
-                        <button
-                            class="ml-3"
-                            mat-flat-button
-                            [color]="'primary'"
-                            (click)="createTask('task')"
-                            [matTooltip]="'Shortcut: Ctrl + /'">
-                            <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
-                            <span class="ml-2 mr-1">Add Task</span>
+                        <!-- Refresh button -->
+                        <button mat-flat-button [color]="'primary'" (click)="refreshCards()"
+                            [matTooltip]="'Làm mới danh sách'">
+                            <mat-icon [svgIcon]="'heroicons_outline:refresh'"></mat-icon>
+                            <span class="ml-2 mr-1">Làm mới</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Tasks list -->
-                <ng-container *ngIf="tasks && tasks.length > 0; else noTasks">
-                    <div
-                        class="divide-y"
-                        cdkDropList
-                        [cdkDropListData]="tasks"
+                <!-- User Cards list -->
+                <ng-container *ngIf="userCards && userCards.length > 0; else noTasks">
+                    <div class="divide-y" cdkDropList [cdkDropListData]="userCards"
                         (cdkDropListDropped)="dropped($event)">
+                        <!-- Card -->
+                        <ng-container *ngFor="let card of userCards; let first = first; trackBy: trackByFn">
+                            <div [id]="'card-' + card.id"
+                                class="group w-full select-none hover:bg-gray-100 dark:hover:bg-hover h-20 border-l-4"
+                                [class.text-hint]="card.status === 'completed' || card.status === 'done'"
+                                [style.border-left-color]="card.listColor || '#3498db'" [class.border-t]="first">
 
-                        <!-- Task -->
-                        <ng-container *ngFor="let task of tasks; let first = first; trackBy: trackByFn">
-                            <div
-                                [id]="'task-' + task.id"
-                                class="group w-full select-none hover:bg-gray-100 dark:hover:bg-hover"
-                                [ngClass]="{'h-12 text-lg font-semibold bg-gray-50 dark:bg-transparent': task.type === 'section',
-                                            'h-16': task.type === 'task',
-                                            'text-hint': task.completed}"
-                                [class.border-t]="first"
-                                cdkDrag
-                                [cdkDragLockAxis]="'y'">
+                                <!-- Card content -->
+                                <div class="relative flex items-center h-full pl-6">
 
-                                <!-- Drag preview -->
-                                <div
-                                    class="flex flex-0 w-0 h-0"
-                                    *cdkDragPreview></div>
-
-                                <!-- Task content -->
-                                <div class="relative flex items-center h-full pl-10">
-
-                                    <!-- Selected indicator -->
-                                    <ng-container *ngIf="selectedTask && selectedTask.id === task.id">
-                                        <div class="z-10 absolute -top-px right-0 -bottom-px flex flex-0 w-1 bg-primary"></div>
-                                    </ng-container>
-
-                                    <!-- Drag handle -->
-                                    <div
-                                        class="md:hidden absolute flex items-center justify-center inset-y-0 left-0 w-8 cursor-move md:group-hover:flex"
-                                        cdkDragHandle>
-                                        <mat-icon
-                                            class="icon-size-5 text-hint"
-                                            [svgIcon]="'heroicons_solid:menu'"></mat-icon>
-                                    </div>
-
-                                    <!-- Complete task button -->
+                                    <!-- Complete card checkbox -->
                                     <button
-                                        class="mr-2 -ml-2.5 leading-none"
-                                        *ngIf="task.type === 'task'"
-                                        (click)="toggleCompleted(task)"
+                                        class="mr-3 -ml-2.5 leading-none flex-shrink-0"
+                                        (click)="toggleCardCompleted(card)"
                                         mat-icon-button>
-                                        <ng-container *ngIf="task.completed">
+                                        <ng-container *ngIf="card.status === 'completed' || card.status === 'done'">
                                             <mat-icon
                                                 class="text-primary"
                                                 [svgIcon]="'heroicons_outline:check-circle'"></mat-icon>
                                         </ng-container>
-                                        <ng-container *ngIf="!task.completed">
+                                        <ng-container *ngIf="card.status !== 'completed' && card.status !== 'done'">
                                             <mat-icon
                                                 class="text-hint"
                                                 [svgIcon]="'heroicons_outline:check-circle'"></mat-icon>
                                         </ng-container>
                                     </button>
 
-                                    <!-- Task link -->
-                                    <a
-                                        class="flex flex-auto items-center min-w-0 h-full pr-7"
-                                        [routerLink]="[task.id]">
-                                        <!-- Title & Placeholder -->
-                                        <div class="flex-auto mr-2 truncate">
-                                            <ng-container *ngIf="task.title">
-                                                <span>{{task.title}}</span>
-                                            </ng-container>
-                                            <ng-container *ngIf="!task.title">
-                                                <span class="select-none text-hint">{{task.type | titlecase}} title</span>
-                                            </ng-container>
+                                    <!-- Status indicator -->
+                                    <div class="mr-3 flex-shrink-0">
+                                        <div class="w-3 h-3 rounded-full" [ngClass]="{
+                                                'bg-green-500': card.status === 'completed' || card.status === 'done',
+                                                'bg-yellow-500': card.status === 'in-progress' || card.status === 'doing',
+                                                'bg-gray-400': card.status === 'todo' || card.status === 'pending'
+                                            }">
                                         </div>
-                                        <!-- Priority -->
-                                        <ng-container *ngIf="task.type === 'task'">
-                                            <div class="w-4 h-4 mr-3">
-                                                <!-- Low -->
-                                                <mat-icon
-                                                    class="icon-size-4 text-green-600 dark:text-green-400"
-                                                    *ngIf="task.priority === 0"
-                                                    [svgIcon]="'heroicons_solid:arrow-narrow-down'"
-                                                    [title]="'Low'"></mat-icon>
-                                                <!-- High -->
-                                                <mat-icon
-                                                    class="icon-size-4 text-red-600 dark:text-red-400"
-                                                    *ngIf="task.priority === 2"
-                                                    [svgIcon]="'heroicons_solid:arrow-narrow-up'"
-                                                    [title]="'High'"></mat-icon>
-                                            </div>
-                                        </ng-container>
+                                    </div>
+
+                                    <!-- Card info -->
+                                    <div class="flex-auto min-w-0">
+                                        <!-- Title -->
+                                        <div class="font-medium truncate">
+                                            {{card.title}}
+                                        </div>
+                                        <!-- Board and List info -->
+                                        <div class="text-sm text-secondary flex items-center space-x-2">
+                                            <span>{{card.boardTitle}}</span>
+                                            <span>•</span>
+                                            <span class="px-2 py-1 rounded text-xs"
+                                                [style.background-color]="card.listColor + '20'"
+                                                [style.color]="card.listColor">
+                                                {{card.listTitle}}
+                                            </span>
+                                        </div>
+                                        <!-- Description (if exists) -->
+                                        <div class="text-xs text-hint truncate mt-1" *ngIf="card.description">
+                                            {{card.description}}
+                                        </div>
+                                    </div>
+
+                                    <!-- Right side info -->
+                                    <div class="flex items-center space-x-4 text-sm text-secondary">
+                                        <!-- Status -->
+                                        <div class="px-2 py-1 rounded-full text-xs font-medium" [ngClass]="{
+                                                 'bg-green-100 text-green-800': card.status === 'completed' || card.status === 'done',
+                                                 'bg-yellow-100 text-yellow-800': card.status === 'in-progress' || card.status === 'doing',
+                                                 'bg-gray-100 text-gray-600': card.status === 'todo' || card.status === 'pending'
+                                             }">
+                                            {{card.status | titlecase}}
+                                        </div>
+
+                                        <!-- Time tracking info -->
+                                        <div class="flex items-center space-x-1" *ngIf="card.totalTimeSpent > 0">
+                                            <mat-icon class="icon-size-4 text-blue-500">access_time</mat-icon>
+                                            <span class="text-xs">{{formatTimeSpent(card.totalTimeSpent)}}</span>
+                                        </div>
+
                                         <!-- Due date -->
-                                        <div
-                                            class="text-sm whitespace-nowrap text-secondary"
-                                            *ngIf="task.type === 'task'">
-                                            {{task.dueDate | date:'LLL dd'}}
+                                        <div class="text-xs whitespace-nowrap" *ngIf="card.dueDate">
+                                            <span [ngClass]="{
+                                                'text-red-600': isOverdue(card.dueDate),
+                                                'text-yellow-600': isDueSoon(card.dueDate),
+                                                'text-secondary': !isOverdue(card.dueDate) && !isDueSoon(card.dueDate)
+                                            }">
+                                                {{card.dueDate | date:'MMM dd'}}
+                                            </span>
                                         </div>
-                                    </a>
+                                    </div>
                                 </div>
                             </div>
                         </ng-container>
                     </div>
-
                 </ng-container>
 
                 <ng-template #noTasks>
                     <div class="flex flex-auto flex-col items-center justify-center bg-gray-100 dark:bg-transparent">
-                        <mat-icon
-                            class="icon-size-24"
-                            [svgIcon]="'heroicons_outline:clipboard-list'"></mat-icon>
-                        <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">Add a task to start planning!</div>
+                        <mat-icon class="icon-size-24" [svgIcon]="'heroicons_outline:clipboard-list'"></mat-icon>
+                        <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">Chưa có công việc nào
+                            được giao!</div>
+                        <div class="mt-2 text-secondary">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</div>
                     </div>
                 </ng-template>
 

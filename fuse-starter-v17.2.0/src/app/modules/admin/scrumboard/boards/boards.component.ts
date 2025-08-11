@@ -9,6 +9,7 @@ import { AddBoardDialogComponent } from './add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './share-board-dialog.compoment';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
+
 @Component({
     selector       : 'scrumboard-boards',
     templateUrl    : './boards.component.html',

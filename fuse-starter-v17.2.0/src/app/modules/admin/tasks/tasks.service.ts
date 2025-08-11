@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, filter, map, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
-import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
+import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
+import { environment } from 'environments/environment.local';
 
 @Injectable({
     providedIn: 'root'
@@ -12,6 +13,7 @@ export class TasksService
     private _tags: BehaviorSubject<Tag[] | null> = new BehaviorSubject(null);
     private _task: BehaviorSubject<Task | null> = new BehaviorSubject(null);
     private _tasks: BehaviorSubject<Task[] | null> = new BehaviorSubject(null);
+    private _userCards: BehaviorSubject<UserCard[] | null> = new BehaviorSubject(null);
 
     /**
      * Constructor
@@ -46,6 +48,14 @@ export class TasksService
     get tasks$(): Observable<Task[]>
     {
         return this._tasks.asObservable();
+    }
+
+    /**
+     * Getter for user cards
+     */
+    get userCards$(): Observable<UserCard[]>
+    {
+        return this._userCards.asObservable();
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -321,6 +331,45 @@ export class TasksService
                     return isDeleted;
                 })
             ))
+        );
+    }
+
+    /**
+     * Get user cards
+     */
+    getUserCards(): Observable<UserCard[]>
+    {
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/user/all`).pipe(
+            map((response: any) => {
+                // Handle API response format
+                const cards = response.data || response;
+                this._userCards.next(cards);
+                return cards;
+            })
+        );
+    }
+
+    /**
+     * Update card status
+     *
+     * @param cardId
+     * @param status
+     */
+    updateCardStatus(cardId: string, status: string): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}`, {
+            status: status
+        }).pipe(
+            tap(() => {
+                // Update local cards data
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.map(card => 
+                        card.id === cardId ? { ...card, status } : card
+                    );
+                    this._userCards.next(updatedCards);
+                }
+            })
         );
     }
 }
