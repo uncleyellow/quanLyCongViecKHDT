@@ -445,4 +445,21 @@ export class TasksService
     private isCardCompleted(card: UserCard): boolean {
         return card.status === 'completed' || card.status === 'done';
     }
+
+    /**
+     * Update UserCard in local state
+     *
+     * @param updatedCard
+     */
+    updateUserCard(updatedCard: UserCard): void {
+        const currentCards = this._userCards.getValue();
+        if (currentCards) {
+            const cardIndex = currentCards.findIndex(card => card.id === updatedCard.id);
+            if (cardIndex !== -1) {
+                const updatedCards = [...currentCards];
+                updatedCards[cardIndex] = updatedCard;
+                this._userCards.next(updatedCards);
+            }
+        }
+    }
 }

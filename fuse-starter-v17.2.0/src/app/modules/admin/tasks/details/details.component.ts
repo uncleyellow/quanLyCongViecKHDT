@@ -5,10 +5,10 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { MatDrawerToggleResult } from '@angular/material/sidenav';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
-import { debounceTime, filter, Subject, takeUntil, tap } from 'rxjs';
+import { debounceTime, filter, Subject, takeUntil, tap, take } from 'rxjs';
 import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
-import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
+import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
 import { TasksListComponent } from 'app/modules/admin/tasks/list/list.component';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
 
@@ -73,7 +73,26 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             dueDate  : [null],
             priority : [0],
             tags     : [[]],
-            order    : [0]
+            order    : [0],
+            // Additional UserCard fields
+            boardId  : [''],
+            listId   : [''],
+            description: [''],
+            position: [0],
+            startDate: [null],
+            endDate: [null],
+            status: [''],
+            totalTimeSpent: [0],
+            isTracking: [0],
+            trackingStartTime: [null],
+            trackingPauseTime: [0],
+            boardTitle: [''],
+            listTitle: [''],
+            listColor: [''],
+            checklistItems: [[]],
+            labels: [[]],
+            members: [[]],
+            createdAt: ['']
         });
 
         // Get the tags
@@ -108,8 +127,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 // Get the task
                 this.task = task;
 
-                // Patch values to the form from the task
-                this.taskForm.patchValue(task, {emitEvent: false});
+                // Map UserCard data to form if available
+                this.mapUserCardToForm(task);
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
@@ -130,6 +149,9 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
 
                 // Update the task on the server
                 this._tasksService.updateTask(value.id, value).subscribe();
+
+                // Also update the corresponding UserCard if it exists
+                this.updateUserCard(value);
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
@@ -536,5 +558,111 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+        /**
+     * Update UserCard with form data
+     *
+     * @param formValue
+     */
+    updateUserCard(formValue: any): void
+    {
+        this._tasksService.userCards$.pipe(take(1)).subscribe(userCards => {
+            const userCard = userCards?.find(card => card.id === formValue.id);
+            
+            if (userCard) {
+                // Update the UserCard with form data
+                const updatedUserCard: UserCard = {
+                    ...userCard,
+                    title: formValue.title,
+                    description: formValue.notes,
+                    status: formValue.completed ? 'completed' : formValue.status,
+                    dueDate: formValue.dueDate,
+                    position: formValue.order
+                };
+                
+                // Update the service
+                this._tasksService.updateUserCard(updatedUserCard);
+            }
+        });
+    }
+
+    /**
+     * Map UserCard data to form
+     *
+     * @param task
+     */
+    mapUserCardToForm(task: Task): void
+    {
+        // Get the corresponding UserCard from the service
+        this._tasksService.userCards$.pipe(take(1)).subscribe(userCards => {
+            const userCard = userCards?.find(card => card.id === task.id);
+
+            if (userCard) {
+            // Map UserCard data to form
+            const formData = {
+                // Basic task fields
+                id: userCard.id,
+                type: userCard.type || 'task',
+                title: userCard.title,
+                notes: userCard.description || '',
+                completed: userCard.status === 'completed',
+                dueDate: userCard.dueDate,
+                priority: 0, // Default priority
+                tags: [], // Default empty tags
+                order: userCard.position || 0,
+                
+                // Additional UserCard fields
+                boardId: userCard.boardId,
+                listId: userCard.listId,
+                description: userCard.description,
+                position: userCard.position,
+                startDate: userCard.startDate,
+                endDate: userCard.endDate,
+                status: userCard.status,
+                totalTimeSpent: userCard.totalTimeSpent || 0,
+                isTracking: userCard.isTracking || 0,
+                trackingStartTime: userCard.trackingStartTime,
+                trackingPauseTime: userCard.trackingPauseTime || 0,
+                boardTitle: userCard.boardTitle,
+                listTitle: userCard.listTitle,
+                listColor: userCard.listColor,
+                checklistItems: userCard.checklistItems || [],
+                labels: userCard.labels || [],
+                members: userCard.members || [],
+                createdAt: userCard.createdAt
+            };
+
+            // Patch values to the form
+            this.taskForm.patchValue(formData, {emitEvent: false});
+        } else {
+            // Fallback to original task data
+            this.taskForm.patchValue(task, {emitEvent: false});
+        }
+        
+        // Mark for check
+        this._changeDetectorRef.markForCheck();
+    });
+    }
+
+    /**
+     * Format time spent in seconds to human readable format
+     *
+     * @param seconds
+     */
+    formatTimeSpent(seconds: number): string
+    {
+        if (!seconds || seconds === 0) {
+            return '0h 0m';
+        }
+
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else {
+            return `${minutes}m`;
+        }
     }
 }
