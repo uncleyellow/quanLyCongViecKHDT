@@ -214,12 +214,28 @@ export class TasksService
      */
     getTaskById(id: string): Observable<Task>
     {
-        return this._tasks.pipe(
+        return this._userCards.pipe(
             take(1),
-            map((tasks) => {
+            map((userCards) => {
 
-                // Find the task
-                const task = tasks.find(item => item.id === id) || null;
+                // Find the task in user cards
+                const userCard = userCards.find(item => item.id === id) || null;
+
+                // Convert UserCard to Task format if found
+                let task: Task = null;
+                if (userCard) {
+                    task = {
+                        id: userCard.id,
+                        title: userCard.title,
+                        notes: userCard.description || '',
+                        completed: userCard.status === 'completed' || userCard.status === 'done',
+                        dueDate: userCard.dueDate,
+                        priority: 0,
+                        tags: [],
+                        order: userCard.position || 0,
+                        type: 'task'
+                    };
+                }
 
                 // Update the task
                 this._task.next(task);

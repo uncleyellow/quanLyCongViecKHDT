@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from '@angular/router';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, Observable, throwError, map } from 'rxjs';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
 import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
 
@@ -56,7 +56,10 @@ export class TasksResolver implements Resolve<any>
      */
     resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<Task[]>
     {
-        return this._tasksService.getTasks();
+        // Use getUserCards instead of getTasks to ensure userCards data is loaded
+        return this._tasksService.getUserCards().pipe(
+            map(() => []) // Return empty array since we're using userCards for display
+        );
     }
 }
 
