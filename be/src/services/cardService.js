@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-catch */
 import { cardModel } from '../models/cardModel'
+import { userModel } from '../models/userModel'
 import { v4 as uuidv4 } from 'uuid'
 import { formatDateTimeForMySQL } from '../utils/formatters'
 import { boardMemberModel } from '../models/boardMemberModel'
@@ -129,6 +130,27 @@ const getAllUserCards = async (userId) => {
   try {
     const cards = await cardModel.getAllUserCards(userId)
     
+    // Get user's card order preference
+    const user = await userModel.findOneById(userId)
+    let cardOrderIds = []
+    
+    if (user?.cardOrderIds) {
+      try {
+        // Handle both string and array formats
+        if (typeof user.cardOrderIds === 'string') {
+          cardOrderIds = JSON.parse(user.cardOrderIds)
+        } else if (Array.isArray(user.cardOrderIds)) {
+          cardOrderIds = user.cardOrderIds
+        } else {
+          cardOrderIds = []
+        }
+      } catch (parseError) {
+        console.error('Error parsing cardOrderIds:', parseError)
+        console.log('cardOrderIds value:', user.cardOrderIds)
+        cardOrderIds = []
+      }
+    }
+    
     // Process each card to format data properly
     const processedCards = cards.map(card => {
       // Parse JSON fields if they exist
@@ -164,6 +186,27 @@ const getAllUserCards = async (userId) => {
 
       return card
     })
+
+    // Sort cards according to user's preferred order
+    if (cardOrderIds.length > 0) {
+      const cardMap = new Map(processedCards.map(card => [card.id, card]))
+      const orderedCards = []
+      
+      // Add cards in the order specified by cardOrderIds
+      cardOrderIds.forEach(cardId => {
+        if (cardMap.has(cardId)) {
+          orderedCards.push(cardMap.get(cardId))
+          cardMap.delete(cardId)
+        }
+      })
+      
+      // Add any remaining cards that weren't in the order list
+      cardMap.forEach(card => {
+        orderedCards.push(card)
+      })
+      
+      return orderedCards
+    }
 
     return processedCards
   } catch (error) { throw error }

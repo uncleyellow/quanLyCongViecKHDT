@@ -23,6 +23,9 @@
                             <span *ngIf="tasksCount.incomplete !== 0">{{tasksCount.incomplete}} công việc chưa hoàn
                                 thành</span>
                         </div>
+                        <div class="ml-0.5 text-sm text-hint">
+                            <span>Kéo thả để sắp xếp lại thứ tự công việc</span>
+                        </div>
                     </div>
                     <!-- Actions -->
                     <div class="mt-4 sm:mt-0">
@@ -38,19 +41,28 @@
                 <!-- User Cards list -->
                 <ng-container *ngIf="userCards && userCards.length > 0; else noTasks">
                     <div class="divide-y" cdkDropList [cdkDropListData]="userCards"
-                        (cdkDropListDropped)="dropped($event)">
+                        (cdkDropListDropped)="dropped($event)"
+                        cdkDropListOrientation="vertical"
+                        [class.dragging]="isReordering">
                         <!-- Card -->
                         <ng-container *ngFor="let card of userCards; let first = first; trackBy: trackByFn">
                             <div [id]="'card-' + card.id"
-                                class="group w-full select-none hover:bg-gray-100 dark:hover:bg-hover h-20 border-l-4"
+                                class="group w-full select-none hover:bg-gray-100 dark:hover:bg-hover h-20 border-l-4 cursor-move"
                                 [class.text-hint]="card.status === 'completed' || card.status === 'done'"
-                                [style.border-left-color]="card.listColor || '#3498db'" [class.border-t]="first">
+                                [style.border-left-color]="card.listColor || '#3498db'" [class.border-t]="first"
+                                cdkDrag
+                                [cdkDragData]="card">
 
                                 <!-- Card content -->
                                 <div class="relative flex items-center h-full pl-6">
 
+                                    <!-- Drag handle -->
+                                    <div class="mr-2 -ml-2.5 leading-none flex-shrink-0 cursor-move opacity-50 hover:opacity-100 transition-opacity">
+                                        <mat-icon class="text-hint" [svgIcon]="'heroicons_outline:bars-3'"></mat-icon>
+                                    </div>
+
                                     <!-- Complete card checkbox -->
-                                    <button class="mr-3 -ml-2.5 leading-none flex-shrink-0"
+                                    <button class="mr-3 leading-none flex-shrink-0"
                                         (click)="toggleCardCompleted(card)" mat-icon-button>
                                         <ng-container *ngIf="card.status === 'completed' || card.status === 'done'">
                                             <mat-icon class="text-primary"

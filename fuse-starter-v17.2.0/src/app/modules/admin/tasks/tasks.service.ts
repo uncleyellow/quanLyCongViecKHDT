@@ -388,4 +388,36 @@ export class TasksService
             })
         );
     }
+
+    /**
+     * Update cards order
+     *
+     * @param cardOrderIds
+     */
+    updateCardsOrder(cardOrderIds: string[]): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/users/card-order`, {
+            cardOrderIds: cardOrderIds
+        }).pipe(
+            tap(() => {
+                // Update local cards data with new order
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const cardMap = new Map(currentCards.map(card => [card.id, card]));
+                    const orderedCards = cardOrderIds
+                        .map(cardId => cardMap.get(cardId))
+                        .filter(card => card !== undefined);
+                    
+                    // Add any remaining cards that weren't in the order list
+                    currentCards.forEach(card => {
+                        if (!cardOrderIds.includes(card.id)) {
+                            orderedCards.push(card);
+                        }
+                    });
+                    
+                    this._userCards.next(orderedCards);
+                }
+            })
+        );
+    }
 }

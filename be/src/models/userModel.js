@@ -14,6 +14,7 @@ const USER_TABLE_SCHEMA = Joi.object({
   avatar: Joi.string().max(255).allow(null).default(null),
   mustChangePassword: Joi.boolean().default(true),
   boardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  cardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
   createdAt: Joi.date().allow(null).default(Date.now),
   updatedAt: Joi.date().allow(null).default(Date.now),
   deletedAt: Joi.date().allow(null).default(null)
@@ -154,6 +155,16 @@ const updateBoardOrder = async (userId, boardOrderIds) => {
   }
 }
 
+const updateCardOrder = async (userId, cardOrderIds) => {
+  try {
+    const query = `UPDATE ${USER_TABLE_NAME} SET cardOrderIds = ?, updatedAt = NOW() WHERE id = ?`
+    const result = await db.query(query, [JSON.stringify(cardOrderIds), userId])
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const userModel = {
   USER_TABLE_NAME,
   USER_TABLE_SCHEMA,
@@ -167,5 +178,6 @@ export const userModel = {
   update,
   deleteUser,
   changePassword,
-  updateBoardOrder
+  updateBoardOrder,
+  updateCardOrder
 }

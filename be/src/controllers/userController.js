@@ -87,9 +87,36 @@ const updateBoardOrder = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const updateCardOrder = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const { cardOrderIds } = req.body
+
+    // Validate input
+    if (!cardOrderIds || !Array.isArray(cardOrderIds)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        code: StatusCodes.BAD_REQUEST,
+        status: 'error',
+        message: 'cardOrderIds must be an array'
+      })
+    }
+
+    const result = await userService.updateCardOrder(userId, cardOrderIds)
+
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Card order updated successfully',
+      data: result
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   getMe,
   changePassword,
   checkPasswordChangeRequired,
-  updateBoardOrder
+  updateBoardOrder,
+  updateCardOrder
 }

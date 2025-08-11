@@ -49,8 +49,20 @@ const updateBoardOrder = async (userId, boardOrderIds) => {
   }
 }
 
+const updateCardOrder = async (userId, cardOrderIds) => {
+  try {
+    // Cập nhật thứ tự card cho user
+    await userModel.updateCardOrder(userId, cardOrderIds)
+    
+    return { message: 'Card order updated successfully' }
+  } catch (error) {
+    throw error
+  }
+}
+
 export const userService = {
   getMe,
   changePassword,
-  updateBoardOrder
+  updateBoardOrder,
+  updateCardOrder
 }

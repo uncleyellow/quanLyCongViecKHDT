@@ -12,6 +12,7 @@ import { TasksService } from 'app/modules/admin/tasks/tasks.service';
 @Component({
     selector       : 'tasks-list',
     templateUrl    : './list.component.html',
+    styleUrls      : ['./list.component.scss'],
     encapsulation  : ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -24,6 +25,7 @@ export class TasksListComponent implements OnInit, OnDestroy
     tags: Tag[];
     tasks: Task[];
     userCards: UserCard[];
+    isReordering: boolean = false;
     tasksCount: any = {
         completed : 0,
         incomplete: 0,
@@ -216,16 +218,42 @@ export class TasksListComponent implements OnInit, OnDestroy
      *
      * @param event
      */
-    dropped(event: CdkDragDrop<Task[]>): void
+    dropped(event: CdkDragDrop<UserCard[]>): void
     {
+        // Set reordering state
+        this.isReordering = true;
+
         // Move the item in the array
         moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
 
-        // Save the new order
-        this._tasksService.updateTasksOrders(event.container.data).subscribe();
+        // Extract card IDs in the new order
+        const cardOrderIds = event.container.data.map(card => card.id);
 
-        // Mark for check
-        this._changeDetectorRef.markForCheck();
+        // Save the new order
+        this._tasksService.updateCardsOrder(cardOrderIds).subscribe({
+            next: () => {
+                // Update counts after successful reorder
+                this.updateTasksCount();
+                
+                // Reset reordering state
+                this.isReordering = false;
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+            },
+            error: (error) => {
+                console.error('Failed to update cards order:', error);
+                
+                // Revert the order if update failed
+                moveItemInArray(event.container.data, event.currentIndex, event.previousIndex);
+                
+                // Reset reordering state
+                this.isReordering = false;
+                
+                // Mark for check
+                this._changeDetectorRef.markForCheck();
+            }
+        });
     }
 
     /**
