@@ -39,3 +39,70 @@
   pointer-events: none;
   opacity: 0.7;
 }
+
+// Board group styling
+.board-group {
+    .board-header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        transition: all 0.2s ease;
+        border-radius: 4px;
+        
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+            transform: translateX(2px);
+        }
+        
+        .mat-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        h3 {
+            flex: 1;
+        }
+    }
+    
+    // Style for collapsed state
+    &.collapsed .board-header {
+        border-bottom: none;
+        margin-bottom: 0.5rem;
+    }
+}
+
+// Drag and drop styling
+.dragging {
+    .cdk-drag-placeholder {
+        opacity: 0.3;
+    }
+    
+    .cdk-drag-preview {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+}
+
+// Board group spacing
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+// Animation styles
+.cdk-drop-list {
+    transition: all 0.3s ease-in-out;
+}
+
+// Rotate animation for chevron
+.rotate-90 {
+    transform: rotate(90deg);
+}
+
+// Dark mode support
+.dark {
+    .board-group .board-header {
+        border-bottom-color: rgba(255, 255, 255, 0.12);
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+    }
+}

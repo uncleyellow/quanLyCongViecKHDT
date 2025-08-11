@@ -4,17 +4,43 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatDrawer } from '@angular/material/sidenav';
 import { filter, fromEvent, Subject, takeUntil } from 'rxjs';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { FuseMediaWatcherService } from '@fuse/services/media-watcher';
 import { FuseNavigationService, FuseVerticalNavigationComponent } from '@fuse/components/navigation';
 import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
+
+// Interface for grouped tasks
+interface BoardGroup {
+    boardId: string;
+    boardTitle: string;
+    cards: UserCard[];
+    collapsed?: boolean;
+}
 
 @Component({
     selector       : 'tasks-list',
     templateUrl    : './list.component.html',
     styleUrls      : ['./list.component.scss'],
     encapsulation  : ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    animations: [
+        trigger('slideInOut', [
+            state('expanded', style({
+                height: '*',
+                opacity: 1,
+                overflow: 'visible'
+            })),
+            state('collapsed', style({
+                height: '0px',
+                opacity: 0,
+                overflow: 'hidden'
+            })),
+            transition('collapsed <=> expanded', [
+                animate('300ms ease-in-out')
+            ])
+        ])
+    ]
 })
 export class TasksListComponent implements OnInit, OnDestroy
 {
@@ -25,6 +51,7 @@ export class TasksListComponent implements OnInit, OnDestroy
     tags: Tag[];
     tasks: Task[];
     userCards: UserCard[];
+    boardGroups: BoardGroup[] = [];
     isReordering: boolean = false;
     tasksCount: any = {
         completed : 0,
@@ -72,6 +99,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((userCards: UserCard[]) => {
                 this.userCards = userCards;
+                this.boardGroups = this.groupTasksByBoard(userCards);
 
                 // Update the counts based on user cards
                 this.updateTasksCount();
@@ -89,6 +117,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             .subscribe((userCards: UserCard[]) => {
                 if (userCards) {
                     this.userCards = userCards;
+                    this.boardGroups = this.groupTasksByBoard(userCards);
                     this.updateTasksCount();
                     this.updateNavigationCount();
                     this._changeDetectorRef.markForCheck();
@@ -226,11 +255,11 @@ export class TasksListComponent implements OnInit, OnDestroy
         // Move the item in the array
         moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
 
-        // Extract card IDs in the new order
-        const cardOrderIds = event.container.data.map(card => card.id);
+        // Extract card IDs in the new order from all groups
+        const allCardOrderIds = this.boardGroups.flatMap(group => group.cards.map(card => card.id));
 
         // Save the new order
-        this._tasksService.updateCardsOrder(cardOrderIds).subscribe({
+        this._tasksService.updateCardsOrder(allCardOrderIds).subscribe({
             next: () => {
                 // Update counts after successful reorder
                 this.updateTasksCount();
@@ -338,6 +367,91 @@ export class TasksListComponent implements OnInit, OnDestroy
     }
 
     /**
+     * Group tasks by board
+     *
+     * @param cards
+     */
+    private groupTasksByBoard(cards: UserCard[]): BoardGroup[]
+    {
+        if (!cards || cards.length === 0) {
+            return [];
+        }
+
+        // Group cards by boardId
+        const groupsMap = new Map<string, BoardGroup>();
+        
+        cards.forEach(card => {
+            // Handle cases where boardId or boardTitle might be missing
+            const boardId = card.boardId || 'unknown';
+            const boardTitle = card.boardTitle || 'Unknown Board';
+            
+            if (!groupsMap.has(boardId)) {
+                groupsMap.set(boardId, {
+                    boardId: boardId,
+                    boardTitle: boardTitle,
+                    cards: [],
+                    collapsed: false // Default to expanded
+                });
+            }
+            
+            const group = groupsMap.get(boardId)!;
+            group.cards.push(card);
+        });
+
+        // Convert map to array and sort by board title
+        const groups = Array.from(groupsMap.values()).sort((a, b) => 
+            a.boardTitle.localeCompare(b.boardTitle)
+        );
+
+        // Sort cards within each group (completed cards to the end)
+        groups.forEach(group => {
+            group.cards.sort((a, b) => {
+                const aCompleted = a.status === 'completed' || a.status === 'done';
+                const bCompleted = b.status === 'completed' || b.status === 'done';
+                
+                if (aCompleted && !bCompleted) return 1;
+                if (!aCompleted && bCompleted) return -1;
+                return 0;
+            });
+        });
+
+        return groups;
+    }
+
+    /**
+     * Toggle collapse state of a board group
+     *
+     * @param group
+     */
+    toggleBoardCollapse(group: BoardGroup): void
+    {
+        group.collapsed = !group.collapsed;
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Expand all board groups
+     */
+    expandAllBoards(): void
+    {
+        this.boardGroups.forEach(group => {
+            group.collapsed = false;
+        });
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Collapse all board groups
+     */
+    collapseAllBoards(): void
+    {
+        this.boardGroups.forEach(group => {
+            group.collapsed = true;
+        });
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
      * Track by function for ngFor loops
      *
      * @param index
@@ -393,5 +507,25 @@ export class TasksListComponent implements OnInit, OnDestroy
         threeDaysFromNow.setHours(23, 59, 59, 999);
         
         return due >= now && due <= threeDaysFromNow;
+    }
+
+    /**
+     * Get completed task count for a board group
+     *
+     * @param group
+     */
+    getCompletedCount(group: BoardGroup): number
+    {
+        return group.cards.filter(card => card.status === 'completed' || card.status === 'done').length;
+    }
+
+    /**
+     * Get incomplete task count for a board group
+     *
+     * @param group
+     */
+    getIncompleteCount(group: BoardGroup): number
+    {
+        return group.cards.filter(card => card.status !== 'completed' && card.status !== 'done').length;
     }
 }
