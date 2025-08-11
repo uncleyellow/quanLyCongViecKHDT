@@ -462,4 +462,73 @@ export class TasksService
             }
         }
     }
+
+    /**
+     * Add custom field to card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     * @param fieldValue
+     * @param fieldType
+     */
+    addCustomField(cardId: string, fieldName: string, fieldValue: any, fieldType: 'string' | 'number' | 'boolean' | 'date' = 'string'): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields`, {
+            fieldName,
+            fieldValue,
+            fieldType
+        }).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Update custom field in card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     * @param fieldValue
+     */
+    updateCustomField(cardId: string, fieldName: string, fieldValue: any): Observable<any> {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields/${fieldName}`, {
+            fieldValue
+        }).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Remove custom field from card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     */
+    removeCustomField(cardId: string, fieldName: string): Observable<any> {
+        return this._httpClient.delete<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields/${fieldName}`).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Get custom fields from card metadata
+     *
+     * @param cardId
+     */
+    getCustomFields(cardId: string): Observable<any> {
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields`);
+    }
 }

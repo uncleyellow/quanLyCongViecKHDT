@@ -17,6 +17,13 @@ export interface Task
     order: number;
 }
 
+export interface CustomField {
+    value: any;
+    type: 'string' | 'number' | 'boolean' | 'date';
+    createdAt: string;
+    updatedAt?: string;
+}
+
 export interface UserCard
 {
     id: string;
@@ -41,4 +48,5 @@ export interface UserCard
     boardTitle: string;
     listTitle: string;
     listColor: string;
+    metadata?: { [key: string]: CustomField };
 }

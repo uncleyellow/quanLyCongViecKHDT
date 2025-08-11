@@ -98,6 +98,130 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
   } catch (error) { throw error }
 }
 
+// Add custom field to card metadata
+const addCustomField = async (cardId, fieldName, fieldValue, fieldType = 'string') => {
+  try {
+    // Get current card data
+    const card = await cardModel.getDetail({ id: cardId })
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    // Parse existing metadata or create new
+    let metadata = {}
+    if (card.metadata) {
+      try {
+        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
+      } catch (e) {
+        metadata = {}
+      }
+    }
+
+    // Add new field to metadata
+    metadata[fieldName] = {
+      value: fieldValue,
+      type: fieldType,
+      createdAt: new Date().toISOString()
+    }
+
+    // Update card with new metadata
+    const updateData = { metadata: JSON.stringify(metadata) }
+    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
+    return updatedCard
+  } catch (error) { throw error }
+}
+
+// Update custom field in card metadata
+const updateCustomField = async (cardId, fieldName, fieldValue) => {
+  try {
+    // Get current card data
+    const card = await cardModel.getDetail({ id: cardId })
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    // Parse existing metadata
+    let metadata = {}
+    if (card.metadata) {
+      try {
+        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
+      } catch (e) {
+        metadata = {}
+      }
+    }
+
+    // Check if field exists
+    if (!metadata[fieldName]) {
+      throw new Error('Custom field not found')
+    }
+
+    // Update field value
+    metadata[fieldName].value = fieldValue
+    metadata[fieldName].updatedAt = new Date().toISOString()
+
+    // Update card with new metadata
+    const updateData = { metadata: JSON.stringify(metadata) }
+    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
+    return updatedCard
+  } catch (error) { throw error }
+}
+
+// Remove custom field from card metadata
+const removeCustomField = async (cardId, fieldName) => {
+  try {
+    // Get current card data
+    const card = await cardModel.getDetail({ id: cardId })
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    // Parse existing metadata
+    let metadata = {}
+    if (card.metadata) {
+      try {
+        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
+      } catch (e) {
+        metadata = {}
+      }
+    }
+
+    // Check if field exists
+    if (!metadata[fieldName]) {
+      throw new Error('Custom field not found')
+    }
+
+    // Remove field
+    delete metadata[fieldName]
+
+    // Update card with new metadata
+    const updateData = { metadata: JSON.stringify(metadata) }
+    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
+    return updatedCard
+  } catch (error) { throw error }
+}
+
+// Get all custom fields from card metadata
+const getCustomFields = async (cardId) => {
+  try {
+    const card = await cardModel.getDetail({ id: cardId })
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    // Parse metadata
+    let metadata = {}
+    if (card.metadata) {
+      try {
+        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
+      } catch (e) {
+        metadata = {}
+      }
+    }
+
+    return metadata
+  } catch (error) { throw error }
+}
+
 const deleteItem = async (reqBody) => {
   try {
     const deletedList = await cardModel.deleteList(reqBody)
@@ -184,6 +308,17 @@ const getAllUserCards = async (userId) => {
         card.members = []
       }
 
+      // Parse metadata if it exists
+      if (card.metadata && typeof card.metadata === 'string') {
+        try {
+          card.metadata = JSON.parse(card.metadata)
+        } catch (e) {
+          card.metadata = {}
+        }
+      } else if (!card.metadata) {
+        card.metadata = {}
+      }
+
       return card
     })
 
@@ -242,5 +377,9 @@ export const cardService = {
   getListsByBoard,
   updateCardOrder,
   pushCardOrderIds,
-  getAllUserCards
+  getAllUserCards,
+  addCustomField,
+  updateCustomField,
+  removeCustomField,
+  getCustomFields
 }

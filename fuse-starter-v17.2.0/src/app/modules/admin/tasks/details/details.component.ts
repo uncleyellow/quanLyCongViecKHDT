@@ -1,9 +1,10 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, Renderer2, TemplateRef, ViewChild, ViewContainerRef, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { MatDrawerToggleResult } from '@angular/material/sidenav';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { debounceTime, filter, Subject, takeUntil, tap, take } from 'rxjs';
 import { assign } from 'lodash-es';
@@ -11,6 +12,7 @@ import { DateTime } from 'luxon';
 import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
 import { TasksListComponent } from 'app/modules/admin/tasks/list/list.component';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
+import { CustomFieldDialogComponent, CustomFieldDialogData } from './custom-field-dialog/custom-field-dialog.component';
 
 @Component({
     selector       : 'tasks-details',
@@ -46,7 +48,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         private _tasksListComponent: TasksListComponent,
         private _tasksService: TasksService,
         private _overlay: Overlay,
-        private _viewContainerRef: ViewContainerRef
+        private _viewContainerRef: ViewContainerRef,
+        private _dialog: MatDialog
     )
     {
     }
@@ -92,7 +95,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             checklistItems: [[]],
             labels: [[]],
             members: [[]],
-            createdAt: ['']
+            createdAt: [''],
+            metadata: [{}]
         });
 
         // Get the tags
@@ -630,7 +634,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 checklistItems: userCard.checklistItems || [],
                 labels: userCard.labels || [],
                 members: userCard.members || [],
-                createdAt: userCard.createdAt
+                createdAt: userCard.createdAt,
+                metadata: userCard.metadata || {}
             };
 
             // Patch values to the form
@@ -664,5 +669,123 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         } else {
             return `${minutes}m`;
         }
+    }
+
+    /**
+     * Get custom fields as array for template
+     */
+    getCustomFieldsArray(): any[] {
+        const metadata = this.taskForm.get('metadata').value;
+        if (!metadata) return [];
+        
+        return Object.keys(metadata).map(key => ({
+            name: key,
+            value: metadata[key].value,
+            type: metadata[key].type
+        }));
+    }
+
+    /**
+     * Check if metadata has custom fields
+     */
+    hasCustomFields(): boolean {
+        const metadata = this.taskForm.get('metadata').value;
+        return metadata && typeof metadata === 'object' && Object.keys(metadata).length > 0;
+    }
+
+    /**
+     * Check if metadata has no custom fields
+     */
+    hasNoCustomFields(): boolean {
+        const metadata = this.taskForm.get('metadata').value;
+        return !metadata || typeof metadata !== 'object' || Object.keys(metadata).length === 0;
+    }
+
+    /**
+     * Add custom field
+     */
+    addCustomField(): void {
+        const dialogRef = this._dialog.open(CustomFieldDialogComponent, {
+            width: '500px',
+            data: {
+                mode: 'add'
+            } as CustomFieldDialogData
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+                this._tasksService.addCustomField(
+                    this.task.id, 
+                    result.fieldName, 
+                    result.fieldValue, 
+                    result.fieldType
+                ).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
+    }
+
+    /**
+     * Edit custom field
+     */
+    editCustomField(fieldName: string): void {
+        const metadata = this.taskForm.get('metadata').value;
+        const currentField = metadata[fieldName];
+        
+        if (!currentField) {
+            return;
+        }
+
+        const dialogRef = this._dialog.open(CustomFieldDialogComponent, {
+            width: '500px',
+            data: {
+                mode: 'edit',
+                fieldName: fieldName,
+                fieldValue: currentField.value,
+                fieldType: currentField.type
+            } as CustomFieldDialogData
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+                this._tasksService.updateCustomField(
+                    this.task.id, 
+                    result.fieldName, 
+                    result.fieldValue
+                ).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
+    }
+
+    /**
+     * Remove custom field
+     */
+    removeCustomField(fieldName: string): void {
+        const confirmation = this._fuseConfirmationService.open({
+            title: 'Remove Custom Field',
+            message: `Are you sure you want to remove "${fieldName}"?`,
+            actions: {
+                confirm: {
+                    label: 'Remove'
+                },
+                cancel: {
+                    label: 'Cancel'
+                }
+            }
+        });
+
+        confirmation.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this._tasksService.removeCustomField(this.task.id, fieldName).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
     }
 }

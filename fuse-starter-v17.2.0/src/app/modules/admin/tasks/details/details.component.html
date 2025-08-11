@@ -473,6 +473,84 @@
                     <ng-container *ngIf="!taskForm.get('createdAt').value">N/A</ng-container>
                 </div>
             </div>
+
+            <!-- Custom Fields Section -->
+            <div class="mb-6" *ngIf="hasCustomFields()">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-md font-semibold">Custom Fields</h4>
+                    <button 
+                        mat-icon-button 
+                        type="button"
+                        (click)="addCustomField()"
+                        class="text-gray-400 hover:text-gray-600"
+                        matTooltip="Add custom field">
+                        <mat-icon>add</mat-icon>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <div *ngFor="let field of getCustomFieldsArray(); let i = index" 
+                         class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">{{field.name}}</div>
+                            <div class="text-base">
+                                <ng-container *ngIf="field.type === 'boolean'">
+                                    <div class="flex items-center">
+                                        <mat-checkbox [checked]="field.value" [disabled]="true"></mat-checkbox>
+                                        <span class="ml-2">{{field.value ? 'True' : 'False'}}</span>
+                                    </div>
+                                </ng-container>
+                                <ng-container *ngIf="field.type === 'date'">
+                                    <ng-container *ngIf="field.value">{{field.value | date:'mediumDate'}}</ng-container>
+                                    <ng-container *ngIf="!field.value">Not set</ng-container>
+                                </ng-container>
+                                <ng-container *ngIf="field.type === 'number'">
+                                    {{field.value !== null && field.value !== undefined ? field.value : 'Not set'}}
+                                </ng-container>
+                                <ng-container *ngIf="field.type === 'string'">
+                                    {{field.value || 'Empty'}}
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button 
+                                mat-icon-button 
+                                type="button"
+                                (click)="editCustomField(field.name)"
+                                class="text-gray-400 hover:text-gray-600"
+                                matTooltip="Edit field">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button 
+                                mat-icon-button 
+                                type="button"
+                                (click)="removeCustomField(field.name)"
+                                class="text-gray-400 hover:text-red-600"
+                                matTooltip="Remove field">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Custom Field Button (when no custom fields exist) -->
+            <div class="mb-6" *ngIf="hasNoCustomFields()">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-md font-semibold">Custom Fields</h4>
+                    <button 
+                        mat-icon-button 
+                        type="button"
+                        (click)="addCustomField()"
+                        class="text-gray-400 hover:text-gray-600"
+                        matTooltip="Add custom field">
+                        <mat-icon>add</mat-icon>
+                    </button>
+                </div>
+                <div class="text-center py-8 text-gray-500">
+                    <mat-icon class="text-4xl mb-2">add_circle_outline</mat-icon>
+                    <p>No custom fields yet. Click the + button to add one.</p>
+                </div>
+            </div>
         </div>
 
     </form>

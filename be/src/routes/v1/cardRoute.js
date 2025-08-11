@@ -572,4 +572,225 @@ Router.route('/board/:boardId')
 Router.route('/column/:columnId/order')
     .patch(cardValidation.validateColumnId, cardValidation.updateCardOrder, cardController.updateCardOrder)
 
+/**
+ * @swagger
+ * /cards/{cardId}/custom-fields:
+ *   get:
+ *     summary: Get all custom fields from card metadata
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Card ID
+ *     responses:
+ *       200:
+ *         description: Custom fields retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Custom fields fetched successfully
+ *                 data:
+ *                   type: object
+ *                   description: Object containing custom fields
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Card not found
+ *       500:
+ *         description: Internal server error
+ *   post:
+ *     summary: Add a custom field to card metadata
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Card ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fieldName
+ *               - fieldValue
+ *             properties:
+ *               fieldName:
+ *                 type: string
+ *                 description: Name of the custom field
+ *                 example: "priority_level"
+ *               fieldValue:
+ *                 type: string
+ *                 description: Value of the custom field
+ *                 example: "high"
+ *               fieldType:
+ *                 type: string
+ *                 enum: [string, number, boolean, date]
+ *                 default: string
+ *                 description: Type of the custom field
+ *     responses:
+ *       200:
+ *         description: Custom field added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Custom field added successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Bad request - missing required fields
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Card not found
+ *       500:
+ *         description: Internal server error
+ */
+Router.route('/:cardId/custom-fields')
+    .get(verifyToken, cardController.getCustomFields)
+    .post(verifyToken, cardController.addCustomField)
+
+/**
+ * @swagger
+ * /cards/{cardId}/custom-fields/{fieldName}:
+ *   patch:
+ *     summary: Update a custom field in card metadata
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Card ID
+ *       - in: path
+ *         name: fieldName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the custom field
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fieldValue
+ *             properties:
+ *               fieldValue:
+ *                 type: string
+ *                 description: New value for the custom field
+ *                 example: "medium"
+ *     responses:
+ *       200:
+ *         description: Custom field updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Custom field updated successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Card'
+ *       400:
+ *         description: Bad request - missing fieldValue
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Card or custom field not found
+ *       500:
+ *         description: Internal server error
+ *   delete:
+ *     summary: Remove a custom field from card metadata
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Card ID
+ *       - in: path
+ *         name: fieldName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the custom field to remove
+ *     responses:
+ *       200:
+ *         description: Custom field removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Custom field removed successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Card'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Card or custom field not found
+ *       500:
+ *         description: Internal server error
+ */
+Router.route('/:cardId/custom-fields/:fieldName')
+    .patch(verifyToken, cardController.updateCustomField)
+    .delete(verifyToken, cardController.removeCustomField)
+
 export const cardRoute = Router

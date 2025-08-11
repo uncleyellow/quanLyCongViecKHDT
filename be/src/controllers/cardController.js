@@ -139,6 +139,88 @@ const getAllUserCards = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+// Add custom field to card metadata
+const addCustomField = async (req, res, next) => {
+    try {
+        const { cardId } = req.params
+        const { fieldName, fieldValue, fieldType = 'string' } = req.body
+        
+        if (!fieldName || fieldValue === undefined) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                code: StatusCodes.BAD_REQUEST,
+                status: 'error',
+                message: 'fieldName and fieldValue are required'
+            })
+        }
+
+        const updatedCard = await cardService.addCustomField(cardId, fieldName, fieldValue, fieldType)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Custom field added successfully',
+            data: updatedCard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
+// Update custom field in card metadata
+const updateCustomField = async (req, res, next) => {
+    try {
+        const { cardId, fieldName } = req.params
+        const { fieldValue } = req.body
+        
+        if (fieldValue === undefined) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                code: StatusCodes.BAD_REQUEST,
+                status: 'error',
+                message: 'fieldValue is required'
+            })
+        }
+
+        const updatedCard = await cardService.updateCustomField(cardId, fieldName, fieldValue)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Custom field updated successfully',
+            data: updatedCard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
+// Remove custom field from card metadata
+const removeCustomField = async (req, res, next) => {
+    try {
+        const { cardId, fieldName } = req.params
+        
+        const updatedCard = await cardService.removeCustomField(cardId, fieldName)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Custom field removed successfully',
+            data: updatedCard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
+// Get all custom fields from card metadata
+const getCustomFields = async (req, res, next) => {
+    try {
+        const { cardId } = req.params
+        
+        const customFields = await cardService.getCustomFields(cardId)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Custom fields fetched successfully',
+            data: customFields
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
 export const cardController = {
     getList,
     createNew,
@@ -148,5 +230,9 @@ export const cardController = {
     deleteItem,
     getListsByBoard,
     updateCardOrder,
-    getAllUserCards
+    getAllUserCards,
+    addCustomField,
+    updateCustomField,
+    removeCustomField,
+    getCustomFields
 }

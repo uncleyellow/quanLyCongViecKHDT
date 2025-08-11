@@ -45,7 +45,9 @@ const CARD_TABLE_SCHEMA = Joi.object({
     totalTimeSpent: Joi.number().integer().default(0), // Total time in seconds
     isTracking: Joi.number().integer().valid(0, 1).default(0), // 0: not tracking, 1: tracking
     trackingStartTime: Joi.date().allow(null).default(null),
-    trackingPauseTime: Joi.number().integer().default(0) // Total pause time in seconds
+    trackingPauseTime: Joi.number().integer().default(0), // Total pause time in seconds
+    // Metadata field for custom data
+    metadata: Joi.object().default({}) // JSON object for storing custom fields
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
