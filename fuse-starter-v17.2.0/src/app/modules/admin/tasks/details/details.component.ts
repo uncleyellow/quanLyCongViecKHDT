@@ -31,6 +31,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     filteredTags: Tag[];
     task: Task;
     taskForm: UntypedFormGroup;
+    dateRangeForm: UntypedFormGroup;
     tasks: Task[];
     private _tagsPanelOverlayRef: OverlayRef;
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -99,6 +100,22 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             metadata: [{}]
         });
 
+        // Create the date range form
+        this.dateRangeForm = this._formBuilder.group({
+            start: [null],
+            end: [null]
+        });
+
+        // Subscribe to date range form changes
+        this.dateRangeForm.valueChanges.subscribe(range => {
+            if (range.start) {
+                this.taskForm.get('startDate').setValue(range.start, { emitEvent: false });
+            }
+            if (range.end) {
+                this.taskForm.get('endDate').setValue(range.end, { emitEvent: false });
+            }
+        });
+
         // Get the tags
         this._tasksService.tags$
             .pipe(takeUntil(this._unsubscribeAll))
@@ -124,6 +141,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         this._tasksService.task$
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((task: Task) => {
+                console.log('TasksDetailsComponent - received task:', task);
 
                 // Open the drawer in case it is closed
                 this._tasksListComponent.matDrawer.open();
@@ -484,6 +502,21 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     /**
+     * Clear date range
+     */
+    clearDateRange(): void
+    {
+        this.taskForm.get('startDate').setValue(null);
+        this.taskForm.get('endDate').setValue(null);
+        this.dateRangeForm.patchValue({
+            start: null,
+            end: null
+        }, {emitEvent: false});
+    }
+
+
+
+    /**
      * Check if the task is overdue or not
      */
     isOverdue(): boolean
@@ -582,14 +615,14 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 if (formValue.notes !== userCard.description) {
                     updateData.description = formValue.notes;
                 }
-                if (formValue.completed !== (userCard.status === 'completed')) {
+                if (formValue.completed !== (userCard.status === 'completed' || userCard.status === 'done')) {
                     updateData.status = formValue.completed ? 'completed' : 'todo';
                 }
                 if (formValue.dueDate !== userCard.dueDate) {
-                    updateData.dueDate = formValue.dueDate;
+                    updateData.dueDate = formValue.dueDate ? new Date(formValue.dueDate).toISOString() : null;
                 }
                 if (formValue.order !== userCard.position) {
-                    updateData.position = formValue.order;
+                    updateData.position = formValue.order || 0;
                 }
                 // Handle priority - store in metadata since it's not a direct field
                 const currentPriority = userCard.metadata?.priority?.value || 'normal';
@@ -606,23 +639,28 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                     };
                     updateData.metadata = updatedMetadata;
                 }
-                if (formValue.startDate !== userCard.startDate) {
-                    updateData.startDate = formValue.startDate;
+                // Handle date range from dateRangeForm
+                const dateRangeValue = this.dateRangeForm.value;
+                const currentStartDate = userCard.startDate ? new Date(userCard.startDate) : null;
+                const currentEndDate = userCard.endDate ? new Date(userCard.endDate) : null;
+                
+                if (dateRangeValue.start !== currentStartDate) {
+                    updateData.startDate = dateRangeValue.start ? dateRangeValue.start.toISOString() : null;
                 }
-                if (formValue.endDate !== userCard.endDate) {
-                    updateData.endDate = formValue.endDate;
+                if (dateRangeValue.end !== currentEndDate) {
+                    updateData.endDate = dateRangeValue.end ? dateRangeValue.end.toISOString() : null;
                 }
                 if (formValue.totalTimeSpent !== userCard.totalTimeSpent) {
-                    updateData.totalTimeSpent = formValue.totalTimeSpent;
+                    updateData.totalTimeSpent = formValue.totalTimeSpent || 0;
                 }
                 if (formValue.isTracking !== userCard.isTracking) {
-                    updateData.isTracking = formValue.isTracking;
+                    updateData.isTracking = formValue.isTracking || 0;
                 }
                 if (formValue.trackingStartTime !== userCard.trackingStartTime) {
-                    updateData.trackingStartTime = formValue.trackingStartTime;
+                    updateData.trackingStartTime = formValue.trackingStartTime ? new Date(formValue.trackingStartTime).toISOString() : null;
                 }
                 if (formValue.trackingPauseTime !== userCard.trackingPauseTime) {
-                    updateData.trackingPauseTime = formValue.trackingPauseTime;
+                    updateData.trackingPauseTime = formValue.trackingPauseTime || 0;
                 }
                 
                 // Only call API if there are changes
@@ -653,9 +691,12 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
      */
     mapUserCardToForm(task: Task): void
     {
+        console.log('mapUserCardToForm called with task:', task);
         // Get the corresponding UserCard from the service
         this._tasksService.userCards$.pipe(take(1)).subscribe(userCards => {
+            console.log('mapUserCardToForm - userCards:', userCards);
             const userCard = userCards?.find(card => card.id === task.id);
+            console.log('mapUserCardToForm - found userCard:', userCard);
 
             if (userCard) {
             // Map UserCard data to form
@@ -676,8 +717,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 listId: userCard.listId,
                 description: userCard.description,
                 position: userCard.position,
-                startDate: userCard.startDate,
-                endDate: userCard.endDate,
+                            startDate: null, // Handled by dateRangeForm
+            endDate: null, // Handled by dateRangeForm
                 status: userCard.status,
                 totalTimeSpent: userCard.totalTimeSpent || 0,
                 isTracking: userCard.isTracking || 0,
@@ -693,11 +734,25 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 metadata: userCard.metadata || {}
             };
 
+            console.log('mapUserCardToForm - formData:', formData);
             // Patch values to the form
             this.taskForm.patchValue(formData, {emitEvent: false});
+
+            // Update date range form
+            this.dateRangeForm.patchValue({
+                start: userCard.startDate ? new Date(userCard.startDate) : null,
+                end: userCard.endDate ? new Date(userCard.endDate) : null
+            }, {emitEvent: false});
         } else {
+            console.log('mapUserCardToForm - using fallback task data');
             // Fallback to original task data
             this.taskForm.patchValue(task, {emitEvent: false});
+
+            // Update date range form with fallback data
+            this.dateRangeForm.patchValue({
+                start: null,
+                end: null
+            }, {emitEvent: false});
         }
         
         // Mark for check

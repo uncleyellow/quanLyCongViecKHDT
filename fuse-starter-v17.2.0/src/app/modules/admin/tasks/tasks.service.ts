@@ -214,12 +214,15 @@ export class TasksService
      */
     getTaskById(id: string): Observable<Task>
     {
+        console.log('getTaskById called with id:', id);
         return this._userCards.pipe(
             take(1),
             map((userCards) => {
+                console.log('getTaskById - userCards:', userCards);
 
                 // Find the task in user cards
-                const userCard = userCards.find(item => item.id === id) || null;
+                const userCard = userCards?.find(item => item.id === id) || null;
+                console.log('getTaskById - found userCard:', userCard);
 
                 // Convert UserCard to Task format if found
                 let task: Task = null;
@@ -237,6 +240,8 @@ export class TasksService
                     };
                 }
 
+                console.log('getTaskById - created task:', task);
+
                 // Update the task
                 this._task.next(task);
 
@@ -247,6 +252,7 @@ export class TasksService
 
                 if ( !task )
                 {
+                    console.error('getTaskById - task not found for id:', id);
                     return throwError('Could not found task with id of ' + id + '!');
                 }
 
@@ -355,10 +361,12 @@ export class TasksService
      */
     getUserCards(): Observable<UserCard[]>
     {
+        console.log('getUserCards - calling API');
         return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/user/all`).pipe(
             map((response: any) => {
                 // Handle API response format
                 const cards = response.data || response;
+                console.log('getUserCards - received cards:', cards?.length || 0);
                 this._userCards.next(cards);
                 return cards;
             })

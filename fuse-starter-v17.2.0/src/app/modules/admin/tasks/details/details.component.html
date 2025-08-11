@@ -76,10 +76,9 @@
         </div>
 
         <!-- Tags -->
-        <div class="mt-8">
+        <!-- <div class="mt-8">
             <div class="font-medium mb-1.5">Tags</div>
             <div class="flex flex-wrap items-center -m-1.5">
-                <!-- Tags -->
                 <ng-container *ngIf="task.tags.length">
                     <ng-container *ngFor="let tag of (task.tags | fuseFindByKey:'id':tags); trackBy: trackByFn">
                         <div class="flex items-center justify-center px-4 m-1.5 rounded-full leading-9 text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700">
@@ -106,10 +105,8 @@
                         <span class="ml-1.5 text-md font-medium whitespace-nowrap">Add</span>
                     </ng-container>
 
-                    <!-- Tags panel -->
                     <ng-template #tagsPanel>
                         <div class="w-60 rounded border shadow-md bg-card">
-                            <!-- Tags panel header -->
                             <div class="flex items-center m-3 mr-2">
                                 <div class="flex items-center">
                                     <mat-icon
@@ -142,7 +139,6 @@
                             </div>
                             <div
                                 class="flex flex-col max-h-64 py-2 border-t overflow-y-auto">
-                                <!-- Tags -->
                                 <ng-container *ngIf="!tagsEditMode">
                                     <ng-container *ngFor="let tag of filteredTags; trackBy: trackByFn">
                                         <div
@@ -159,7 +155,6 @@
                                         </div>
                                     </ng-container>
                                 </ng-container>
-                                <!-- Tags editing -->
                                 <ng-container *ngIf="tagsEditMode">
                                     <div class="py-2 space-y-2">
                                         <ng-container *ngFor="let tag of filteredTags; trackBy: trackByFn">
@@ -184,7 +179,6 @@
                                         </ng-container>
                                     </div>
                                 </ng-container>
-                                <!-- Create tag -->
                                 <div
                                     class="flex items-center h-10 min-h-10 -ml-0.5 pl-4 pr-3 leading-none cursor-pointer hover:bg-hover"
                                     *ngIf="shouldShowCreateTagButton(newTagInput.value)"
@@ -200,10 +194,10 @@
                     </ng-template>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Priority and Due date -->
-        <div class="flex flex-wrap items-center mt-8">
+        <div class="flex flex-wrap items-center mt-8 gap-8">
 
             <!-- Priority -->
             <div>
@@ -282,7 +276,7 @@
             </div>
 
             <!-- Due date -->
-            <div class="ml-6">
+            <div>
                 <div class="font-medium">Due date</div>
                 <div
                     class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
@@ -323,6 +317,50 @@
                 </div>
             </div>
 
+            
+
+        </div>
+
+        <div class="mt-8 flex flex-wrap items-center gap-8">
+            <!-- Date Range -->
+            <div class="">
+                <div class="font-medium">Date Range</div>
+                <div
+                    class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
+                    [ngClass]="{'text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700': !dateRangeForm.value.start && !dateRangeForm.value.end,
+                                'text-blue-800 bg-blue-200 dark:text-blue-100 dark:bg-blue-500': dateRangeForm.value.start || dateRangeForm.value.end}"
+                    (click)="dateRangePicker.open()">
+                    <mat-icon
+                        class="icon-size-5 text-current"
+                        [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
+                    <span class="ml-2 text-md font-medium">
+                        <ng-container *ngIf="dateRangeForm.value.start && dateRangeForm.value.end">
+                            {{dateRangeForm.value.start | date:'shortDate'}} - {{dateRangeForm.value.end | date:'shortDate'}}
+                        </ng-container>
+                        <ng-container *ngIf="dateRangeForm.value.start && !dateRangeForm.value.end">
+                            {{dateRangeForm.value.start | date:'shortDate'}} - No end date
+                        </ng-container>
+                        <ng-container *ngIf="!dateRangeForm.value.start && dateRangeForm.value.end">
+                            No start date - {{dateRangeForm.value.end | date:'shortDate'}}
+                        </ng-container>
+                        <ng-container *ngIf="!dateRangeForm.value.start && !dateRangeForm.value.end">Not set</ng-container>
+                    </span>
+                    <mat-form-field
+                        class="fuse-mat-dense invisible absolute inset-0 -mt-2.5 opacity-0 pointer-events-none"
+                        [subscriptSizing]="'dynamic'">
+                        <mat-date-range-input [formGroup]="dateRangeForm" [rangePicker]="dateRangePicker">
+                            <input matStartDate formControlName="start" placeholder="Start date">
+                            <input matEndDate formControlName="end" placeholder="End date">
+                        </mat-date-range-input>
+                        <mat-date-range-picker #dateRangePicker>
+                            <mat-datepicker-actions>
+                                <button mat-button matDatepickerCancel (click)="clearDateRange()">Clear</button>
+                                <button mat-flat-button color="primary" matDatepickerApply>Apply</button>
+                            </mat-datepicker-actions>
+                        </mat-date-range-picker>
+                    </mat-form-field>
+                </div>
+            </div>
         </div>
 
         <!-- Notes -->
