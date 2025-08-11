@@ -87,7 +87,8 @@ const updatePartial = async (req, res, next) => {
         checklistItems: Joi.alternatives().try(
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)
-        ).default(null).optional()
+        ).default(null).optional(),
+        metadata: Joi.object().optional()
     })
 
     try {

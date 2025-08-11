@@ -591,6 +591,21 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 if (formValue.order !== userCard.position) {
                     updateData.position = formValue.order;
                 }
+                // Handle priority - store in metadata since it's not a direct field
+                const currentPriority = userCard.metadata?.priority?.value || 'normal';
+                if (formValue.priority !== currentPriority) {
+                    // Update metadata with new priority
+                    const currentMetadata = userCard.metadata || {};
+                    const updatedMetadata = {
+                        ...currentMetadata,
+                        priority: {
+                            value: formValue.priority,
+                            type: 'string',
+                            createdAt: new Date().toISOString()
+                        }
+                    };
+                    updateData.metadata = updatedMetadata;
+                }
                 if (formValue.startDate !== userCard.startDate) {
                     updateData.startDate = formValue.startDate;
                 }
@@ -612,6 +627,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 
                 // Only call API if there are changes
                 if (Object.keys(updateData).length > 0) {
+                    console.log('Sending update data:', updateData);
                     this._tasksService.updateCard(formValue.id, updateData).subscribe({
                         next: (response) => {
                             console.log('Card updated successfully:', response);
@@ -651,7 +667,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 notes: userCard.description || '',
                 completed: userCard.status === 'completed',
                 dueDate: userCard.dueDate,
-                priority: task.priority || 'normal', // Use task priority or default to 'normal'
+                priority: userCard.metadata?.priority?.value || task.priority || 'normal', // Read from metadata first, then task, then default
                 tags: [], // Default empty tags
                 order: userCard.position || 0,
                 

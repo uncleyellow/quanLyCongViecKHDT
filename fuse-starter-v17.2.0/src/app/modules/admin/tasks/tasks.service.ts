@@ -231,7 +231,7 @@ export class TasksService
                         notes: userCard.description || '',
                         completed: userCard.status === 'completed' || userCard.status === 'done',
                         dueDate: userCard.dueDate,
-                        priority: 'normal',
+                        priority: userCard.metadata?.priority?.value || 'normal',
                         tags: [],
                         order: userCard.position || 0
                     };
@@ -440,6 +440,9 @@ export class TasksService
                             }
                             if (updateData.trackingPauseTime !== undefined) {
                                 updatedCard.trackingPauseTime = updateData.trackingPauseTime;
+                            }
+                            if (updateData.metadata !== undefined) {
+                                updatedCard.metadata = updateData.metadata;
                             }
                             
                             console.log('Updated card in local state:', updatedCard);

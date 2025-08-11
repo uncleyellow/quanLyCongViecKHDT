@@ -100,6 +100,11 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
   if (reqBodyUpdate.labels !== undefined) {
     reqBodyUpdate.labels = JSON.stringify(reqBodyUpdate.labels)
   }
+
+  // Handle metadata field
+  if (reqBodyUpdate.metadata !== undefined) {
+    reqBodyUpdate.metadata = JSON.stringify(reqBodyUpdate.metadata)
+  }
   
   try {
     const updatedList = await cardModel.updatePartial(reqBody, reqBodyUpdate)
