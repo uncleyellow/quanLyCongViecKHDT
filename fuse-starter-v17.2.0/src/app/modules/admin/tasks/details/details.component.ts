@@ -107,14 +107,22 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         });
 
         // Subscribe to date range form changes
-        this.dateRangeForm.valueChanges.subscribe(range => {
-            if (range.start) {
+        this.dateRangeForm.valueChanges
+            .pipe(
+                debounceTime(300),
+                takeUntil(this._unsubscribeAll)
+            )
+            .subscribe(range => {
+                console.log('Date range changed:', range);
+                
+                // Update taskForm with new date values
                 this.taskForm.get('startDate').setValue(range.start, { emitEvent: false });
-            }
-            if (range.end) {
                 this.taskForm.get('endDate').setValue(range.end, { emitEvent: false });
-            }
-        });
+                
+                // Trigger update to save changes
+                const currentFormValue = this.taskForm.value;
+                this.updateUserCard(currentFormValue);
+            });
 
         // Get the tags
         this._tasksService.tags$
@@ -641,13 +649,15 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 }
                 // Handle date range from dateRangeForm
                 const dateRangeValue = this.dateRangeForm.value;
-                const currentStartDate = userCard.startDate ? new Date(userCard.startDate) : null;
-                const currentEndDate = userCard.endDate ? new Date(userCard.endDate) : null;
+                const currentStartDate = userCard.startDate ? new Date(userCard.startDate).toISOString().split('T')[0] : null;
+                const currentEndDate = userCard.endDate ? new Date(userCard.endDate).toISOString().split('T')[0] : null;
+                const newStartDate = dateRangeValue.start ? dateRangeValue.start.toISOString().split('T')[0] : null;
+                const newEndDate = dateRangeValue.end ? dateRangeValue.end.toISOString().split('T')[0] : null;
                 
-                if (dateRangeValue.start !== currentStartDate) {
+                if (newStartDate !== currentStartDate) {
                     updateData.startDate = dateRangeValue.start ? dateRangeValue.start.toISOString() : null;
                 }
-                if (dateRangeValue.end !== currentEndDate) {
+                if (newEndDate !== currentEndDate) {
                     updateData.endDate = dateRangeValue.end ? dateRangeValue.end.toISOString() : null;
                 }
                 if (formValue.totalTimeSpent !== userCard.totalTimeSpent) {

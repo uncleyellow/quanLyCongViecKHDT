@@ -1,17 +1,12 @@
 <div class="flex flex-auto">
 
-    <form
-        class="flex flex-col flex-auto p-6 pt-10 sm:p-8 sm:pt-10 overflow-y-auto"
-        [formGroup]="taskForm">
+    <form class="flex flex-col flex-auto p-6 pt-10 sm:p-8 sm:pt-10 overflow-y-auto" [formGroup]="taskForm">
 
         <!-- Header -->
         <div class="flex items-center justify-between -mt-3 -ml-4">
 
             <!-- Mark as ... button -->
-            <button
-                class="pr-4 pl-3.5"
-                mat-button
-                (click)="toggleCompleted()">
+            <button class="pr-4 pl-3.5" mat-button (click)="toggleCompleted()">
 
                 <!-- Mark as complete -->
                 <ng-container *ngIf="!taskForm.get('completed').value">
@@ -24,9 +19,7 @@
                 <!-- Mark as incomplete -->
                 <ng-container *ngIf="taskForm.get('completed').value">
                     <div class="flex items-center justify-center">
-                        <mat-icon
-                            class="text-primary"
-                            [svgIcon]="'heroicons_outline:check-circle'"></mat-icon>
+                        <mat-icon class="text-primary" [svgIcon]="'heroicons_outline:check-circle'"></mat-icon>
                         <span class="ml-2 font-semibold">MARK AS INCOMPLETE</span>
                     </div>
                 </ng-container>
@@ -34,24 +27,18 @@
 
             <div class="flex items-center">
                 <!-- More menu -->
-                <button
-                    mat-icon-button
-                    [matMenuTriggerFor]="moreMenu">
+                <button mat-icon-button [matMenuTriggerFor]="moreMenu">
                     <mat-icon [svgIcon]="'heroicons_outline:dots-vertical'"></mat-icon>
                 </button>
                 <mat-menu #moreMenu="matMenu">
-                    <button
-                        mat-menu-item
-                        (click)="deleteTask()">
+                    <button mat-menu-item (click)="deleteTask()">
                         <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
                         <span>Delete {{task.type === 'task' ? 'task' : 'section'}}</span>
                     </button>
                 </mat-menu>
 
                 <!-- Close button -->
-                <a
-                    mat-icon-button
-                    [routerLink]="['../']">
+                <a mat-icon-button [routerLink]="['../']">
                     <mat-icon [svgIcon]="'heroicons_outline:x'"></mat-icon>
                 </a>
             </div>
@@ -62,15 +49,9 @@
 
         <!-- Title -->
         <div>
-            <mat-form-field
-                class="w-full"
-                [subscriptSizing]="'dynamic'">
+            <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
                 <mat-label>{{task.type === 'task' ? 'Task title' : 'Section title'}}</mat-label>
-                <textarea
-                    matInput
-                    [formControlName]="'title'"
-                    [spellcheck]="false"
-                    cdkTextareaAutosize
+                <textarea matInput [formControlName]="'title'" [spellcheck]="false" cdkTextareaAutosize
                     #titleField></textarea>
             </mat-form-field>
         </div>
@@ -202,73 +183,58 @@
             <!-- Priority -->
             <div>
                 <div class="font-medium">Priority</div>
-                <div
-                    class="flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
-                    [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.priority === 'low',
+                <div class="flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer" [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.priority === 'low',
                                 'text-gray-800 bg-gray-200 dark:text-gray-100 dark:bg-gray-500': task.priority === 'normal',
                                 'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.priority === 'high'}"
                     [matMenuTriggerFor]="priorityMenu">
 
                     <!-- Low -->
                     <ng-container *ngIf="task.priority === 'low'">
-                        <mat-icon
-                            class="icon-size-5 text-current"
+                        <mat-icon class="icon-size-5 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-down'"></mat-icon>
                         <span class="ml-2 mr-1 text-md font-medium">Low</span>
                     </ng-container>
 
                     <!-- Normal -->
                     <ng-container *ngIf="task.priority === 'normal'">
-                        <mat-icon
-                            class="icon-size-4 text-current"
-                            [svgIcon]="'heroicons_solid:minus'"></mat-icon>
+                        <mat-icon class="icon-size-4 text-current" [svgIcon]="'heroicons_solid:minus'"></mat-icon>
                         <span class="ml-2 mr-1 text-md font-medium">Normal</span>
                     </ng-container>
 
                     <!-- High -->
                     <ng-container *ngIf="task.priority === 'high'">
-                        <mat-icon
-                            class="icon-size-4 text-current"
+                        <mat-icon class="icon-size-4 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-up'"></mat-icon>
                         <span class="ml-2 mr-1 text-md font-medium">High</span>
                     </ng-container>
                 </div>
                 <mat-menu #priorityMenu="matMenu">
                     <!-- Low -->
-                    <button
-                        [ngClass]="{'bg-hover': task.priority === 'low'}"
-                        mat-menu-item
+                    <button [ngClass]="{'bg-hover': task.priority === 'low'}" mat-menu-item
                         (click)="setTaskPriority('low')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">Low</span>
-                            <mat-icon
-                                class="mr-0 icon-size-4 text-green-600 dark:text-green-500"
+                            <mat-icon class="mr-0 icon-size-4 text-green-600 dark:text-green-500"
                                 [svgIcon]="'heroicons_solid:arrow-narrow-down'"></mat-icon>
                         </span>
                     </button>
 
                     <!-- Normal -->
-                    <button
-                        [ngClass]="{'bg-hover': task.priority === 'normal'}"
-                        mat-menu-item
+                    <button [ngClass]="{'bg-hover': task.priority === 'normal'}" mat-menu-item
                         (click)="setTaskPriority('normal')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">Normal</span>
-                            <mat-icon
-                                class="mr-0 icon-size-4 text-gray-600 dark:text-gray-500"
+                            <mat-icon class="mr-0 icon-size-4 text-gray-600 dark:text-gray-500"
                                 [svgIcon]="'heroicons_solid:minus'"></mat-icon>
                         </span>
                     </button>
 
                     <!-- High -->
-                    <button
-                        [ngClass]="{'bg-hover': task.priority === 'high'}"
-                        mat-menu-item
+                    <button [ngClass]="{'bg-hover': task.priority === 'high'}" mat-menu-item
                         (click)="setTaskPriority('high')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">High</span>
-                            <mat-icon
-                                class="mr-0 icon-size-4 text-red-600 dark:text-red-500"
+                            <mat-icon class="mr-0 icon-size-4 text-red-600 dark:text-red-500"
                                 [svgIcon]="'heroicons_solid:arrow-narrow-up'"></mat-icon>
                         </span>
                     </button>
@@ -278,15 +244,11 @@
             <!-- Due date -->
             <div>
                 <div class="font-medium">Due date</div>
-                <div
-                    class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
+                <div class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
                     [ngClass]="{'text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700': !task.dueDate,
                                 'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.dueDate && !isOverdue(),
-                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.dueDate && isOverdue()}"
-                    (click)="dueDatePicker.open()">
-                    <mat-icon
-                        class="icon-size-5 text-current"
-                        [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
+                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.dueDate && isOverdue()}" (click)="dueDatePicker.open()">
+                    <mat-icon class="icon-size-5 text-current" [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
                     <span class="ml-2 text-md font-medium">
                         <ng-container *ngIf="task.dueDate">{{task.dueDate | date:'longDate'}}</ng-container>
                         <ng-container *ngIf="!task.dueDate">Not set</ng-container>
@@ -294,22 +256,13 @@
                     <mat-form-field
                         class="fuse-mat-dense invisible absolute inset-0 -mt-2.5 opacity-0 pointer-events-none"
                         [subscriptSizing]="'dynamic'">
-                        <input
-                            matInput
-                            [formControlName]="'dueDate'"
-                            [matDatepicker]="dueDatePicker">
+                        <input matInput [formControlName]="'dueDate'" [matDatepicker]="dueDatePicker">
                         <mat-datepicker #dueDatePicker>
                             <mat-datepicker-actions>
-                                <button
-                                    mat-button
-                                    (click)="taskForm.get('dueDate').setValue(null)"
+                                <button mat-button (click)="taskForm.get('dueDate').setValue(null)"
                                     matDatepickerCancel>Clear
                                 </button>
-                                <button
-                                    class=""
-                                    mat-flat-button
-                                    [color]="'primary'"
-                                    matDatepickerApply>Select
+                                <button class="" mat-flat-button [color]="'primary'" matDatepickerApply>Select
                                 </button>
                             </mat-datepicker-actions>
                         </mat-datepicker>
@@ -317,7 +270,7 @@
                 </div>
             </div>
 
-            
+
 
         </div>
 
@@ -325,17 +278,14 @@
             <!-- Date Range -->
             <div class="">
                 <div class="font-medium">Date Range</div>
-                <div
-                    class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
+                <div class="relative flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer"
                     [ngClass]="{'text-gray-500 bg-gray-100 dark:text-gray-300 dark:bg-gray-700': !dateRangeForm.value.start && !dateRangeForm.value.end,
-                                'text-blue-800 bg-blue-200 dark:text-blue-100 dark:bg-blue-500': dateRangeForm.value.start || dateRangeForm.value.end}"
-                    (click)="dateRangePicker.open()">
-                    <mat-icon
-                        class="icon-size-5 text-current"
-                        [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
+                                'text-blue-800 bg-blue-200 dark:text-blue-100 dark:bg-blue-500': dateRangeForm.value.start || dateRangeForm.value.end}" (click)="dateRangePicker.open()">
+                    <mat-icon class="icon-size-5 text-current" [svgIcon]="'heroicons_solid:calendar'"></mat-icon>
                     <span class="ml-2 text-md font-medium">
                         <ng-container *ngIf="dateRangeForm.value.start && dateRangeForm.value.end">
-                            {{dateRangeForm.value.start | date:'shortDate'}} - {{dateRangeForm.value.end | date:'shortDate'}}
+                            {{dateRangeForm.value.start | date:'shortDate'}} - {{dateRangeForm.value.end |
+                            date:'shortDate'}}
                         </ng-container>
                         <ng-container *ngIf="dateRangeForm.value.start && !dateRangeForm.value.end">
                             {{dateRangeForm.value.start | date:'shortDate'}} - No end date
@@ -343,7 +293,8 @@
                         <ng-container *ngIf="!dateRangeForm.value.start && dateRangeForm.value.end">
                             No start date - {{dateRangeForm.value.end | date:'shortDate'}}
                         </ng-container>
-                        <ng-container *ngIf="!dateRangeForm.value.start && !dateRangeForm.value.end">Not set</ng-container>
+                        <ng-container *ngIf="!dateRangeForm.value.start && !dateRangeForm.value.end">Not
+                            set</ng-container>
                     </span>
                     <mat-form-field
                         class="fuse-mat-dense invisible absolute inset-0 -mt-2.5 opacity-0 pointer-events-none"
@@ -365,22 +316,16 @@
 
         <!-- Notes -->
         <div class="mt-8">
-            <mat-form-field
-                class="w-full"
-                [subscriptSizing]="'dynamic'">
+            <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
                 <mat-label>Notes</mat-label>
-                <textarea
-                    matInput
-                    [formControlName]="'notes'"
-                    [spellcheck]="false"
-                    cdkTextareaAutosize></textarea>
+                <textarea matInput [formControlName]="'notes'" [spellcheck]="false" cdkTextareaAutosize></textarea>
             </mat-form-field>
         </div>
 
         <!-- Card Information Section -->
         <div class="mt-8">
             <h3 class="text-lg font-semibold mb-4">Card Information</h3>
-            
+
             <!-- Board and List Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
@@ -390,7 +335,8 @@
                 <div>
                     <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">List</div>
                     <div class="flex items-center">
-                        <div class="w-3 h-3 rounded-full mr-2" [style.background-color]="taskForm.get('listColor').value"></div>
+                        <div class="w-3 h-3 rounded-full mr-2"
+                            [style.background-color]="taskForm.get('listColor').value"></div>
                         <span class="text-base">{{taskForm.get('listTitle').value || 'N/A'}}</span>
                     </div>
                 </div>
@@ -400,8 +346,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                     <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Status</div>
-                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                         [ngClass]="{
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" [ngClass]="{
                              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': taskForm.get('status').value === 'completed',
                              'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': taskForm.get('status').value === 'in-progress',
                              'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200': taskForm.get('status').value === 'todo',
@@ -411,66 +356,19 @@
                     </div>
                 </div>
                 <div>
-                    <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Position</div>
-                    <div class="text-base">{{taskForm.get('position').value || 0}}</div>
-                </div>
-            </div>
-
-            <!-- Dates Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Start Date</div>
-                    <div class="text-base">
-                        <ng-container *ngIf="taskForm.get('startDate').value">{{taskForm.get('startDate').value | date:'mediumDate'}}</ng-container>
-                        <ng-container *ngIf="!taskForm.get('startDate').value">Not set</ng-container>
-                    </div>
-                </div>
-                <div>
-                    <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">End Date</div>
-                    <div class="text-base">
-                        <ng-container *ngIf="taskForm.get('endDate').value">{{taskForm.get('endDate').value | date:'mediumDate'}}</ng-container>
-                        <ng-container *ngIf="!taskForm.get('endDate').value">Not set</ng-container>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Time Tracking Section -->
-            <div class="mb-6">
-                <h4 class="text-md font-semibold mb-3">Time Tracking</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Total Time Spent</div>
-                        <div class="text-base">{{formatTimeSpent(taskForm.get('totalTimeSpent').value)}}</div>
-                    </div>
-                    <div>
-                        <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Tracking Status</div>
-                        <div class="text-base">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                                  [ngClass]="{
-                                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': taskForm.get('isTracking').value === 1,
-                                      'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200': taskForm.get('isTracking').value === 0
-                                  }">
-                                {{taskForm.get('isTracking').value === 1 ? 'Active' : 'Inactive'}}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3" *ngIf="taskForm.get('trackingStartTime').value">
-                    <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Tracking Start Time</div>
-                    <div class="text-base">{{taskForm.get('trackingStartTime').value | date:'medium'}}</div>
+                    <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Total Time Spent</div>
+                    <div class="text-base">{{formatTimeSpent(taskForm.get('totalTimeSpent').value)}}</div>
                 </div>
             </div>
 
             <!-- Checklist Items -->
-            <div class="mb-6" *ngIf="taskForm.get('checklistItems').value && taskForm.get('checklistItems').value.length > 0">
+            <div class="mb-6"
+                *ngIf="taskForm.get('checklistItems').value && taskForm.get('checklistItems').value.length > 0">
                 <h4 class="text-md font-semibold mb-3">Checklist Items</h4>
                 <div class="space-y-2">
-                    <div *ngFor="let item of taskForm.get('checklistItems').value; let i = index" 
-                         class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <mat-checkbox
-                            [checked]="item.completed"
-                            [disabled]="true"
-                            class="mr-3">
+                    <div *ngFor="let item of taskForm.get('checklistItems').value; let i = index"
+                        class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <mat-checkbox [checked]="item.completed" [disabled]="true" class="mr-3">
                         </mat-checkbox>
                         <span class="flex-1" [class.line-through]="item.completed">{{item.title || item.text}}</span>
                     </div>
@@ -481,10 +379,9 @@
             <div class="mb-6" *ngIf="taskForm.get('labels').value && taskForm.get('labels').value.length > 0">
                 <h4 class="text-md font-semibold mb-3">Labels</h4>
                 <div class="flex flex-wrap gap-2">
-                    <div *ngFor="let label of taskForm.get('labels').value" 
-                         class="px-3 py-1 rounded-full text-sm font-medium"
-                         [style.background-color]="label.color + '20'"
-                         [style.color]="label.color">
+                    <div *ngFor="let label of taskForm.get('labels').value"
+                        class="px-3 py-1 rounded-full text-sm font-medium" [style.background-color]="label.color + '20'"
+                        [style.color]="label.color">
                         {{label.title || label.name}}
                     </div>
                 </div>
@@ -494,10 +391,10 @@
             <div class="mb-6" *ngIf="taskForm.get('members').value && taskForm.get('members').value.length > 0">
                 <h4 class="text-md font-semibold mb-3">Members</h4>
                 <div class="flex flex-wrap gap-2">
-                    <div *ngFor="let member of taskForm.get('members').value" 
-                         class="flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
-                        <img *ngIf="member.avatar" [src]="member.avatar" [alt]="member.name" 
-                             class="w-6 h-6 rounded-full mr-2">
+                    <div *ngFor="let member of taskForm.get('members').value"
+                        class="flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+                        <img *ngIf="member.avatar" [src]="member.avatar" [alt]="member.name"
+                            class="w-6 h-6 rounded-full mr-2">
                         <span class="text-sm">{{member.name || member.username}}</span>
                     </div>
                 </div>
@@ -507,7 +404,8 @@
             <div class="mb-6">
                 <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Created</div>
                 <div class="text-base">
-                    <ng-container *ngIf="taskForm.get('createdAt').value">{{taskForm.get('createdAt').value | date:'medium'}}</ng-container>
+                    <ng-container *ngIf="taskForm.get('createdAt').value">{{taskForm.get('createdAt').value |
+                        date:'medium'}}</ng-container>
                     <ng-container *ngIf="!taskForm.get('createdAt').value">N/A</ng-container>
                 </div>
             </div>
@@ -516,18 +414,14 @@
             <div class="mb-6" *ngIf="hasCustomFields()">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-md font-semibold">Custom Fields</h4>
-                    <button 
-                        mat-icon-button 
-                        type="button"
-                        (click)="addCustomField()"
-                        class="text-gray-400 hover:text-gray-600"
-                        matTooltip="Add custom field">
+                    <button mat-icon-button type="button" (click)="addCustomField()"
+                        class="text-gray-400 hover:text-gray-600" matTooltip="Add custom field">
                         <mat-icon>add</mat-icon>
                     </button>
                 </div>
                 <div class="space-y-3">
-                    <div *ngFor="let field of getCustomFieldsArray(); let i = index" 
-                         class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div *ngFor="let field of getCustomFieldsArray(); let i = index"
+                        class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div class="flex-1">
                             <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">{{field.name}}</div>
                             <div class="text-base">
@@ -550,20 +444,12 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button 
-                                mat-icon-button 
-                                type="button"
-                                (click)="editCustomField(field.name)"
-                                class="text-gray-400 hover:text-gray-600"
-                                matTooltip="Edit field">
+                            <button mat-icon-button type="button" (click)="editCustomField(field.name)"
+                                class="text-gray-400 hover:text-gray-600" matTooltip="Edit field">
                                 <mat-icon>edit</mat-icon>
                             </button>
-                            <button 
-                                mat-icon-button 
-                                type="button"
-                                (click)="removeCustomField(field.name)"
-                                class="text-gray-400 hover:text-red-600"
-                                matTooltip="Remove field">
+                            <button mat-icon-button type="button" (click)="removeCustomField(field.name)"
+                                class="text-gray-400 hover:text-red-600" matTooltip="Remove field">
                                 <mat-icon>delete</mat-icon>
                             </button>
                         </div>
@@ -575,12 +461,8 @@
             <div class="mb-6" *ngIf="hasNoCustomFields()">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-md font-semibold">Custom Fields</h4>
-                    <button 
-                        mat-icon-button 
-                        type="button"
-                        (click)="addCustomField()"
-                        class="text-gray-400 hover:text-gray-600"
-                        matTooltip="Add custom field">
+                    <button mat-icon-button type="button" (click)="addCustomField()"
+                        class="text-gray-400 hover:text-gray-600" matTooltip="Add custom field">
                         <mat-icon>add</mat-icon>
                     </button>
                 </div>
