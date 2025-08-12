@@ -622,4 +622,22 @@ export class TasksService
     refreshUserCards(): Observable<UserCard[]> {
         return this.getUserCards();
     }
+
+    /**
+     * Delete card
+     *
+     * @param cardId
+     */
+    deleteCard(cardId: string): Observable<any> {
+        return this._httpClient.delete<any>(`${environment.apiBaseUrl}/cards/${cardId}`).pipe(
+            tap((response) => {
+                // Remove card from local state
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.filter(card => card.id !== cardId);
+                    this._userCards.next(updatedCards);
+                }
+            })
+        );
+    }
 }

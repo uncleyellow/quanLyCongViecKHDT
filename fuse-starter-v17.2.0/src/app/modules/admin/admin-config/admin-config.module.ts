@@ -15,7 +15,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { AdminConfigComponent } from './admin-config.component';
+import { SettingsAccountComponent } from './account/account.component';
 
 const calenderEventsRoutes: Route[] = [
     {
@@ -26,7 +28,8 @@ const calenderEventsRoutes: Route[] = [
 
 @NgModule({
     declarations: [
-        AdminConfigComponent
+        AdminConfigComponent,
+        SettingsAccountComponent,
     ],
     imports     : [
         RouterModule.forChild(calenderEventsRoutes),
@@ -45,6 +48,7 @@ const calenderEventsRoutes: Route[] = [
         MatMenuModule,
         MatTooltipModule,
         MatSnackBarModule,
+        MatSidenavModule,
         ReactiveFormsModule
     ]
 })

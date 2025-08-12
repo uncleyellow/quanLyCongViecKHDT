@@ -238,8 +238,8 @@ const getCustomFields = async (cardId) => {
 
 const deleteItem = async (reqBody) => {
   try {
-    const deletedList = await cardModel.deleteList(reqBody)
-    return deletedList
+    const deletedItem = await cardModel.deleteItem(reqBody)
+    return deletedItem
   } catch (error) { throw error }
 }
 

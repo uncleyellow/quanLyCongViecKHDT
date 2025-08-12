@@ -533,17 +533,20 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     /**
-     * Delete the task
+     * Delete the card
      */
     deleteTask(): void
     {
         // Open the confirmation dialog
         const confirmation = this._fuseConfirmationService.open({
-            title  : 'Delete task',
-            message: 'Are you sure you want to delete this task? This action cannot be undone!',
+            title  : 'Xóa công việc',
+            message: 'Bạn có chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác!',
             actions: {
                 confirm: {
-                    label: 'Delete'
+                    label: 'Xóa'
+                },
+                cancel: {
+                    label: 'Hủy'
                 }
             }
         });
@@ -554,34 +557,23 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             // If the confirm button pressed...
             if ( result === 'confirmed' )
             {
+                // Get the current card's id
+                const cardId = this.task.id;
 
-                // Get the current task's id
-                const id = this.task.id;
-
-                // Get the next/previous task's id
-                const currentTaskIndex = this.tasks.findIndex(item => item.id === id);
-                const nextTaskIndex = currentTaskIndex + ((currentTaskIndex === (this.tasks.length - 1)) ? -1 : 1);
-                const nextTaskId = (this.tasks.length === 1 && this.tasks[0].id === id) ? null : this.tasks[nextTaskIndex].id;
-
-                // Delete the task
-                this._tasksService.deleteTask(id)
-                    .subscribe((isDeleted) => {
-
-                        // Return if the task wasn't deleted...
-                        if ( !isDeleted )
-                        {
-                            return;
-                        }
-
-                        // Navigate to the next task if available
-                        if ( nextTaskId )
-                        {
-                            this._router.navigate(['../', nextTaskId], {relativeTo: this._activatedRoute});
-                        }
-                        // Otherwise, navigate to the parent
-                        else
-                        {
+                // Delete the card using the card service
+                this._tasksService.deleteCard(cardId)
+                    .subscribe({
+                        next: (response) => {
+                            console.log('Card deleted successfully:', response);
+                            
+                            // Close the drawer
+                            this.closeDrawer();
+                            
+                            // Navigate back to the list
                             this._router.navigate(['../'], {relativeTo: this._activatedRoute});
+                        },
+                        error: (error) => {
+                            console.error('Error deleting card:', error);
                         }
                     });
 

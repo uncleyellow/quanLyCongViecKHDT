@@ -33,7 +33,7 @@
                 <mat-menu #moreMenu="matMenu">
                     <button mat-menu-item (click)="deleteTask()">
                         <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
-                        <span>Delete {{task.type === 'task' ? 'task' : 'section'}}</span>
+                        <span>Xóa công việc</span>
                     </button>
                 </mat-menu>
 
@@ -380,20 +380,6 @@
                 <div>
                     <div class="font-medium text-sm text-gray-600 dark:text-gray-400 mb-1">Total Time Spent</div>
                     <div class="text-base">{{formatTimeSpent(taskForm.get('totalTimeSpent').value)}}</div>
-                </div>
-            </div>
-
-            <!-- Checklist Items -->
-            <div class="mb-6"
-                *ngIf="taskForm.get('checklistItems').value && taskForm.get('checklistItems').value.length > 0">
-                <h4 class="text-md font-semibold mb-3">Checklist Items</h4>
-                <div class="space-y-2">
-                    <div *ngFor="let item of taskForm.get('checklistItems').value; let i = index"
-                        class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <mat-checkbox [checked]="item.completed" [disabled]="true" class="mr-3">
-                        </mat-checkbox>
-                        <span class="flex-1" [class.line-through]="item.completed">{{item.title || item.text}}</span>
-                    </div>
                 </div>
             </div>
 

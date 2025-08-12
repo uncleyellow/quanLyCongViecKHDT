@@ -133,7 +133,7 @@ const updatePartial = async (data, dataUpdate) => {
     } catch (error) { throw new Error(error) }
 }
 
-const deleteNote = async (data) => {
+const deleteItem = async (data) => {
     try {
         const query = `DELETE FROM ${CARD_TABLE_NAME} WHERE id = ? AND boardId = ?`
         const deletedList = await db.query(query, [data.id, data.boardId])
@@ -165,6 +165,6 @@ export const cardModel = {
     getDetail,
     update,
     updatePartial,
-    deleteNote,
+    deleteItem,
     getAllUserCards
 }
