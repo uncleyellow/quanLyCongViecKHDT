@@ -113,10 +113,25 @@ const updateCardOrder = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getAllUsers = async (req, res, next) => {
+  try {
+    const result = await userService.getAllUsers(req.query)
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Users retrieved successfully',
+      pagination: result.pagination,
+      data: result.data
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   getMe,
   changePassword,
   checkPasswordChangeRequired,
   updateBoardOrder,
-  updateCardOrder
+  updateCardOrder,
+  getAllUsers
 }

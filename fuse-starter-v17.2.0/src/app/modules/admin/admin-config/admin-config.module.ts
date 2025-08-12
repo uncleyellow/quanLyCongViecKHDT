@@ -25,6 +25,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AdminConfigComponent } from './admin-config.component';
 import { SettingsDepartmentsComponent } from './departments/departments.component';
+import { CompanyDialogComponent } from './departments/company-dialog/company-dialog.component';
+import { DepartmentDialogComponent } from './departments/department-dialog/department-dialog.component';
 
 const calenderEventsRoutes: Route[] = [
     {
@@ -37,6 +39,8 @@ const calenderEventsRoutes: Route[] = [
     declarations: [
         AdminConfigComponent,
         SettingsDepartmentsComponent,
+        CompanyDialogComponent,
+        DepartmentDialogComponent,
     ],
     imports     : [
         RouterModule.forChild(calenderEventsRoutes),

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment.local';
 
@@ -19,9 +19,18 @@ export interface Department {
     created_at?: string;
 }
 
+export interface PaginationInfo {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
 export interface ApiResponse<T> {
-    success: boolean;
+    code: number;
+    status: string;
     message: string;
+    pagination?: PaginationInfo;
     data: T;
 }
 
@@ -34,8 +43,16 @@ export class DepartmentsService {
     constructor(private http: HttpClient) { }
 
     // Company APIs
-    getCompanies(): Observable<ApiResponse<Company[]>> {
-        return this.http.get<ApiResponse<Company[]>>(`${this.apiUrl}/companies`);
+    getCompanies(page: number = 1, limit: number = 10, search?: string): Observable<ApiResponse<Company[]>> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('limit', limit.toString());
+        
+        if (search) {
+            params = params.set('search', search);
+        }
+        
+        return this.http.get<ApiResponse<Company[]>>(`${this.apiUrl}/companies`, { params });
     }
 
     getCompanyById(id: string): Observable<ApiResponse<Company>> {
@@ -55,16 +72,28 @@ export class DepartmentsService {
     }
 
     // Department APIs
-    getDepartments(): Observable<ApiResponse<Department[]>> {
-        return this.http.get<ApiResponse<Department[]>>(`${this.apiUrl}/departments`);
+    getDepartments(page: number = 1, limit: number = 10, search?: string): Observable<ApiResponse<Department[]>> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('limit', limit.toString());
+        
+        if (search) {
+            params = params.set('search', search);
+        }
+        
+        return this.http.get<ApiResponse<Department[]>>(`${this.apiUrl}/departments`, { params });
     }
 
     getDepartmentById(id: string): Observable<ApiResponse<Department>> {
         return this.http.get<ApiResponse<Department>>(`${this.apiUrl}/departments/${id}`);
     }
 
-    getDepartmentsByCompany(companyId: string): Observable<ApiResponse<Department[]>> {
-        return this.http.get<ApiResponse<Department[]>>(`${this.apiUrl}/departments/company/${companyId}`);
+    getDepartmentsByCompany(companyId: string, page: number = 1, limit: number = 10): Observable<ApiResponse<Department[]>> {
+        const params = new HttpParams()
+            .set('page', page.toString())
+            .set('limit', limit.toString());
+        
+        return this.http.get<ApiResponse<Department[]>>(`${this.apiUrl}/departments/company/${companyId}`, { params });
     }
 
     createDepartment(department: Partial<Department>): Observable<ApiResponse<Department>> {

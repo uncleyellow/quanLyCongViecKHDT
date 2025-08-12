@@ -89,11 +89,52 @@ const getDetails = async (id) => {
   }
 }
 
-const getAllUsers = async () => {
+const getAllUsers = async (data) => {
   try {
-    const query = `SELECT * FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL ORDER BY createdAt DESC`
-    const result = await db.query(query)
-    return result[0] || []
+    const { page = 1, limit = 10, search, type, status } = data
+    const offset = (page - 1) * limit
+    
+    let query = `SELECT * FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL`
+    let countQuery = `SELECT COUNT(*) as total FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL`
+    
+    // Add search condition if search parameter is provided
+    if (search && search.trim() !== '') {
+      const searchCondition = ` AND (name LIKE '%${search.replace(/'/g, '\'\'')}%' OR email LIKE '%${search.replace(/'/g, '\'\'')}%')`
+      query += searchCondition
+      countQuery += searchCondition
+    }
+    
+    // Add type filter if provided
+    if (type && type.trim() !== '') {
+      const typeCondition = ` AND type = '${type.replace(/'/g, '\'\'')}'`
+      query += typeCondition
+      countQuery += typeCondition
+    }
+    
+    // Add status filter if provided
+    if (status && status.trim() !== '') {
+      const statusCondition = ` AND status = '${status.replace(/'/g, '\'\'')}'`
+      query += statusCondition
+      countQuery += statusCondition
+    }
+    
+    // Add ordering and pagination
+    query += ` ORDER BY createdAt DESC LIMIT ${limit} OFFSET ${offset}`
+    
+    const [listData, countData] = await Promise.all([
+      db.query(query),
+      db.query(countQuery)
+    ])
+    
+    return {
+      data: listData[0],
+      pagination: {
+        total: countData[0][0].total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(countData[0][0].total / limit)
+      }
+    }
   } catch (error) {
     throw new Error(error)
   }

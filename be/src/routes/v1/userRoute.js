@@ -2,8 +2,70 @@ import express from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { userController } from '../../controllers/userController'
 import { verifyToken } from '../../middlewares'
+import { requireAdmin } from '../../middlewares/authorization'
 
 const Router = express.Router()
+
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for user name or email
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [staff, manager, boss, admin]
+ *         description: Filter by user type
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [online, banned, disabled]
+ *         description: Filter by user status
+ *     responses:
+ *       200:
+ *         description: List of users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+Router.route('/')
+  .get(verifyToken, requireAdmin, userController.getAllUsers) // get all users (admin only)
 
 /**
  * @swagger

@@ -60,9 +60,27 @@ const updateCardOrder = async (userId, cardOrderIds) => {
   }
 }
 
+const getAllUsers = async (data) => {
+  try {
+    const result = await userModel.getAllUsers(data)
+    
+    // Remove sensitive fields from response
+    const sanitizedData = result.data.map(user => {
+      const { passwordHash, ...sanitizedUser } = user
+      return sanitizedUser
+    })
+    
+    return {
+      data: sanitizedData,
+      pagination: result.pagination
+    }
+  } catch (error) { throw error }
+}
+
 export const userService = {
   getMe,
   changePassword,
   updateBoardOrder,
-  updateCardOrder
+  updateCardOrder,
+  getAllUsers
 }
