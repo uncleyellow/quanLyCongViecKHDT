@@ -1,13 +1,16 @@
 import Joi from 'joi'
 import db from '../config/db'
+import { v4 as uuidv4 } from 'uuid'
 
 // Define Collection (Name & Schema)
 const DEPARTMENT_TABLE_NAME = 'departments'
-const DEPARTMENT_TABLE_SCHEMA = Joi.object({
-    id: Joi.string().uuid().required(),
+
+// Schema for creating new department (id is optional, will be auto-generated)
+const DEPARTMENT_CREATE_SCHEMA = Joi.object({
+    id: Joi.string().uuid().optional(),
     name: Joi.string().max(255).required().trim().strict(),
     description: Joi.string().allow(null).default(null),
-    companyId: Joi.string().uuid().allow(null).default(null),
+    companyId: Joi.string().uuid().required(),
     createdAt: Joi.date().default(Date.now),
     createdBy: Joi.string().uuid().allow(null).default(null),
     updatedBy: Joi.string().uuid().allow(null).default(null),
@@ -16,11 +19,26 @@ const DEPARTMENT_TABLE_SCHEMA = Joi.object({
     deletedAt: Joi.date().allow(null).default(null)
 })
 
+// Schema for updating department
+const DEPARTMENT_UPDATE_SCHEMA = Joi.object({
+    name: Joi.string().max(255).required().trim().strict(),
+    description: Joi.string().allow(null).default(null),
+    companyId: Joi.string().uuid().required()
+})
+
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
     try {
-        return await DEPARTMENT_TABLE_SCHEMA.validateAsync(data, { abortEarly: false })
+        return await DEPARTMENT_CREATE_SCHEMA.validateAsync(data, { abortEarly: false })
+    } catch (error) {
+        throw new Error(error)
+    }
+}
+
+const validateBeforeUpdate = async (data) => {
+    try {
+        return await DEPARTMENT_UPDATE_SCHEMA.validateAsync(data, { abortEarly: false })
     } catch (error) {
         throw new Error(error)
     }
@@ -81,6 +99,12 @@ const getList = async (data) => {
 const createNew = async (data) => {
     try {
         const validData = await validateBeforeCreate(data)
+        
+        // Auto-generate UUID if not provided
+        if (!validData.id) {
+            validData.id = uuidv4()
+        }
+        
         const dataToInsertCleaned = {}
         Object.entries(validData).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
@@ -131,8 +155,10 @@ const getDetail = async (data) => {
 
 const update = async (data, updateData) => {
     try {
+        const validUpdateData = await validateBeforeUpdate(updateData)
+        
         const dataToUpdateCleaned = {}
-        Object.entries(updateData).forEach(([key, value]) => {
+        Object.entries(validUpdateData).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '' && !INVALID_UPDATE_FIELDS.includes(key)) {
                 dataToUpdateCleaned[key] = value
             }

@@ -4,8 +4,7 @@ import ApiError from '../utils/ApiError'
 
 const getAllDepartments = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const result = await departmentService.getList({ ...req.query, userId: userId })
+        const result = await departmentService.getList(req.query)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -19,8 +18,7 @@ const getAllDepartments = async (req, res, next) => {
 
 const createDepartment = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const newDepartment = await departmentService.createNew({ ...req.body, userId: userId })
+        const newDepartment = await departmentService.createNew(req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -33,8 +31,7 @@ const createDepartment = async (req, res, next) => {
 
 const getDepartmentById = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const department = await departmentService.getDetail({ ...req.params, userId: userId })
+        const department = await departmentService.getDetail(req.params)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -47,8 +44,7 @@ const getDepartmentById = async (req, res, next) => {
 
 const updateDepartment = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const updatedDepartment = await departmentService.update({ ...req.params, userId: userId }, req.body)
+        const updatedDepartment = await departmentService.update(req.params, req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -61,8 +57,7 @@ const updateDepartment = async (req, res, next) => {
 
 const deleteDepartment = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const deletedDepartment = await departmentService.deleteItem({ ...req.params, userId: userId })
+        const deletedDepartment = await departmentService.deleteItem(req.params)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',

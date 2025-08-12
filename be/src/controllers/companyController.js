@@ -4,8 +4,7 @@ import ApiError from '../utils/ApiError'
 
 const getAllCompanies = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const result = await companyService.getList({ ...req.query, userId: userId })
+        const result = await companyService.getList(req.query)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -19,8 +18,7 @@ const getAllCompanies = async (req, res, next) => {
 
 const createCompany = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const newCompany = await companyService.createNew({ ...req.body, userId: userId })
+        const newCompany = await companyService.createNew(req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -33,8 +31,7 @@ const createCompany = async (req, res, next) => {
 
 const getCompanyById = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const company = await companyService.getDetail({ ...req.params, userId: userId })
+        const company = await companyService.getDetail(req.params)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -47,8 +44,7 @@ const getCompanyById = async (req, res, next) => {
 
 const updateCompany = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const updatedCompany = await companyService.update({ ...req.params, userId: userId }, req.body)
+        const updatedCompany = await companyService.update(req.params, req.body)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -61,8 +57,7 @@ const updateCompany = async (req, res, next) => {
 
 const deleteCompany = async (req, res, next) => {
     try {
-        const { userId } = req.user
-        const deletedCompany = await companyService.deleteItem({ ...req.params, userId: userId })
+        const deletedCompany = await companyService.deleteItem(req.params)
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
