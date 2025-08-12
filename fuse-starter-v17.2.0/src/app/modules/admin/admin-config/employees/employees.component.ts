@@ -22,7 +22,7 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
 
     // Employees data
     employeesDataSource: MatTableDataSource<Employee>;
-    employeesDisplayedColumns: string[] = ['name', 'email', 'phone', 'position', 'company_name', 'department_name', 'status', 'hire_date', 'actions'];
+    employeesDisplayedColumns: string[] = ['name', 'email', 'type', 'company_name', 'department_name', 'status', 'actions'];
     employees: Employee[] = [];
     employeesPagination: PaginationInfo = {
         total: 0,
@@ -344,6 +344,44 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
                 return 'text-red-600 bg-red-100';
             case 'probation':
                 return 'text-yellow-600 bg-yellow-100';
+            default:
+                return 'text-gray-600 bg-gray-100';
+        }
+    }
+
+    /**
+     * Get type display text
+     */
+    getTypeDisplay(type: string): string
+    {
+        switch (type) {
+            case 'admin':
+                return 'Admin';
+            case 'manager':
+                return 'Manager';
+            case 'employee':
+                return 'Nhân viên';
+            case 'intern':
+                return 'Thực tập sinh';
+            default:
+                return type;
+        }
+    }
+
+    /**
+     * Get type color class
+     */
+    getTypeColor(type: string): string
+    {
+        switch (type) {
+            case 'admin':
+                return 'text-purple-600 bg-purple-100';
+            case 'manager':
+                return 'text-blue-600 bg-blue-100';
+            case 'employee':
+                return 'text-green-600 bg-green-100';
+            case 'intern':
+                return 'text-orange-600 bg-orange-100';
             default:
                 return 'text-gray-600 bg-gray-100';
         }

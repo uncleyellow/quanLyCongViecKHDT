@@ -94,32 +94,38 @@ const getAllUsers = async (data) => {
     const { page = 1, limit = 10, search, type, status } = data
     const offset = (page - 1) * limit
     
-    let query = `SELECT * FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL`
+    let query = `
+      SELECT u.*, c.name as companyName, d.name as departmentName
+      FROM ${USER_TABLE_NAME} u
+      LEFT JOIN departments d ON u.departmentId = d.id
+      LEFT JOIN companies c ON d.companyId = c.id
+      WHERE u.deletedAt IS NULL
+    `
     let countQuery = `SELECT COUNT(*) as total FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL`
     
     // Add search condition if search parameter is provided
     if (search && search.trim() !== '') {
-      const searchCondition = ` AND (name LIKE '%${search.replace(/'/g, '\'\'')}%' OR email LIKE '%${search.replace(/'/g, '\'\'')}%')`
+      const searchCondition = ` AND (u.name LIKE '%${search.replace(/'/g, '\'\'')}%' OR u.email LIKE '%${search.replace(/'/g, '\'\'')}%')`
       query += searchCondition
       countQuery += searchCondition
     }
     
     // Add type filter if provided
     if (type && type.trim() !== '') {
-      const typeCondition = ` AND type = '${type.replace(/'/g, '\'\'')}'`
+      const typeCondition = ` AND u.type = '${type.replace(/'/g, '\'\'')}'`
       query += typeCondition
       countQuery += typeCondition
     }
     
     // Add status filter if provided
     if (status && status.trim() !== '') {
-      const statusCondition = ` AND status = '${status.replace(/'/g, '\'\'')}'`
+      const statusCondition = ` AND u.status = '${status.replace(/'/g, '\'\'')}'`
       query += statusCondition
       countQuery += statusCondition
     }
     
     // Add ordering and pagination
-    query += ` ORDER BY createdAt DESC LIMIT ${limit} OFFSET ${offset}`
+    query += ` ORDER BY u.createdAt DESC LIMIT ${limit} OFFSET ${offset}`
     
     const [listData, countData] = await Promise.all([
       db.query(query),

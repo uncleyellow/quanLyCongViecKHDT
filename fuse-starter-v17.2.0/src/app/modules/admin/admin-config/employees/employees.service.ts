@@ -7,14 +7,12 @@ export interface Employee {
     id: string;
     name: string;
     email: string;
-    phone?: string;
-    position?: string;
+    type?: string; // Thay thế phone bằng type
     departmentId: string;
     departmentName?: string;
     companyId: string;
     companyName?: string;
     status?: string;
-    hireDate?: string;
     createdAt?: string;
 }
 

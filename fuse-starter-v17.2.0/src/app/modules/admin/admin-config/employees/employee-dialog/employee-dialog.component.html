@@ -45,19 +45,25 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <mat-form-field class="w-full">
-                <mat-label>Số điện thoại</mat-label>
-                <input 
-                    matInput 
-                    formControlName="phone" 
-                    placeholder="Nhập số điện thoại">
+                <mat-label>Loại nhân viên *</mat-label>
+                <mat-select formControlName="type" required>
+                    <mat-option value="admin">Admin</mat-option>
+                    <mat-option value="manager">Manager</mat-option>
+                    <mat-option value="employee">Nhân viên</mat-option>
+                    <mat-option value="intern">Thực tập sinh</mat-option>
+                </mat-select>
+                <mat-error *ngIf="form.get('type')?.hasError('required')">
+                    Vui lòng chọn loại nhân viên
+                </mat-error>
             </mat-form-field>
 
             <mat-form-field class="w-full">
-                <mat-label>Chức vụ</mat-label>
-                <input 
-                    matInput 
-                    formControlName="position" 
-                    placeholder="Nhập chức vụ">
+                <mat-label>Trạng thái</mat-label>
+                <mat-select formControlName="status">
+                    <mat-option value="active">Đang làm việc</mat-option>
+                    <mat-option value="inactive">Nghỉ việc</mat-option>
+                    <mat-option value="probation">Thử việc</mat-option>
+                </mat-select>
             </mat-form-field>
         </div>
 
@@ -84,28 +90,6 @@
                 <mat-error *ngIf="form.get('departmentId')?.hasError('required')">
                     Vui lòng chọn phòng ban
                 </mat-error>
-            </mat-form-field>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <mat-form-field class="w-full">
-                <mat-label>Trạng thái</mat-label>
-                <mat-select formControlName="status">
-                    <mat-option value="active">Đang làm việc</mat-option>
-                    <mat-option value="inactive">Nghỉ việc</mat-option>
-                    <mat-option value="probation">Thử việc</mat-option>
-                </mat-select>
-            </mat-form-field>
-
-            <mat-form-field class="w-full">
-                <mat-label>Ngày vào làm</mat-label>
-                <input 
-                    matInput 
-                    [matDatepicker]="hireDatePicker"
-                    formControlName="hireDate"
-                    placeholder="Chọn ngày vào làm">
-                <mat-datepicker-toggle matSuffix [for]="hireDatePicker"></mat-datepicker-toggle>
-                <mat-datepicker #hireDatePicker></mat-datepicker>
             </mat-form-field>
         </div>
 

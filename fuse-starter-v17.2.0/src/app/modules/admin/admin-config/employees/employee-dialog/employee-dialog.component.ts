@@ -39,24 +39,20 @@ export class EmployeeDialogComponent implements OnInit {
         this.form = this._formBuilder.group({
             name: ['', [Validators.required, Validators.minLength(2)]],
             email: ['', [Validators.required, Validators.email]],
-            phone: [''],
-            position: [''],
+            type: ['', Validators.required],
             companyId: ['', Validators.required],
             departmentId: ['', Validators.required],
-            status: ['active'],
-            hireDate: ['']
+            status: ['active']
         });
 
         if (this.mode === 'edit' && this.employee) {
             this.form.patchValue({
                 name: this.employee.name,
                 email: this.employee.email,
-                phone: this.employee.phone || '',
-                position: this.employee.position || '',
+                type: this.employee.type || '',
                 companyId: this.employee.companyId,
                 departmentId: this.employee.departmentId,
-                status: this.employee.status || 'active',
-                hireDate: this.employee.hireDate || ''
+                status: this.employee.status || 'active'
             });
         }
 
