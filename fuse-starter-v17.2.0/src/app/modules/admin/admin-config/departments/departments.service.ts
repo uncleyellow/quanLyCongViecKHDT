@@ -43,13 +43,21 @@ export class DepartmentsService {
     constructor(private http: HttpClient) { }
 
     // Company APIs
-    getCompanies(page: number = 1, limit: number = 10, search?: string): Observable<ApiResponse<Company[]>> {
+    getCompanies(page: number = 1, limit: number = 10, search?: string, sort?: string, order?: string): Observable<ApiResponse<Company[]>> {
         let params = new HttpParams()
             .set('page', page.toString())
             .set('limit', limit.toString());
         
         if (search) {
             params = params.set('search', search);
+        }
+        
+        if (sort) {
+            params = params.set('sort', sort);
+        }
+        
+        if (order) {
+            params = params.set('order', order);
         }
         
         return this.http.get<ApiResponse<Company[]>>(`${this.apiUrl}/companies`, { params });
@@ -72,13 +80,21 @@ export class DepartmentsService {
     }
 
     // Department APIs
-    getDepartments(page: number = 1, limit: number = 10, search?: string): Observable<ApiResponse<Department[]>> {
+    getDepartments(page: number = 1, limit: number = 10, search?: string, sort?: string, order?: string): Observable<ApiResponse<Department[]>> {
         let params = new HttpParams()
             .set('page', page.toString())
             .set('limit', limit.toString());
         
         if (search) {
             params = params.set('search', search);
+        }
+        
+        if (sort) {
+            params = params.set('sort', sort);
+        }
+        
+        if (order) {
+            params = params.set('order', order);
         }
         
         return this.http.get<ApiResponse<Department[]>>(`${this.apiUrl}/departments`, { params });

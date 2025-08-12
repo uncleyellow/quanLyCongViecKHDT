@@ -52,6 +52,12 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
     companySearchTerm: string = '';
     departmentSearchTerm: string = '';
 
+    // Sort state
+    companySort: string = '';
+    companyOrder: string = '';
+    departmentSort: string = '';
+    departmentOrder: string = '';
+
     private _unsubscribeAll: Subject<any> = new Subject<any>();
 
     /**
@@ -119,7 +125,9 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
         this._departmentsService.getCompanies(
             this.companiesPagination.page, 
             this.companiesPagination.limit, 
-            this.companySearchTerm
+            this.companySearchTerm,
+            this.companySort,
+            this.companyOrder
         )
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
@@ -158,7 +166,9 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
         this._departmentsService.getDepartments(
             this.departmentsPagination.page, 
             this.departmentsPagination.limit, 
-            this.departmentSearchTerm
+            this.departmentSearchTerm,
+            this.departmentSort,
+            this.departmentOrder
         )
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
@@ -203,6 +213,32 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
     {
         this.departmentsPagination.page = event.pageIndex + 1;
         this.departmentsPagination.limit = event.pageSize;
+        this.loadDepartments();
+    }
+
+    /**
+     * Handle companies sorting
+     */
+    onCompaniesSortChange(event: any): void
+    {
+        this.companySort = event.active;
+        this.companyOrder = event.direction;
+        
+        // Reset to first page when sorting
+        this.companiesPagination.page = 1;
+        this.loadCompanies();
+    }
+
+    /**
+     * Handle departments sorting
+     */
+    onDepartmentsSortChange(event: any): void
+    {
+        this.departmentSort = event.active;
+        this.departmentOrder = event.direction;
+        
+        // Reset to first page when sorting
+        this.departmentsPagination.page = 1;
         this.loadDepartments();
     }
 

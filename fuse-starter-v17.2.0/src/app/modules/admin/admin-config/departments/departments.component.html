@@ -70,7 +70,7 @@
 
                         <!-- Companies Table -->
                         <div class="mat-elevation-z8 overflow-hidden">
-                            <table mat-table [dataSource]="companiesDataSource" matSort class="w-full">
+                            <table mat-table [dataSource]="companiesDataSource" matSort (matSortChange)="onCompaniesSortChange($event)" class="w-full">
                                 
                                 <!-- Name Column -->
                                 <ng-container matColumnDef="name">
@@ -163,7 +163,7 @@
 
                         <!-- Departments Table -->
                         <div class="mat-elevation-z8 overflow-hidden">
-                            <table mat-table [dataSource]="departmentsDataSource" matSort class="w-full">
+                            <table mat-table [dataSource]="departmentsDataSource" matSort (matSortChange)="onDepartmentsSortChange($event)" class="w-full">
                                 
                                 <!-- Name Column -->
                                 <ng-container matColumnDef="name">
