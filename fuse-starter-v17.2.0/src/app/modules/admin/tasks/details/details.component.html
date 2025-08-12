@@ -324,80 +324,23 @@
 
         <!-- Checklist Section -->
         <div class="mt-8">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">Checklist</h3>
-                <button 
-                    mat-icon-button 
-                    type="button"
-                    (click)="addChecklistItem()"
-                    class="text-gray-400 hover:text-gray-600"
-                    matTooltip="Add checklist item">
-                    <mat-icon>add</mat-icon>
-                </button>
-            </div>
-            
-            <!-- Checklist Items List -->
-            <div class="space-y-2" *ngIf="taskForm.get('checklistItems').value && taskForm.get('checklistItems').value.length > 0">
-                <div *ngFor="let item of taskForm.get('checklistItems').value; let i = index" 
-                     class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    
-                    <!-- Checkbox -->
-                    <mat-checkbox 
-                        [checked]="item.completed" 
-                        (change)="toggleChecklistItem(i, $event.checked)"
-                        class="mr-3">
+            <div class="font-medium mb-3">Checklist</div>
+            <div class="space-y-2 mb-3">
+                <div *ngFor="let item of taskForm.get('checklistItems').value; let i = index" class="flex items-center">
+                    <mat-checkbox [checked]="item.completed" (change)="toggleChecklistItem(i, $event.checked)" class="mr-2">
                     </mat-checkbox>
-                    
-                    <!-- Item Text -->
-                    <div class="flex-1">
-                        <ng-container *ngIf="!item.isEditing; else editMode">
-                            <span class="text-base" 
-                                  [class.line-through]="item.completed"
-                                  [class.text-gray-500]="item.completed">
-                                {{item.title || item.text}}
-                            </span>
-                        </ng-container>
-                        <ng-template #editMode>
-                            <mat-form-field class="w-full" [subscriptSizing]="'dynamic'">
-                                <input 
-                                    matInput 
-                                    [(ngModel)]="item.title" 
-                                    (keydown.enter)="saveChecklistItem(i)"
-                                    (blur)="saveChecklistItem(i)"
-                                    placeholder="Enter checklist item"
-                                    #editInput>
-                            </mat-form-field>
-                        </ng-template>
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex items-center space-x-1 ml-2">
-                        <button 
-                            mat-icon-button 
-                            type="button"
-                            (click)="editChecklistItem(i)"
-                            class="text-gray-400 hover:text-gray-600"
-                            matTooltip="Edit item"
-                            *ngIf="!item.isEditing">
-                            <mat-icon class="text-sm">edit</mat-icon>
-                        </button>
-                        <button 
-                            mat-icon-button 
-                            type="button"
-                            (click)="deleteChecklistItem(i)"
-                            class="text-gray-400 hover:text-red-600"
-                            matTooltip="Delete item">
-                            <mat-icon class="text-sm">delete</mat-icon>
-                        </button>
-                    </div>
+                    <span class="flex-1" [class.line-through]="item.completed">{{item.title || item.text}}</span>
+                    <button mat-icon-button color="warn" (click)="deleteChecklistItem(i)" class="ml-2">
+                        <mat-icon>delete</mat-icon>
+                    </button>
                 </div>
             </div>
-            
-            <!-- Empty State -->
-            <div *ngIf="!taskForm.get('checklistItems').value || taskForm.get('checklistItems').value.length === 0" 
-                 class="text-center py-8 text-gray-500">
-                <mat-icon class="text-4xl mb-2">checklist</mat-icon>
-                <p>No checklist items yet. Click the + button to add one.</p>
+            <div class="flex items-center">
+                <input [(ngModel)]="newChecklistText" placeholder="Thêm mục..." class="flex-1 mr-2 mat-input-element"
+                    [ngModelOptions]="{standalone: true}">
+                <button mat-mini-fab color="primary" (click)="addChecklistItem()" type="button">
+                    <mat-icon>add</mat-icon>
+                </button>
             </div>
         </div>
 

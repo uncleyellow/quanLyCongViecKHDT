@@ -678,21 +678,37 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 const newChecklistItems = formValue.checklistItems || [];
                 
                 // Compare checklist items (simplified comparison)
+                // Filter out items that are currently being edited (empty title)
                 const currentChecklistString = JSON.stringify(currentChecklistItems.map(item => ({
                     title: item.title || item.text,
                     completed: item.completed || item.checked
                 })));
-                const newChecklistString = JSON.stringify(newChecklistItems.map(item => ({
-                    title: item.title,
-                    completed: item.completed
-                })));
+                const newChecklistString = JSON.stringify(newChecklistItems
+                    .filter(item => item.title && item.title.trim() !== '') // Only include non-empty items
+                    .map(item => ({
+                        title: item.title,
+                        completed: item.completed
+                    }))
+                );
+                
+                console.log('Checklist comparison:', {
+                    current: currentChecklistString,
+                    new: newChecklistString,
+                    currentItems: currentChecklistItems,
+                    newItems: newChecklistItems
+                });
                 
                 if (currentChecklistString !== newChecklistString) {
-                    updateData.checklistItems = newChecklistItems.map(item => ({
-                        id: item.id,
-                        text: item.title, // Map title to text for backend
-                        checked: item.completed // Map completed to checked for backend
-                    }));
+                    console.log('Checklist items changed, updating...');
+                    updateData.checklistItems = newChecklistItems
+                        .filter(item => item.title && item.title.trim() !== '') // Only include non-empty items
+                        .map(item => ({
+                            id: item.id,
+                            text: item.title, // Map title to text for backend
+                            checked: item.completed // Map completed to checked for backend
+                        }));
+                } else {
+                    console.log('No checklist changes detected');
                 }
                 
                 // Only call API if there are changes
@@ -940,78 +956,33 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     // @ Checklist methods
     // -----------------------------------------------------------------------------------------------------
 
+    newChecklistText: string = '';
+
     /**
      * Add new checklist item
      */
     addChecklistItem(): void {
-        const currentItems = this.taskForm.get('checklistItems').value || [];
-        const newItem = {
-            id: Date.now().toString(), // Simple ID generation
-            title: '',
-            completed: false,
-            isEditing: true
-        };
-        
-        const updatedItems = [...currentItems, newItem];
-        this.taskForm.get('checklistItems').setValue(updatedItems);
-        
-        // Trigger update to save changes
-        const currentFormValue = this.taskForm.value;
-        this.updateUserCard(currentFormValue);
-        
-        // Focus on the new input after a short delay
-        setTimeout(() => {
-            const inputs = document.querySelectorAll('input[placeholder="Enter checklist item"]');
-            const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
-            if (lastInput) {
-                lastInput.focus();
-            }
-        }, 100);
-    }
-
-    /**
-     * Edit checklist item
-     */
-    editChecklistItem(index: number): void {
-        const items = this.taskForm.get('checklistItems').value;
-        if (items && items[index]) {
-            items[index].isEditing = true;
-            this.taskForm.get('checklistItems').setValue([...items]);
+        if (this.newChecklistText && this.newChecklistText.trim()) {
+            const newItemText = this.newChecklistText.trim();
+            const currentItems = this.taskForm.get('checklistItems').value || [];
             
-            // Focus on the input after a short delay
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('input[placeholder="Enter checklist item"]');
-                const input = inputs[index] as HTMLInputElement;
-                if (input) {
-                    input.focus();
-                    input.select();
-                }
-            }, 100);
-        }
-    }
-
-    /**
-     * Save checklist item
-     */
-    saveChecklistItem(index: number): void {
-        const items = this.taskForm.get('checklistItems').value;
-        if (items && items[index]) {
-            const item = items[index];
+            // Tạo item mới
+            const newItem = {
+                id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                title: newItemText,
+                completed: false
+            };
             
-            // Remove empty items
-            if (!item.title || item.title.trim() === '') {
-                this.deleteChecklistItem(index);
-                return;
-            }
-            
-            // Update the item
-            item.title = item.title.trim();
-            item.isEditing = false;
-            this.taskForm.get('checklistItems').setValue([...items]);
+            // Thêm vào form
+            const updatedItems = [...currentItems, newItem];
+            this.taskForm.get('checklistItems').setValue(updatedItems, { emitEvent: false });
             
             // Trigger update to save changes
             const currentFormValue = this.taskForm.value;
             this.updateUserCard(currentFormValue);
+            
+            // Clear input
+            this.newChecklistText = '';
         }
     }
 
@@ -1022,7 +993,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         const items = this.taskForm.get('checklistItems').value;
         if (items && items[index]) {
             items[index].completed = completed;
-            this.taskForm.get('checklistItems').setValue([...items]);
+            this.taskForm.get('checklistItems').setValue([...items], { emitEvent: false });
             
             // Trigger update to save changes
             const currentFormValue = this.taskForm.value;
@@ -1034,31 +1005,34 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
      * Delete checklist item
      */
     deleteChecklistItem(index: number): void {
-        const confirmation = this._fuseConfirmationService.open({
-            title: 'Delete Checklist Item',
-            message: 'Are you sure you want to delete this checklist item?',
-            actions: {
-                confirm: {
-                    label: 'Delete'
-                },
-                cancel: {
-                    label: 'Cancel'
+        const items = this.taskForm.get('checklistItems').value;
+        if (items && items[index]) {
+            const item = items[index];
+            
+            // Show confirmation dialog
+            const confirmation = this._fuseConfirmationService.open({
+                title: 'Delete Checklist Item',
+                message: 'Are you sure you want to delete this checklist item?',
+                actions: {
+                    confirm: {
+                        label: 'Delete'
+                    },
+                    cancel: {
+                        label: 'Cancel'
+                    }
                 }
-            }
-        });
+            });
 
-        confirmation.afterClosed().subscribe((result) => {
-            if (result === 'confirmed') {
-                const items = this.taskForm.get('checklistItems').value;
-                if (items && items[index]) {
+            confirmation.afterClosed().subscribe((result) => {
+                if (result === 'confirmed') {
                     items.splice(index, 1);
-                    this.taskForm.get('checklistItems').setValue([...items]);
+                    this.taskForm.get('checklistItems').setValue([...items], { emitEvent: false });
                     
                     // Trigger update to save changes
                     const currentFormValue = this.taskForm.value;
                     this.updateUserCard(currentFormValue);
                 }
-            }
-        });
+            });
+        }
     }
 }
