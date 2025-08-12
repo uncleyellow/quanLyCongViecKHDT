@@ -1,0 +1,14 @@
+// Employee dialog styles
+:host {
+    display: block;
+    min-width: 500px;
+    max-width: 700px;
+}
+
+.mat-mdc-dialog-content {
+    padding: 0;
+}
+
+.mat-mdc-dialog-actions {
+    padding: 0;
+}

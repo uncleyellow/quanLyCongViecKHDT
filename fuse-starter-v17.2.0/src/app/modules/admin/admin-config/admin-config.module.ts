@@ -27,6 +27,8 @@ import { AdminConfigComponent } from './admin-config.component';
 import { SettingsDepartmentsComponent } from './departments/departments.component';
 import { CompanyDialogComponent } from './departments/company-dialog/company-dialog.component';
 import { DepartmentDialogComponent } from './departments/department-dialog/department-dialog.component';
+import { SettingsEmployeesComponent } from './employees/employees.component';
+import { EmployeeDialogComponent } from './employees/employee-dialog/employee-dialog.component';
 
 const calenderEventsRoutes: Route[] = [
     {
@@ -41,6 +43,8 @@ const calenderEventsRoutes: Route[] = [
         SettingsDepartmentsComponent,
         CompanyDialogComponent,
         DepartmentDialogComponent,
+        SettingsEmployeesComponent,
+        EmployeeDialogComponent,
     ],
     imports     : [
         RouterModule.forChild(calenderEventsRoutes),

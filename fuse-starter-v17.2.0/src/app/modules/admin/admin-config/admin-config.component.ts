@@ -42,7 +42,13 @@ export class AdminConfigComponent implements OnInit, OnDestroy
                 id         : 'departments',
                 icon       : 'heroicons_outline:user-circle',
                 title      : 'Quản lý phòng ban',
-                description: 'Quản lý danh mục công ty và phòng ban'
+                description: 'Quản lý công ty và phòng ban'
+            },
+            {
+                id         : 'employees',
+                icon       : 'heroicons_outline:users',
+                title      : 'Quản lý nhân viên',
+                description: 'Quản lý thông tin nhân viên'
             },
             {
                 id         : 'security',
