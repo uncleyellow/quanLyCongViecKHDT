@@ -33,14 +33,14 @@ export class DepartmentDialogComponent implements OnInit {
     ngOnInit(): void {
         this.form = this._formBuilder.group({
             name: ['', [Validators.required, Validators.minLength(2)]],
-            company_id: ['', Validators.required],
+            companyId: ['', Validators.required],
             description: ['']
         });
 
         if (this.mode === 'edit' && this.department) {
             this.form.patchValue({
                 name: this.department.name,
-                company_id: this.department.company_id,
+                companyId: this.department.companyId,
                 description: this.department.description || ''
             });
         }

@@ -13,10 +13,10 @@ export interface Company {
 export interface Department {
     id: string;
     name: string;
-    company_id: string;
-    company_name?: string;
+    companyId: string;
+    companyName?: string;
     description?: string;
-    created_at?: string;
+    createdAt?: string;
 }
 
 export interface PaginationInfo {

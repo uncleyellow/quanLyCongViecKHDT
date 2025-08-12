@@ -255,7 +255,13 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this._departmentsService.createDepartment(result)
+                // Map companyId to companyId for backend
+                const departmentData = {
+                    ...result,
+                    companyId: result.companyId
+                };
+                
+                this._departmentsService.createDepartment(departmentData)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: () => {
@@ -330,7 +336,14 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
             if (result) {
                 // Remove id from the data being sent to API
                 const { id, ...updateData } = result;
-                this._departmentsService.updateDepartment(id, updateData)
+                
+                // Map companyId to companyId for backend
+                const departmentData = {
+                    ...updateData,
+                    companyId: updateData.companyId
+                };
+                
+                this._departmentsService.updateDepartment(id, departmentData)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: () => {
