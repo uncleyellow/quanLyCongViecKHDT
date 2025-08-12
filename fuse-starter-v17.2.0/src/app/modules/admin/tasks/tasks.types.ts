@@ -15,6 +15,7 @@ export interface Task
     priority: 'low' | 'normal' | 'high';
     tags: string[];
     order: number;
+    checklistItems?: any[];
 }
 
 export interface CustomField {

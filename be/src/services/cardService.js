@@ -296,9 +296,23 @@ const getAllUserCards = async (userId) => {
         try {
           card.checklistItems = JSON.parse(card.checklistItems)
         } catch (e) {
+          console.error(`Error parsing checklistItems for card ${card.id}:`, e)
+          card.checklistItems = []
+        }
+      } else if (card.checklistItems === null || card.checklistItems === undefined) {
+        card.checklistItems = []
+      } else if (Array.isArray(card.checklistItems)) {
+        // If it's already an array, keep it as is
+      } else if (typeof card.checklistItems === 'object') {
+        // If it's an object but not an array, try to convert it to array
+        try {
+          card.checklistItems = Object.values(card.checklistItems)
+        } catch (e) {
+          console.error(`Error converting checklistItems object to array for card ${card.id}:`, e)
           card.checklistItems = []
         }
       } else {
+        console.error(`Card ${card.id} - checklistItems has unexpected type:`, typeof card.checklistItems, card.checklistItems)
         card.checklistItems = []
       }
 

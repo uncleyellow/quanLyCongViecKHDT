@@ -1,11 +1,13 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DATE_FORMATS, MatNativeDateModule, MatRippleModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +25,7 @@ import { tasksRoutes } from 'app/modules/admin/tasks/tasks.routing';
 import { TasksComponent } from 'app/modules/admin/tasks/tasks.component';
 import { TasksDetailsComponent } from './details/details.component';
 import { TasksListComponent } from './list/list.component';
+import { CustomFieldDialogComponent } from './details/custom-field-dialog/custom-field-dialog.component';
 
 
 
@@ -34,11 +37,13 @@ import { TasksListComponent } from './list/list.component';
     ],
     imports     : [
         RouterModule.forChild(tasksRoutes),
+        FormsModule,
         DragDropModule,
         MatAutocompleteModule,
         MatButtonModule,
         MatCheckboxModule,
         MatDatepickerModule,
+        MatDialogModule,
         MatDividerModule,
         MatFormFieldModule,
         MatIconModule,
@@ -53,7 +58,8 @@ import { TasksListComponent } from './list/list.component';
         MatSidenavModule,
         MatTooltipModule,
         FuseFindByKeyPipeModule,
-        SharedModule
+        SharedModule,
+        CustomFieldDialogComponent
     ],
     providers   : [
         {

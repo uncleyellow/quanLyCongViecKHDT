@@ -236,7 +236,12 @@ export class TasksService
                         dueDate: userCard.dueDate,
                         priority: userCard.metadata?.priority?.value || 'normal',
                         tags: [],
-                        order: userCard.position || 0
+                        order: userCard.position || 0,
+                        checklistItems: (userCard.checklistItems || []).map(item => ({
+                            id: item.id || Date.now().toString(),
+                            title: item.title || item.text || '',
+                            completed: item.completed || item.checked || false
+                        }))
                     };
                 }
 
@@ -451,6 +456,9 @@ export class TasksService
                             }
                             if (updateData.metadata !== undefined) {
                                 updatedCard.metadata = updateData.metadata;
+                            }
+                            if (updateData.checklistItems !== undefined) {
+                                updatedCard.checklistItems = updateData.checklistItems;
                             }
                             
                             console.log('Updated card in local state:', updatedCard);
