@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../utils/ApiError'
 import { userModel } from '../models/userModel'
+import { userRoleModel } from '../models/userRoleModel'
 
 // Middleware kiểm tra quyền truy cập resource
 const checkResourceAccess = (resourceUserId) => {
@@ -43,4 +44,24 @@ const requireAdmin = async (req, res, next) => {
   }
 }
 
-export { checkResourceAccess, requireAdmin } 
+// Middleware kiểm tra permission cụ thể
+const requirePermission = (permissionName) => {
+  return async (req, res, next) => {
+    try {
+      const { userId } = req.user
+      
+      // Kiểm tra user có permission không
+      const hasPermission = await userRoleModel.hasPermission(userId, permissionName)
+      
+      if (!hasPermission) {
+        throw new ApiError(StatusCodes.FORBIDDEN, `Permission '${permissionName}' required`)
+      }
+      
+      next()
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+export { checkResourceAccess, requireAdmin, requirePermission } 

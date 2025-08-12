@@ -1,54 +1,21 @@
 import Joi from 'joi'
 import db from '../config/db'
-import { v4 as uuidv4 } from 'uuid'
 
 // Define Collection (Name & Schema)
-const COMPANY_TABLE_NAME = 'companies'
-
-// Schema for creating new company (id is optional, will be auto-generated)
-const COMPANY_CREATE_SCHEMA = Joi.object({
-    id: Joi.string().uuid().optional(),
-    name: Joi.string().max(255).required().trim().strict(),
+const ROLE_TABLE_NAME = 'roles'
+const ROLE_TABLE_SCHEMA = Joi.object({
+    id: Joi.string().uuid().required(),
+    name: Joi.string().max(100).required().trim().strict(),
     description: Joi.string().allow(null).default(null),
-    address: Joi.string().allow(null).default(null),
-    phone: Joi.string().allow(null).default(null),
-    email: Joi.string().email().allow(null).default(null),
-    website: Joi.string().uri().allow(null).default(null),
-    industry: Joi.string().allow(null).default(null),
-    size: Joi.string().valid('startup', 'small', 'medium', 'large', 'enterprise').default(null),
     createdAt: Joi.date().default(Date.now),
-    createdBy: Joi.string().uuid().allow(null).default(null),
-    updatedBy: Joi.string().uuid().allow(null).default(null),
-    deletedBy: Joi.string().uuid().allow(null).default(null),
-    updatedAt: Joi.date().allow(null).default(null),
-    deletedAt: Joi.date().allow(null).default(null)
-})
-
-// Schema for updating company (id is required)
-const COMPANY_UPDATE_SCHEMA = Joi.object({
-    name: Joi.string().max(255).required().trim().strict(),
-    description: Joi.string().allow(null).default(null),
-    address: Joi.string().allow(null).default(null),
-    phone: Joi.string().allow(null).default(null),
-    email: Joi.string().email().allow(null).default(null),
-    website: Joi.string().uri().allow(null).default(null),
-    industry: Joi.string().allow(null).default(null),
-    size: Joi.string().valid('startup', 'small', 'medium', 'large', 'enterprise').default(null)
+    updatedAt: Joi.date().allow(null).default(null)
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
     try {
-        return await COMPANY_CREATE_SCHEMA.validateAsync(data, { abortEarly: false })
-    } catch (error) {
-        throw new Error(error)
-    }
-}
-
-const validateBeforeUpdate = async (data) => {
-    try {
-        return await COMPANY_UPDATE_SCHEMA.validateAsync(data, { abortEarly: false })
+        return await ROLE_TABLE_SCHEMA.validateAsync(data, { abortEarly: false })
     } catch (error) {
         throw new Error(error)
     }
@@ -56,26 +23,21 @@ const validateBeforeUpdate = async (data) => {
 
 const getList = async (data) => {
     try {
-        const { page = 1, limit = 10, search, sort = 'createdAt', order = 'DESC' } = data
+        const { page = 1, limit = 10, search } = data
         const offset = (page - 1) * limit
         
-        let query = `SELECT * FROM ${COMPANY_TABLE_NAME} WHERE deletedAt IS NULL`
-        let countQuery = `SELECT COUNT(*) as total FROM ${COMPANY_TABLE_NAME} WHERE deletedAt IS NULL`
+        let query = `SELECT * FROM ${ROLE_TABLE_NAME}`
+        let countQuery = `SELECT COUNT(*) as total FROM ${ROLE_TABLE_NAME}`
         
         // Add search condition if search parameter is provided
         if (search && search.trim() !== '') {
-            const searchCondition = ` AND (name LIKE '%${search.replace(/'/g, '\'\'')}%' OR description LIKE '%${search.replace(/'/g, '\'\'')}%')`
+            const searchCondition = ` WHERE (name LIKE '%${search.replace(/'/g, '\'\'')}%' OR description LIKE '%${search.replace(/'/g, '\'\'')}%')`
             query += searchCondition
             countQuery += searchCondition
         }
         
-        // Validate sort field to prevent SQL injection
-        const allowedSortFields = ['name', 'createdAt', 'description']
-        const sortField = allowedSortFields.includes(sort) ? sort : 'createdAt'
-        const sortOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
-        
         // Add ordering and pagination
-        query += ` ORDER BY ${sortField} ${sortOrder} LIMIT ${limit} OFFSET ${offset}`
+        query += ` ORDER BY createdAt DESC LIMIT ${limit} OFFSET ${offset}`
         
         const [listData, countData] = await Promise.all([
             db.query(query),
@@ -97,12 +59,6 @@ const getList = async (data) => {
 const createNew = async (data) => {
     try {
         const validData = await validateBeforeCreate(data)
-        
-        // Auto-generate UUID if not provided
-        if (!validData.id) {
-            validData.id = uuidv4()
-        }
-        
         const dataToInsertCleaned = {}
         Object.entries(validData).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
@@ -111,11 +67,7 @@ const createNew = async (data) => {
         })
 
         delete dataToInsertCleaned.createdAt
-        delete dataToInsertCleaned.createdBy
-        delete dataToInsertCleaned.updatedBy
-        delete dataToInsertCleaned.deletedBy
         delete dataToInsertCleaned.updatedAt
-        delete dataToInsertCleaned.deletedAt
 
         const columns = Object.keys(dataToInsertCleaned).join(', ')
         const values = Object.values(dataToInsertCleaned)
@@ -132,7 +84,7 @@ const createNew = async (data) => {
             })
             .join(', ')
 
-        const query = `INSERT INTO ${COMPANY_TABLE_NAME} (${columns}) VALUES (${values})`
+        const query = `INSERT INTO ${ROLE_TABLE_NAME} (${columns}) VALUES (${values})`
         const result = await db.query(query)
         return result[0]
     } catch (error) { throw new Error(error) }
@@ -140,7 +92,7 @@ const createNew = async (data) => {
 
 const getDetail = async (data) => {
     try {
-        const query = `SELECT * FROM ${COMPANY_TABLE_NAME} WHERE id = ? AND deletedAt IS NULL`
+        const query = `SELECT * FROM ${ROLE_TABLE_NAME} WHERE id = ?`
         const detailData = await db.query(query, [data.id])
         return detailData[0][0]
     } catch (error) { throw new Error(error) }
@@ -148,10 +100,8 @@ const getDetail = async (data) => {
 
 const update = async (data, updateData) => {
     try {
-        const validUpdateData = await validateBeforeUpdate(updateData)
-        
         const dataToUpdateCleaned = {}
-        Object.entries(validUpdateData).forEach(([key, value]) => {
+        Object.entries(updateData).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '' && !INVALID_UPDATE_FIELDS.includes(key)) {
                 dataToUpdateCleaned[key] = value
             }
@@ -175,7 +125,7 @@ const update = async (data, updateData) => {
             })
             .join(', ')
 
-        const query = `UPDATE ${COMPANY_TABLE_NAME} SET ${setClause}, updatedAt = NOW() WHERE id = ? AND deletedAt IS NULL`
+        const query = `UPDATE ${ROLE_TABLE_NAME} SET ${setClause}, updatedAt = NOW() WHERE id = ?`
         const result = await db.query(query, [data.id])
         return result[0]
     } catch (error) { throw new Error(error) }
@@ -183,16 +133,49 @@ const update = async (data, updateData) => {
 
 const deleteItem = async (data) => {
     try {
-        const query = `UPDATE ${COMPANY_TABLE_NAME} SET deletedAt = NOW() WHERE id = ? AND deletedAt IS NULL`
+        const query = `DELETE FROM ${ROLE_TABLE_NAME} WHERE id = ?`
         const result = await db.query(query, [data.id])
         return result[0]
     } catch (error) { throw new Error(error) }
 }
 
-export const companyModel = {
+// Get role permissions
+const getRolePermissions = async (roleId) => {
+    try {
+        const query = `
+            SELECT p.* 
+            FROM permissions p
+            INNER JOIN role_permissions rp ON p.id = rp.permissionId
+            WHERE rp.roleId = ?
+        `
+        const result = await db.query(query, [roleId])
+        return result[0]
+    } catch (error) { throw new Error(error) }
+}
+
+// Assign permissions to role
+const assignPermissionsToRole = async (roleId, permissionIds) => {
+    try {
+        // First, remove existing permissions
+        await db.query('DELETE FROM role_permissions WHERE roleId = ?', [roleId])
+        
+        // Then, insert new permissions
+        if (permissionIds && permissionIds.length > 0) {
+            const values = permissionIds.map(permissionId => `('${roleId}', '${permissionId}')`).join(', ')
+            const query = `INSERT INTO role_permissions (roleId, permissionId) VALUES ${values}`
+            await db.query(query)
+        }
+        
+        return { message: 'Permissions assigned successfully' }
+    } catch (error) { throw new Error(error) }
+}
+
+export const roleModel = {
     getList,
     createNew,
     getDetail,
     update,
-    delete: deleteItem
+    delete: deleteItem,
+    getRolePermissions,
+    assignPermissionsToRole
 }

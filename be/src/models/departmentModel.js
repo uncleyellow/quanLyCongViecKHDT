@@ -46,7 +46,7 @@ const validateBeforeUpdate = async (data) => {
 
 const getList = async (data) => {
     try {
-        const { page = 1, limit = 10, search, companyId } = data
+        const { page = 1, limit = 10, search, companyId, sort = 'createdAt', order = 'DESC' } = data
         const offset = (page - 1) * limit
         
         let query = `
@@ -76,8 +76,13 @@ const getList = async (data) => {
             countQuery += searchCondition
         }
         
+        // Validate sort field to prevent SQL injection
+        const allowedSortFields = ['name', 'createdAt', 'description', 'companyName']
+        const sortField = allowedSortFields.includes(sort) ? sort : 'createdAt'
+        const sortOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+        
         // Add ordering and pagination
-        query += ` ORDER BY d.createdAt DESC LIMIT ${limit} OFFSET ${offset}`
+        query += ` ORDER BY d.${sortField} ${sortOrder} LIMIT ${limit} OFFSET ${offset}`
         
         const [listData, countData] = await Promise.all([
             db.query(query),
