@@ -711,23 +711,21 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                     console.log('No checklist changes detected');
                 }
                 
-                // Only call API if there are changes
-                if (Object.keys(updateData).length > 0) {
-                    console.log('Sending update data:', updateData);
-                    this._tasksService.updateCard(formValue.id, updateData).subscribe({
-                        next: (response) => {
-                            console.log('Card updated successfully:', response);
-                            
-                            // Option 1: Local state is already updated by the service
-                            // Option 2: Refresh data from server to ensure consistency
-                            // Uncomment the line below if you want to refresh from server
-                            // this._tasksService.refreshUserCards().subscribe();
-                        },
-                        error: (error) => {
-                            console.error('Error updating card:', error);
-                        }
-                    });
-                }
+                                 // Only call API if there are changes
+                 if (Object.keys(updateData).length > 0) {
+                     console.log('Sending update data:', updateData);
+                     this._tasksService.updateCard(formValue.id, updateData).subscribe({
+                         next: (response) => {
+                             console.log('Card updated successfully:', response);
+                             
+                             // Force UI update to reflect changes
+                             this._changeDetectorRef.markForCheck();
+                         },
+                         error: (error) => {
+                             console.error('Error updating card:', error);
+                         }
+                     });
+                 }
             }
         });
     }
@@ -1025,12 +1023,16 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
 
             confirmation.afterClosed().subscribe((result) => {
                 if (result === 'confirmed') {
+                    // Remove item from local array
                     items.splice(index, 1);
                     this.taskForm.get('checklistItems').setValue([...items], { emitEvent: false });
                     
                     // Trigger update to save changes
                     const currentFormValue = this.taskForm.value;
                     this.updateUserCard(currentFormValue);
+                    
+                    // Force UI update
+                    this._changeDetectorRef.markForCheck();
                 }
             });
         }
