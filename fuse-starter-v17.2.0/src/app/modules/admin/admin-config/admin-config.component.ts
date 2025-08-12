@@ -14,7 +14,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy
     drawerMode: 'over' | 'side' = 'side';
     drawerOpened: boolean = true;
     panels: any[] = [];
-    selectedPanel: string = 'account';
+    selectedPanel: string = 'departments';
     private _unsubscribeAll: Subject<any> = new Subject<any>();
 
     /**
@@ -39,10 +39,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy
         // Setup available panels
         this.panels = [
             {
-                id         : 'account',
+                id         : 'departments',
                 icon       : 'heroicons_outline:user-circle',
-                title      : 'Account',
-                description: 'Manage your public profile and private information'
+                title      : 'Quản lý phòng ban',
+                description: 'Quản lý danh mục công ty và phòng ban'
             },
             {
                 id         : 'security',

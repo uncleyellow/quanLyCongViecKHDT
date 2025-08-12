@@ -75,9 +75,9 @@
                 <!-- Load settings panel -->
                 <div class="mt-8">
                     <ng-container [ngSwitch]="selectedPanel">
-                        <!-- Account -->
-                        <ng-container *ngSwitchCase="'account'">
-                            <settings-account></settings-account>
+                        <!-- Departments -->
+                        <ng-container *ngSwitchCase="'departments'">
+                            <settings-departments></settings-departments>
                         </ng-container>
                         <!-- Security -->
                         <ng-container *ngSwitchCase="'security'">
