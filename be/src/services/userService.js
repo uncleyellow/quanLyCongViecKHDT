@@ -142,10 +142,14 @@ const createUser = async (userData) => {
     const { v4: uuidv4 } = await import('uuid')
     userData.id = uuidv4()
 
+    // Handle optional fields
+    if (userData.departmentId === '') userData.departmentId = null
+    if (userData.companyId === '') userData.companyId = null
+
     // Create user
     const result = await userModel.createNew(userData)
     
-    // Get created user data
+    // Get created user data with company and department names
     const createdUser = await userModel.findOneById(userData.id)
     const { passwordHash, ...sanitizedUser } = createdUser
     
