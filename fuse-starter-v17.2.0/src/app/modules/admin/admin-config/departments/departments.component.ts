@@ -290,7 +290,9 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this._departmentsService.updateCompany(result.id, result)
+                // Remove id from the data being sent to API
+                const { id, ...updateData } = result;
+                this._departmentsService.updateCompany(id, updateData)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: () => {
@@ -326,7 +328,9 @@ export class SettingsDepartmentsComponent implements OnInit, OnDestroy
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this._departmentsService.updateDepartment(result.id, result)
+                // Remove id from the data being sent to API
+                const { id, ...updateData } = result;
+                this._departmentsService.updateDepartment(id, updateData)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: () => {
