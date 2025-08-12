@@ -7,6 +7,7 @@ export interface Employee {
     id: string;
     name: string;
     email: string;
+    password?: string; // Thêm trường password
     type?: string; // Thay thế phone bằng type
     departmentId: string;
     departmentName?: string;

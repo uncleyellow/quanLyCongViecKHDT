@@ -39,20 +39,22 @@ export class EmployeeDialogComponent implements OnInit {
         this.form = this._formBuilder.group({
             name: ['', [Validators.required, Validators.minLength(2)]],
             email: ['', [Validators.required, Validators.email]],
-            type: ['', Validators.required],
+            password: ['', this.mode === 'create' ? [Validators.required, Validators.minLength(6)] : []], // Password chỉ bắt buộc khi tạo mới
+            type: ['staff', Validators.required],
             companyId: ['', Validators.required],
             departmentId: ['', Validators.required],
-            status: ['active']
+            status: ['online']
         });
 
         if (this.mode === 'edit' && this.employee) {
             this.form.patchValue({
                 name: this.employee.name,
                 email: this.employee.email,
-                type: this.employee.type || '',
+                password: '', // Không hiển thị password cũ trong form edit
+                type: this.employee.type || 'staff',
                 companyId: this.employee.companyId,
                 departmentId: this.employee.departmentId,
-                status: this.employee.status || 'active'
+                status: this.employee.status || 'online'
             });
         }
 
@@ -84,6 +86,12 @@ export class EmployeeDialogComponent implements OnInit {
     onSubmit(): void {
         if (this.form.valid) {
             const formData = this.form.value;
+            
+            // Nếu là edit mode và password trống, thì không gửi password
+            if (this.mode === 'edit' && !formData.password) {
+                delete formData.password;
+            }
+            
             this._dialogRef.close({
                 ...formData,
                 id: this.employee?.id

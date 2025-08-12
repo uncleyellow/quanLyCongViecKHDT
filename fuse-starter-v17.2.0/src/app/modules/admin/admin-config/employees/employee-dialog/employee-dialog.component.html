@@ -45,29 +45,45 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <mat-form-field class="w-full">
+                <mat-label>Mật khẩu {{ mode === 'create' ? '*' : '' }}</mat-label>
+                <input 
+                    matInput 
+                    formControlName="password" 
+                    placeholder="{{ mode === 'create' ? 'Nhập mật khẩu' : 'Để trống nếu không thay đổi' }}"
+                    type="password"
+                    [required]="mode === 'create'">
+                <mat-error *ngIf="form.get('password')?.hasError('required')">
+                    Mật khẩu là bắt buộc
+                </mat-error>
+                <mat-error *ngIf="form.get('password')?.hasError('minlength')">
+                    Mật khẩu phải có ít nhất 6 ký tự
+                </mat-error>
+            </mat-form-field>
+
+            <mat-form-field class="w-full">
                 <mat-label>Loại nhân viên *</mat-label>
                 <mat-select formControlName="type" required>
+                    <mat-option value="staff">Nhân viên</mat-option>
+                    <mat-option value="manager">Quản lý</mat-option>
+                    <mat-option value="boss">Sếp</mat-option>
                     <mat-option value="admin">Admin</mat-option>
-                    <mat-option value="manager">Manager</mat-option>
-                    <mat-option value="employee">Nhân viên</mat-option>
-                    <mat-option value="intern">Thực tập sinh</mat-option>
                 </mat-select>
                 <mat-error *ngIf="form.get('type')?.hasError('required')">
                     Vui lòng chọn loại nhân viên
                 </mat-error>
             </mat-form-field>
-
-            <mat-form-field class="w-full">
-                <mat-label>Trạng thái</mat-label>
-                <mat-select formControlName="status">
-                    <mat-option value="active">Đang làm việc</mat-option>
-                    <mat-option value="inactive">Nghỉ việc</mat-option>
-                    <mat-option value="probation">Thử việc</mat-option>
-                </mat-select>
-            </mat-form-field>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <mat-form-field class="w-full">
+                <mat-label>Trạng thái</mat-label>
+                <mat-select formControlName="status">
+                    <mat-option value="online">Online</mat-option>
+                    <mat-option value="banned">Bị cấm</mat-option>
+                    <mat-option value="disabled">Vô hiệu hóa</mat-option>
+                </mat-select>
+            </mat-form-field>
+
             <mat-form-field class="w-full">
                 <mat-label>Công ty *</mat-label>
                 <mat-select formControlName="companyId" required>
@@ -79,7 +95,9 @@
                     Vui lòng chọn công ty
                 </mat-error>
             </mat-form-field>
+        </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <mat-form-field class="w-full">
                 <mat-label>Phòng ban *</mat-label>
                 <mat-select formControlName="departmentId" required [disabled]="!form.get('companyId')?.value">

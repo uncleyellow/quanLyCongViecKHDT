@@ -77,10 +77,90 @@ const getAllUsers = async (data) => {
   } catch (error) { throw error }
 }
 
+const updateUser = async (userId, updateData) => {
+  try {
+    // Check if user exists
+    const existingUser = await userModel.findOneById(userId)
+    if (!existingUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    // Update user
+    const result = await userModel.update(userId, updateData)
+    
+    // Get updated user data
+    const updatedUser = await userModel.findOneById(userId)
+    const { passwordHash, ...sanitizedUser } = updatedUser
+    
+    return sanitizedUser
+  } catch (error) { throw error }
+}
+
+const deleteUser = async (userId) => {
+  try {
+    // Check if user exists
+    const existingUser = await userModel.findOneById(userId)
+    if (!existingUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    // Soft delete user
+    const result = await userModel.deleteUser(userId)
+    
+    return { message: 'User deleted successfully' }
+  } catch (error) { throw error }
+}
+
+const getUserById = async (userId) => {
+  try {
+    const user = await userModel.findOneById(userId)
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    const { passwordHash, ...sanitizedUser } = user
+    return sanitizedUser
+  } catch (error) { throw error }
+}
+
+const createUser = async (userData) => {
+  try {
+    // Check if email already exists
+    const existingUser = await userModel.getUserByEmail(userData.email)
+    if (existingUser) {
+      throw new ApiError(StatusCodes.CONFLICT, 'Email already exists')
+    }
+
+    // Hash password if provided
+    if (userData.password) {
+      const passwordHash = crypto.createHash('sha256').update(userData.password).digest('hex')
+      userData.passwordHash = passwordHash
+      delete userData.password
+    }
+
+    // Generate UUID for user ID
+    const { v4: uuidv4 } = await import('uuid')
+    userData.id = uuidv4()
+
+    // Create user
+    const result = await userModel.createNew(userData)
+    
+    // Get created user data
+    const createdUser = await userModel.findOneById(userData.id)
+    const { passwordHash, ...sanitizedUser } = createdUser
+    
+    return sanitizedUser
+  } catch (error) { throw error }
+}
+
 export const userService = {
   getMe,
   changePassword,
   updateBoardOrder,
   updateCardOrder,
-  getAllUsers
+  getAllUsers,
+  updateUser,
+  deleteUser,
+  getUserById,
+  createUser
 }

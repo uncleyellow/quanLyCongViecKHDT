@@ -321,12 +321,12 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
     getStatusDisplay(status: string): string
     {
         switch (status) {
-            case 'active':
-                return 'Đang làm việc';
-            case 'inactive':
-                return 'Nghỉ việc';
-            case 'probation':
-                return 'Thử việc';
+            case 'online':
+                return 'Online';
+            case 'banned':
+                return 'Bị cấm';
+            case 'disabled':
+                return 'Vô hiệu hóa';
             default:
                 return status;
         }
@@ -338,12 +338,12 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
     getStatusColor(status: string): string
     {
         switch (status) {
-            case 'active':
+            case 'online':
                 return 'text-green-600 bg-green-100';
-            case 'inactive':
+            case 'banned':
                 return 'text-red-600 bg-red-100';
-            case 'probation':
-                return 'text-yellow-600 bg-yellow-100';
+            case 'disabled':
+                return 'text-gray-600 bg-gray-100';
             default:
                 return 'text-gray-600 bg-gray-100';
         }
@@ -355,14 +355,14 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
     getTypeDisplay(type: string): string
     {
         switch (type) {
+            case 'staff':
+                return 'Nhân viên';
+            case 'manager':
+                return 'Quản lý';
+            case 'boss':
+                return 'Sếp';
             case 'admin':
                 return 'Admin';
-            case 'manager':
-                return 'Manager';
-            case 'employee':
-                return 'Nhân viên';
-            case 'intern':
-                return 'Thực tập sinh';
             default:
                 return type;
         }
@@ -374,14 +374,14 @@ export class SettingsEmployeesComponent implements OnInit, OnDestroy
     getTypeColor(type: string): string
     {
         switch (type) {
-            case 'admin':
-                return 'text-purple-600 bg-purple-100';
+            case 'staff':
+                return 'text-green-600 bg-green-100';
             case 'manager':
                 return 'text-blue-600 bg-blue-100';
-            case 'employee':
-                return 'text-green-600 bg-green-100';
-            case 'intern':
-                return 'text-orange-600 bg-orange-100';
+            case 'boss':
+                return 'text-purple-600 bg-purple-100';
+            case 'admin':
+                return 'text-red-600 bg-red-100';
             default:
                 return 'text-gray-600 bg-gray-100';
         }

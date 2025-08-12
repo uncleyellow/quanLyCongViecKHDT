@@ -127,11 +127,72 @@ const getAllUsers = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const user = await userService.getUserById(id)
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'User retrieved successfully',
+      data: user
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+const updateUser = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const updateData = req.body
+    const updatedUser = await userService.updateUser(id, updateData)
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'User updated successfully',
+      data: updatedUser
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await userService.deleteUser(id)
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: result.message,
+      data: null
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
+const createUser = async (req, res, next) => {
+  try {
+    const userData = req.body
+    const createdUser = await userService.createUser(userData)
+    const responseObject = {
+      code: StatusCodes.CREATED,
+      status: 'success',
+      message: 'User created successfully',
+      data: createdUser
+    }
+    res.status(StatusCodes.CREATED).json(responseObject)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   getMe,
   changePassword,
   checkPasswordChangeRequired,
   updateBoardOrder,
   updateCardOrder,
-  getAllUsers
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  createUser
 }
