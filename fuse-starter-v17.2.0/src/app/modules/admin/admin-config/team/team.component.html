@@ -2,6 +2,13 @@
 
     <!-- Add team member -->
     <div class="w-full">
+        <!-- Debug info -->
+        <div class="mb-4 p-2 bg-gray-100 rounded text-sm">
+            <div>Loading: {{isLoadingUsers}}</div>
+            <div>Users count: {{users.length}}</div>
+            <div>Selected user: {{selectedUser?.name || 'None'}}</div>
+        </div>
+
         <mat-form-field
             class="w-full"
             [subscriptSizing]="'dynamic'">
@@ -10,12 +17,27 @@
                 class="icon-size-5"
                 [svgIcon]="'heroicons_solid:user'"
                 matPrefix></mat-icon>
-            <input
-                matInput
-                [placeholder]="'Email address'">
+            <mat-select
+                placeholder="Chọn người dùng"
+                [(ngModel)]="selectedUser"
+                (selectionChange)="onUserSelected($event.value)"
+                [disabled]="isLoadingUsers">
+                <mat-option *ngIf="isLoadingUsers" disabled>
+                    <mat-spinner diameter="20"></mat-spinner>
+                    <span class="ml-2">Đang tải danh sách user...</span>
+                </mat-option>
+                <mat-option *ngIf="!isLoadingUsers && users.length === 0" disabled>
+                    Không có user nào
+                </mat-option>
+                <mat-option *ngFor="let user of users; trackBy: trackByFn" [value]="user">
+                    {{user.name}} ({{user.email}})
+                </mat-option>
+            </mat-select>
             <button
                 mat-icon-button
-                matSuffix>
+                matSuffix
+                (click)="addSelectedUser()"
+                [disabled]="!selectedUser || isLoadingUsers">
                 <mat-icon
                     class="icon-size-5"
                     [svgIcon]="'heroicons_solid:plus-circle'"></mat-icon>

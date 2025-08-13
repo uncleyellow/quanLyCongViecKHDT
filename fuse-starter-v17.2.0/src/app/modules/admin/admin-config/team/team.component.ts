@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewEncapsulation, OnDestroy } from '@angular/core';
+import { Subject, takeUntil } from 'rxjs';
+import { TeamService, User } from './team.service';
 
 @Component({
     selector       : 'settings-team',
@@ -6,15 +8,23 @@ import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@
     encapsulation  : ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SettingsTeamComponent implements OnInit
+export class SettingsTeamComponent implements OnInit, OnDestroy
 {
     members: any[];
     roles: any[];
+    users: User[] = [];
+    selectedUser: User | null = null;
+    isLoadingUsers: boolean = false;
+
+    private _unsubscribeAll: Subject<any> = new Subject<any>();
 
     /**
      * Constructor
      */
-    constructor()
+    constructor(
+        private _teamService: TeamService,
+        private _changeDetectorRef: ChangeDetectorRef
+    )
     {
     }
 
@@ -91,11 +101,93 @@ export class SettingsTeamComponent implements OnInit
                 description: 'Can read, clone, and push to this repository. Can also manage issues, pull requests, and repository settings, including adding collaborators.'
             }
         ];
+
+        // Load users from API
+        this.loadUsers();
+    }
+
+    /**
+     * On destroy
+     */
+    ngOnDestroy(): void
+    {
+        // Unsubscribe from all subscriptions
+        this._unsubscribeAll.next(null);
+        this._unsubscribeAll.complete();
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // @ Private methods
+    // -----------------------------------------------------------------------------------------------------
+
+    /**
+     * Load users from API
+     */
+    private loadUsers(): void
+    {
+        this.isLoadingUsers = true;
+        this._changeDetectorRef.markForCheck(); // Trigger change detection for loading state
+        
+        this._teamService.getUsers()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    console.log('API Response:', response);
+                    console.log('Users data:', response.data);
+                    this.users = response.data || [];
+                    this.isLoadingUsers = false;
+                    console.log('Component users:', this.users);
+                    this._changeDetectorRef.markForCheck(); // Trigger change detection after data update
+                },
+                error: (error) => {
+                    console.error('Error loading users:', error);
+                    this.isLoadingUsers = false;
+                    // Fallback to empty array
+                    this.users = [];
+                    this._changeDetectorRef.markForCheck(); // Trigger change detection after error
+                }
+            });
     }
 
     // -----------------------------------------------------------------------------------------------------
     // @ Public methods
     // -----------------------------------------------------------------------------------------------------
+
+    /**
+     * Handle user selection from dropdown
+     */
+    onUserSelected(user: User): void
+    {
+        this.selectedUser = user;
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Add selected user to team
+     */
+    addSelectedUser(): void
+    {
+        if (this.selectedUser) {
+            // Check if user is already in team
+            const existingMember = this.members.find(member => member.email === this.selectedUser?.email);
+            if (existingMember) {
+                alert('User is already in the team!');
+                return;
+            }
+
+            // Add user to team with default role
+            const newMember = {
+                avatar: null,
+                name: this.selectedUser.name,
+                email: this.selectedUser.email,
+                role: 'read' // Default role
+            };
+
+            this.members.push(newMember);
+            this.selectedUser = null; // Reset selection
+            this._changeDetectorRef.markForCheck();
+        }
+    }
 
     /**
      * Track by function for ngFor loops
