@@ -1,0 +1,24 @@
+.custom-field-dialog {
+    min-width: 400px;
+    
+    .mat-dialog-content {
+        padding: 20px;
+    }
+    
+    .mat-dialog-actions {
+        padding: 16px 20px;
+        margin: 0;
+    }
+    
+    .field-value-container {
+        margin-top: 16px;
+    }
+    
+    .space-y-4 > * + * {
+        margin-top: 1rem;
+    }
+    
+    .w-full {
+        width: 100%;
+    }
+}

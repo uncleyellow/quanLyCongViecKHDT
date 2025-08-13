@@ -1,0 +1,66 @@
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold">{{ getTitle() }}</h2>
+        <button
+            mat-icon-button
+            (click)="onCancel()"
+            class="text-gray-500 hover:text-gray-700">
+            <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+        </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+        <mat-form-field class="w-full">
+            <mat-label>Tên phòng ban *</mat-label>
+            <input 
+                matInput 
+                formControlName="name" 
+                placeholder="Nhập tên phòng ban"
+                required>
+            <mat-error *ngIf="form.get('name')?.hasError('required')">
+                Tên phòng ban là bắt buộc
+            </mat-error>
+            <mat-error *ngIf="form.get('name')?.hasError('minlength')">
+                Tên phòng ban phải có ít nhất 2 ký tự
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Công ty *</mat-label>
+            <mat-select formControlName="companyId" required>
+                <mat-option *ngFor="let company of companies" [value]="company.id">
+                    {{company.name}}
+                </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('companyId')?.hasError('required')">
+                Vui lòng chọn công ty
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Mô tả</mat-label>
+            <textarea 
+                matInput 
+                formControlName="description" 
+                placeholder="Nhập mô tả phòng ban"
+                rows="3">
+            </textarea>
+        </mat-form-field>
+
+        <div class="flex justify-end gap-3 pt-4">
+            <button
+                type="button"
+                mat-stroked-button
+                (click)="onCancel()">
+                Hủy
+            </button>
+            <button
+                type="submit"
+                mat-flat-button
+                [color]="'primary'"
+                [disabled]="!form.valid">
+                {{ getSubmitButtonText() }}
+            </button>
+        </div>
+    </form>
+</div>

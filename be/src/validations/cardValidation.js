@@ -19,7 +19,7 @@ const createNew = async (req, res, next) => {
         endDate: Joi.date().allow(null, '').optional(),
         members: Joi.string().allow(null, '').optional(),
         dependencies: Joi.string().allow(null, '').optional(),
-        status: Joi.string().valid('todo', 'in_progress', 'done', 'blocked', 'cancelled').optional()
+        status: Joi.string().valid('todo', 'in_progress', 'completed', 'done', 'blocked', 'cancelled').optional()
     })
 
     try {
@@ -44,7 +44,7 @@ const update = async (req, res, next) => {
         assignees: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).optional(),
         listId: Joi.string().uuid().optional(),
         boardId: Joi.string().uuid().required(),
-        status: Joi.string().valid('todo', 'in_progress', 'done', 'blocked', 'cancelled').optional(),
+        status: Joi.string().valid('todo', 'in_progress', 'completed', 'done', 'blocked', 'cancelled').optional(),
         checklistItems: Joi.alternatives().try(
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)
@@ -73,13 +73,22 @@ const updatePartial = async (req, res, next) => {
         description: Joi.string().allow(null, '').optional(),
         columnId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
         order: Joi.number().integer().min(0).optional(),
+        position: Joi.number().integer().min(0).optional(),
         priority: Joi.string().valid('low', 'medium', 'high').optional(),
         dueDate: Joi.date().iso().allow(null).optional(),
+        startDate: Joi.date().iso().allow(null).optional(),
+        endDate: Joi.date().iso().allow(null).optional(),
+        totalTimeSpent: Joi.number().integer().min(0).optional(),
+        isTracking: Joi.number().integer().valid(0, 1).optional(),
+        trackingStartTime: Joi.date().iso().allow(null).optional(),
+        trackingPauseTime: Joi.number().integer().min(0).optional(),
         assignees: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).optional(),
+        status: Joi.string().valid('todo', 'in_progress', 'completed', 'done', 'blocked', 'cancelled').optional(),
         checklistItems: Joi.alternatives().try(
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)
-        ).default(null).optional()
+        ).default(null).optional(),
+        metadata: Joi.object().optional()
     })
 
     try {

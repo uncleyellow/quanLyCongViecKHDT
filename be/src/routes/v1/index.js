@@ -5,6 +5,10 @@ import { listRoute } from './listRoute'
 import { cardRoute } from './cardRoute'
 import { authRoute } from './authRoute'
 import { userRoute } from './userRoute'
+import { companyRoute } from './companyRoute.js'
+import { departmentRoute } from './departmentRoute.js'
+import { roleRoute } from './roleRoute.js'
+import { permissionRoute } from './permissionRoute.js'
 import cardTimeTrackingRoute from './cardTimeTrackingRoute'
 
 const Router = express.Router()
@@ -31,5 +35,17 @@ Router.use('/cards', cardRoute)
 
 // Card Time Tracking APIs
 Router.use('/cards', cardTimeTrackingRoute)
+
+// Company APIs
+Router.use('/companies', companyRoute)
+
+// Department APIs
+Router.use('/departments', departmentRoute)
+
+// Role APIs
+Router.use('/roles', roleRoute)
+
+// Permission APIs
+Router.use('/permissions', permissionRoute)
 
 export const APIs_V1 = Router

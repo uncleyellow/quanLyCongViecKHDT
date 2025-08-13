@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { Route, RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -15,7 +16,20 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AdminConfigComponent } from './admin-config.component';
+import { SettingsDepartmentsComponent } from './departments/departments.component';
+import { CompanyDialogComponent } from './departments/company-dialog/company-dialog.component';
+import { DepartmentDialogComponent } from './departments/department-dialog/department-dialog.component';
+import { SettingsEmployeesComponent } from './employees/employees.component';
+import { EmployeeDialogComponent } from './employees/employee-dialog/employee-dialog.component';
+import { SettingsTeamComponent } from './team/team.component';
 
 const calenderEventsRoutes: Route[] = [
     {
@@ -26,7 +40,13 @@ const calenderEventsRoutes: Route[] = [
 
 @NgModule({
     declarations: [
-        AdminConfigComponent
+        AdminConfigComponent,
+        SettingsDepartmentsComponent,
+        CompanyDialogComponent,
+        DepartmentDialogComponent,
+        SettingsEmployeesComponent,
+        EmployeeDialogComponent,
+        SettingsTeamComponent
     ],
     imports     : [
         RouterModule.forChild(calenderEventsRoutes),
@@ -45,6 +65,14 @@ const calenderEventsRoutes: Route[] = [
         MatMenuModule,
         MatTooltipModule,
         MatSnackBarModule,
+        MatSidenavModule,
+        MatTabsModule,
+        MatTableModule,
+        MatPaginatorModule,
+        MatSortModule,
+        MatProgressBarModule,
+        MatSlideToggleModule,
+        HttpClientModule,
         ReactiveFormsModule
     ]
 })

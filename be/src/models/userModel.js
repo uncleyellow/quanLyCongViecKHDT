@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import db from '../config/db'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE, UUID_RULE, UUID_RULE_MESSAGE } from '../utils/validators'
 
 // Define Collection (Name & Schema)
 const USER_TABLE_NAME = 'users'
@@ -12,8 +12,11 @@ const USER_TABLE_SCHEMA = Joi.object({
   type: Joi.string().valid('staff', 'manager', 'boss', 'admin').default('staff'),
   status: Joi.string().valid('online', 'banned', 'disabled').default('online'),
   avatar: Joi.string().max(255).allow(null).default(null),
+  departmentId: Joi.string().pattern(UUID_RULE).message(UUID_RULE_MESSAGE).allow(null).default(null),
+  companyId: Joi.string().pattern(UUID_RULE).message(UUID_RULE_MESSAGE).allow(null).default(null),
   mustChangePassword: Joi.boolean().default(true),
   boardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
+  cardOrderIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
   createdAt: Joi.date().allow(null).default(Date.now),
   updatedAt: Joi.date().allow(null).default(Date.now),
   deletedAt: Joi.date().allow(null).default(null)
@@ -34,7 +37,22 @@ const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
     const { deletedAt, createdAt, updatedAt, ...dataToInsert } = validData
-    const query = `INSERT INTO ${USER_TABLE_NAME} (${Object.keys(dataToInsert).join(', ')}) VALUES (${Object.values(dataToInsert).map(value => typeof value === 'string' ? `'${value}'` : value).join(', ')})`
+    
+    // Handle SQL escaping properly
+    const columns = Object.keys(dataToInsert)
+    const values = Object.values(dataToInsert).map(value => {
+      if (typeof value === 'string') {
+        return `'${value.replace(/'/g, '\'\'')}'`
+      } else if (value === null) {
+        return 'NULL'
+      } else if (Array.isArray(value)) {
+        return `'${JSON.stringify(value).replace(/'/g, '\'\'')}'`
+      } else {
+        return value
+      }
+    })
+    
+    const query = `INSERT INTO ${USER_TABLE_NAME} (${columns.join(', ')}) VALUES (${values.join(', ')})`
     const createdUser = await db.query(query)
     return createdUser
   } catch (error) {
@@ -69,7 +87,13 @@ const getUserByEmail = async (email) => {
 
 const findOneById = async (id) => {
   try {
-    const query = `SELECT * FROM ${USER_TABLE_NAME} WHERE id = ? AND deletedAt IS NULL`
+    const query = `
+      SELECT u.*, c.name as companyName, d.name as departmentName
+      FROM ${USER_TABLE_NAME} u
+      LEFT JOIN departments d ON u.departmentId = d.id
+      LEFT JOIN companies c ON d.companyId = c.id
+      WHERE u.id = ? AND u.deletedAt IS NULL
+    `
     const [user] = await db.query(query, [id])
     return user[0]
   } catch (error) {
@@ -88,11 +112,58 @@ const getDetails = async (id) => {
   }
 }
 
-const getAllUsers = async () => {
+const getAllUsers = async (data) => {
   try {
-    const query = `SELECT * FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL ORDER BY createdAt DESC`
-    const result = await db.query(query)
-    return result[0] || []
+    const { page = 1, limit = 10, search, type, status } = data
+    const offset = (page - 1) * limit
+    
+    let query = `
+      SELECT u.*, c.name as companyName, d.name as departmentName
+      FROM ${USER_TABLE_NAME} u
+      LEFT JOIN departments d ON u.departmentId = d.id
+      LEFT JOIN companies c ON d.companyId = c.id
+      WHERE u.deletedAt IS NULL
+    `
+    let countQuery = `SELECT COUNT(*) as total FROM ${USER_TABLE_NAME} WHERE deletedAt IS NULL`
+    
+    // Add search condition if search parameter is provided
+    if (search && search.trim() !== '') {
+      const searchCondition = ` AND (u.name LIKE '%${search.replace(/'/g, '\'\'')}%' OR u.email LIKE '%${search.replace(/'/g, '\'\'')}%')`
+      query += searchCondition
+      countQuery += searchCondition
+    }
+    
+    // Add type filter if provided
+    if (type && type.trim() !== '') {
+      const typeCondition = ` AND u.type = '${type.replace(/'/g, '\'\'')}'`
+      query += typeCondition
+      countQuery += typeCondition
+    }
+    
+    // Add status filter if provided
+    if (status && status.trim() !== '') {
+      const statusCondition = ` AND u.status = '${status.replace(/'/g, '\'\'')}'`
+      query += statusCondition
+      countQuery += statusCondition
+    }
+    
+    // Add ordering and pagination
+    query += ` ORDER BY u.createdAt DESC LIMIT ${limit} OFFSET ${offset}`
+    
+    const [listData, countData] = await Promise.all([
+      db.query(query),
+      db.query(countQuery)
+    ])
+    
+    return {
+      data: listData[0],
+      pagination: {
+        total: countData[0][0].total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(countData[0][0].total / limit)
+      }
+    }
   } catch (error) {
     throw new Error(error)
   }
@@ -154,6 +225,16 @@ const updateBoardOrder = async (userId, boardOrderIds) => {
   }
 }
 
+const updateCardOrder = async (userId, cardOrderIds) => {
+  try {
+    const query = `UPDATE ${USER_TABLE_NAME} SET cardOrderIds = ?, updatedAt = NOW() WHERE id = ?`
+    const result = await db.query(query, [JSON.stringify(cardOrderIds), userId])
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const userModel = {
   USER_TABLE_NAME,
   USER_TABLE_SCHEMA,
@@ -167,5 +248,6 @@ export const userModel = {
   update,
   deleteUser,
   changePassword,
-  updateBoardOrder
+  updateBoardOrder,
+  updateCardOrder
 }

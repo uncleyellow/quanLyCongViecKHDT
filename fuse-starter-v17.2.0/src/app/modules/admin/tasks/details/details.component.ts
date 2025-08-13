@@ -1,16 +1,18 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, Renderer2, TemplateRef, ViewChild, ViewContainerRef, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { MatDrawerToggleResult } from '@angular/material/sidenav';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
-import { debounceTime, filter, Subject, takeUntil, tap } from 'rxjs';
+import { debounceTime, filter, Subject, takeUntil, tap, take } from 'rxjs';
 import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
-import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
+import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
 import { TasksListComponent } from 'app/modules/admin/tasks/list/list.component';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
+import { CustomFieldDialogComponent, CustomFieldDialogData } from './custom-field-dialog/custom-field-dialog.component';
 
 @Component({
     selector       : 'tasks-details',
@@ -29,6 +31,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     filteredTags: Tag[];
     task: Task;
     taskForm: UntypedFormGroup;
+    dateRangeForm: UntypedFormGroup;
     tasks: Task[];
     private _tagsPanelOverlayRef: OverlayRef;
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -46,7 +49,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         private _tasksListComponent: TasksListComponent,
         private _tasksService: TasksService,
         private _overlay: Overlay,
-        private _viewContainerRef: ViewContainerRef
+        private _viewContainerRef: ViewContainerRef,
+        private _dialog: MatDialog
     )
     {
     }
@@ -71,10 +75,54 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             notes    : [''],
             completed: [false],
             dueDate  : [null],
-            priority : [0],
+            priority : ['normal'],
             tags     : [[]],
-            order    : [0]
+            order    : [0],
+            // Additional UserCard fields
+            boardId  : [''],
+            listId   : [''],
+            description: [''],
+            position: [0],
+            startDate: [null],
+            endDate: [null],
+            status: [''],
+            totalTimeSpent: [0],
+            isTracking: [0],
+            trackingStartTime: [null],
+            trackingPauseTime: [0],
+            boardTitle: [''],
+            listTitle: [''],
+            listColor: [''],
+            checklistItems: [[]],
+            labels: [[]],
+            members: [[]],
+            createdAt: [''],
+            metadata: [{}]
         });
+
+        // Create the date range form
+        this.dateRangeForm = this._formBuilder.group({
+            start: [null],
+            end: [null]
+        });
+
+        // Subscribe to date range form changes
+        this.dateRangeForm.valueChanges
+            .pipe(
+                debounceTime(300),
+                takeUntil(this._unsubscribeAll)
+            )
+            .subscribe(range => {
+                console.log('Date range changed:', range);
+                
+                // Update taskForm with new date values
+                this.taskForm.get('startDate').setValue(range.start, { emitEvent: false });
+                this.taskForm.get('endDate').setValue(range.end, { emitEvent: false });
+                
+                // Trigger update to save changes
+                const currentFormValue = this.taskForm.value;
+                this.updateUserCard(currentFormValue);
+            });
 
         // Get the tags
         this._tasksService.tags$
@@ -101,6 +149,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
         this._tasksService.task$
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((task: Task) => {
+                console.log('TasksDetailsComponent - received task:', task);
 
                 // Open the drawer in case it is closed
                 this._tasksListComponent.matDrawer.open();
@@ -108,8 +157,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 // Get the task
                 this.task = task;
 
-                // Patch values to the form from the task
-                this.taskForm.patchValue(task, {emitEvent: false});
+                // Map UserCard data to form if available
+                this.mapUserCardToForm(task);
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
@@ -128,8 +177,8 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             )
             .subscribe((value) => {
 
-                // Update the task on the server
-                this._tasksService.updateTask(value.id, value).subscribe();
+                // Update the corresponding UserCard if it exists
+                this.updateUserCard(value);
 
                 // Mark for check
                 this._changeDetectorRef.markForCheck();
@@ -454,11 +503,26 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
      *
      * @param priority
      */
-    setTaskPriority(priority): void
+    setTaskPriority(priority: string): void
     {
         // Set the value
         this.taskForm.get('priority').setValue(priority);
     }
+
+    /**
+     * Clear date range
+     */
+    clearDateRange(): void
+    {
+        this.taskForm.get('startDate').setValue(null);
+        this.taskForm.get('endDate').setValue(null);
+        this.dateRangeForm.patchValue({
+            start: null,
+            end: null
+        }, {emitEvent: false});
+    }
+
+
 
     /**
      * Check if the task is overdue or not
@@ -469,17 +533,20 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     /**
-     * Delete the task
+     * Delete the card
      */
     deleteTask(): void
     {
         // Open the confirmation dialog
         const confirmation = this._fuseConfirmationService.open({
-            title  : 'Delete task',
-            message: 'Are you sure you want to delete this task? This action cannot be undone!',
+            title  : 'Xóa công việc',
+            message: 'Bạn có chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác!',
             actions: {
                 confirm: {
-                    label: 'Delete'
+                    label: 'Xóa'
+                },
+                cancel: {
+                    label: 'Hủy'
                 }
             }
         });
@@ -490,34 +557,23 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             // If the confirm button pressed...
             if ( result === 'confirmed' )
             {
+                // Get the current card's id
+                const cardId = this.task.id;
 
-                // Get the current task's id
-                const id = this.task.id;
-
-                // Get the next/previous task's id
-                const currentTaskIndex = this.tasks.findIndex(item => item.id === id);
-                const nextTaskIndex = currentTaskIndex + ((currentTaskIndex === (this.tasks.length - 1)) ? -1 : 1);
-                const nextTaskId = (this.tasks.length === 1 && this.tasks[0].id === id) ? null : this.tasks[nextTaskIndex].id;
-
-                // Delete the task
-                this._tasksService.deleteTask(id)
-                    .subscribe((isDeleted) => {
-
-                        // Return if the task wasn't deleted...
-                        if ( !isDeleted )
-                        {
-                            return;
-                        }
-
-                        // Navigate to the next task if available
-                        if ( nextTaskId )
-                        {
-                            this._router.navigate(['../', nextTaskId], {relativeTo: this._activatedRoute});
-                        }
-                        // Otherwise, navigate to the parent
-                        else
-                        {
+                // Delete the card using the card service
+                this._tasksService.deleteCard(cardId)
+                    .subscribe({
+                        next: (response) => {
+                            console.log('Card deleted successfully:', response);
+                            
+                            // Close the drawer
+                            this.closeDrawer();
+                            
+                            // Navigate back to the list
                             this._router.navigate(['../'], {relativeTo: this._activatedRoute});
+                        },
+                        error: (error) => {
+                            console.error('Error deleting card:', error);
                         }
                     });
 
@@ -536,5 +592,441 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+        /**
+     * Update UserCard with form data
+     *
+     * @param formValue
+     */
+    updateUserCard(formValue: any): void
+    {
+        this._tasksService.userCards$.pipe(take(1)).subscribe(userCards => {
+            const userCard = userCards?.find(card => card.id === formValue.id);
+            
+            if (userCard) {
+                // Prepare update data for API
+                const updateData: any = {};
+                
+                // Only update fields that have changed
+                if (formValue.title !== userCard.title) {
+                    updateData.title = formValue.title;
+                }
+                if (formValue.notes !== userCard.description) {
+                    updateData.description = formValue.notes;
+                }
+                if (formValue.completed !== (userCard.status === 'completed' || userCard.status === 'done')) {
+                    updateData.status = formValue.completed ? 'completed' : 'todo';
+                }
+                if (formValue.dueDate !== userCard.dueDate) {
+                    updateData.dueDate = formValue.dueDate ? new Date(formValue.dueDate).toISOString() : null;
+                }
+                if (formValue.order !== userCard.position) {
+                    updateData.position = formValue.order || 0;
+                }
+                // Handle priority - store in metadata since it's not a direct field
+                const currentPriority = userCard.metadata?.priority?.value || 'normal';
+                if (formValue.priority !== currentPriority) {
+                    // Update metadata with new priority
+                    const currentMetadata = userCard.metadata || {};
+                    const updatedMetadata = {
+                        ...currentMetadata,
+                        priority: {
+                            value: formValue.priority,
+                            type: 'string',
+                            createdAt: new Date().toISOString()
+                        }
+                    };
+                    updateData.metadata = updatedMetadata;
+                }
+                // Handle date range from dateRangeForm
+                const dateRangeValue = this.dateRangeForm.value;
+                const currentStartDate = userCard.startDate ? new Date(userCard.startDate).toISOString().split('T')[0] : null;
+                const currentEndDate = userCard.endDate ? new Date(userCard.endDate).toISOString().split('T')[0] : null;
+                const newStartDate = dateRangeValue.start ? dateRangeValue.start.toISOString().split('T')[0] : null;
+                const newEndDate = dateRangeValue.end ? dateRangeValue.end.toISOString().split('T')[0] : null;
+                
+                if (newStartDate !== currentStartDate) {
+                    updateData.startDate = dateRangeValue.start ? dateRangeValue.start.toISOString() : null;
+                }
+                if (newEndDate !== currentEndDate) {
+                    updateData.endDate = dateRangeValue.end ? dateRangeValue.end.toISOString() : null;
+                }
+                if (formValue.totalTimeSpent !== userCard.totalTimeSpent) {
+                    updateData.totalTimeSpent = formValue.totalTimeSpent || 0;
+                }
+                if (formValue.isTracking !== userCard.isTracking) {
+                    updateData.isTracking = formValue.isTracking || 0;
+                }
+                if (formValue.trackingStartTime !== userCard.trackingStartTime) {
+                    updateData.trackingStartTime = formValue.trackingStartTime ? new Date(formValue.trackingStartTime).toISOString() : null;
+                }
+                if (formValue.trackingPauseTime !== userCard.trackingPauseTime) {
+                    updateData.trackingPauseTime = formValue.trackingPauseTime || 0;
+                }
+                
+                // Handle checklist items
+                const currentChecklistItems = userCard.checklistItems || [];
+                const newChecklistItems = formValue.checklistItems || [];
+                
+                // Compare checklist items (simplified comparison)
+                // Filter out items that are currently being edited (empty title)
+                const currentChecklistString = JSON.stringify(currentChecklistItems.map(item => ({
+                    title: item.title || item.text,
+                    completed: item.completed || item.checked
+                })));
+                const newChecklistString = JSON.stringify(newChecklistItems
+                    .filter(item => item.title && item.title.trim() !== '') // Only include non-empty items
+                    .map(item => ({
+                        title: item.title,
+                        completed: item.completed
+                    }))
+                );
+                
+                console.log('Checklist comparison:', {
+                    current: currentChecklistString,
+                    new: newChecklistString,
+                    currentItems: currentChecklistItems,
+                    newItems: newChecklistItems
+                });
+                
+                if (currentChecklistString !== newChecklistString) {
+                    console.log('Checklist items changed, updating...');
+                    updateData.checklistItems = newChecklistItems
+                        .filter(item => item.title && item.title.trim() !== '') // Only include non-empty items
+                        .map(item => ({
+                            id: item.id,
+                            text: item.title, // Map title to text for backend
+                            checked: item.completed // Map completed to checked for backend
+                        }));
+                } else {
+                    console.log('No checklist changes detected');
+                }
+                
+                                 // Only call API if there are changes
+                 if (Object.keys(updateData).length > 0) {
+                     console.log('Sending update data:', updateData);
+                     this._tasksService.updateCard(formValue.id, updateData).subscribe({
+                         next: (response) => {
+                             console.log('Card updated successfully:', response);
+                             
+                             // Force UI update to reflect changes
+                             this._changeDetectorRef.markForCheck();
+                         },
+                         error: (error) => {
+                             console.error('Error updating card:', error);
+                         }
+                     });
+                 }
+            }
+        });
+    }
+
+    /**
+     * Map UserCard data to form
+     *
+     * @param task
+     */
+    mapUserCardToForm(task: Task): void
+    {
+        console.log('mapUserCardToForm called with task:', task);
+        // Get the corresponding UserCard from the service
+        this._tasksService.userCards$.pipe(take(1)).subscribe(userCards => {
+            console.log('mapUserCardToForm - userCards:', userCards);
+            const userCard = userCards?.find(card => card.id === task.id);
+            console.log('mapUserCardToForm - found userCard:', userCard);
+
+            if (userCard) {
+            // Map UserCard data to form
+            const formData = {
+                // Basic task fields
+                id: userCard.id,
+                type: userCard.type || 'task',
+                title: userCard.title,
+                notes: userCard.description || '',
+                completed: userCard.status === 'completed',
+                dueDate: userCard.dueDate,
+                priority: userCard.metadata?.priority?.value || task.priority || 'normal', // Read from metadata first, then task, then default
+                tags: [], // Default empty tags
+                order: userCard.position || 0,
+                
+                // Additional UserCard fields
+                boardId: userCard.boardId,
+                listId: userCard.listId,
+                description: userCard.description,
+                position: userCard.position,
+                            startDate: null, // Handled by dateRangeForm
+            endDate: null, // Handled by dateRangeForm
+                status: userCard.status,
+                totalTimeSpent: userCard.totalTimeSpent || 0,
+                isTracking: userCard.isTracking || 0,
+                trackingStartTime: userCard.trackingStartTime,
+                trackingPauseTime: userCard.trackingPauseTime || 0,
+                boardTitle: userCard.boardTitle,
+                listTitle: userCard.listTitle,
+                listColor: userCard.listColor,
+                checklistItems: (userCard.checklistItems || []).map(item => ({
+                    id: item.id || Date.now().toString(),
+                    title: item.title || item.text || '',
+                    completed: item.completed || item.checked || false,
+                    isEditing: false
+                })),
+                labels: userCard.labels || [],
+                members: userCard.members || [],
+                createdAt: userCard.createdAt,
+                metadata: userCard.metadata || {}
+            };
+
+            console.log('mapUserCardToForm - formData:', formData);
+            // Patch values to the form
+            this.taskForm.patchValue(formData, {emitEvent: false});
+
+            // Update date range form
+            this.dateRangeForm.patchValue({
+                start: userCard.startDate ? new Date(userCard.startDate) : null,
+                end: userCard.endDate ? new Date(userCard.endDate) : null
+            }, {emitEvent: false});
+        } else {
+            console.log('mapUserCardToForm - using fallback task data');
+            // Fallback to original task data
+            this.taskForm.patchValue(task, {emitEvent: false});
+
+            // Update date range form with fallback data
+            this.dateRangeForm.patchValue({
+                start: null,
+                end: null
+            }, {emitEvent: false});
+        }
+        
+        // Mark for check
+        this._changeDetectorRef.markForCheck();
+    });
+    }
+
+    /**
+     * Format time spent in seconds to human readable format
+     *
+     * @param seconds
+     */
+    formatTimeSpent(seconds: number): string
+    {
+        if (!seconds || seconds === 0) {
+            return '0h 0m';
+        }
+
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else {
+            return `${minutes}m`;
+        }
+    }
+
+    /**
+     * Get custom fields as array for template
+     */
+    getCustomFieldsArray(): any[] {
+        const metadata = this.taskForm.get('metadata').value;
+        if (!metadata) return [];
+        
+        return Object.keys(metadata).map(key => ({
+            name: key,
+            value: metadata[key].value,
+            type: metadata[key].type
+        }));
+    }
+
+    /**
+     * Check if metadata has custom fields
+     */
+    hasCustomFields(): boolean {
+        const metadata = this.taskForm.get('metadata').value;
+        return metadata && typeof metadata === 'object' && Object.keys(metadata).length > 0;
+    }
+
+    /**
+     * Check if metadata has no custom fields
+     */
+    hasNoCustomFields(): boolean {
+        const metadata = this.taskForm.get('metadata').value;
+        return !metadata || typeof metadata !== 'object' || Object.keys(metadata).length === 0;
+    }
+
+    /**
+     * Add custom field
+     */
+    addCustomField(): void {
+        const dialogRef = this._dialog.open(CustomFieldDialogComponent, {
+            width: '500px',
+            data: {
+                mode: 'add'
+            } as CustomFieldDialogData
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+                this._tasksService.addCustomField(
+                    this.task.id, 
+                    result.fieldName, 
+                    result.fieldValue, 
+                    result.fieldType
+                ).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
+    }
+
+    /**
+     * Edit custom field
+     */
+    editCustomField(fieldName: string): void {
+        const metadata = this.taskForm.get('metadata').value;
+        const currentField = metadata[fieldName];
+        
+        if (!currentField) {
+            return;
+        }
+
+        const dialogRef = this._dialog.open(CustomFieldDialogComponent, {
+            width: '500px',
+            data: {
+                mode: 'edit',
+                fieldName: fieldName,
+                fieldValue: currentField.value,
+                fieldType: currentField.type
+            } as CustomFieldDialogData
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+                this._tasksService.updateCustomField(
+                    this.task.id, 
+                    result.fieldName, 
+                    result.fieldValue
+                ).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
+    }
+
+    /**
+     * Remove custom field
+     */
+    removeCustomField(fieldName: string): void {
+        const confirmation = this._fuseConfirmationService.open({
+            title: 'Remove Custom Field',
+            message: `Are you sure you want to remove "${fieldName}"?`,
+            actions: {
+                confirm: {
+                    label: 'Remove'
+                },
+                cancel: {
+                    label: 'Cancel'
+                }
+            }
+        });
+
+        confirmation.afterClosed().subscribe((result) => {
+            if (result === 'confirmed') {
+                this._tasksService.removeCustomField(this.task.id, fieldName).subscribe(() => {
+                    // Refresh the form data
+                    this.mapUserCardToForm(this.task);
+                });
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // @ Checklist methods
+    // -----------------------------------------------------------------------------------------------------
+
+    newChecklistText: string = '';
+
+    /**
+     * Add new checklist item
+     */
+    addChecklistItem(): void {
+        if (this.newChecklistText && this.newChecklistText.trim()) {
+            const newItemText = this.newChecklistText.trim();
+            const currentItems = this.taskForm.get('checklistItems').value || [];
+            
+            // Tạo item mới
+            const newItem = {
+                id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                title: newItemText,
+                completed: false
+            };
+            
+            // Thêm vào form
+            const updatedItems = [...currentItems, newItem];
+            this.taskForm.get('checklistItems').setValue(updatedItems, { emitEvent: false });
+            
+            // Trigger update to save changes
+            const currentFormValue = this.taskForm.value;
+            this.updateUserCard(currentFormValue);
+            
+            // Clear input
+            this.newChecklistText = '';
+        }
+    }
+
+    /**
+     * Toggle checklist item completion
+     */
+    toggleChecklistItem(index: number, completed: boolean): void {
+        const items = this.taskForm.get('checklistItems').value;
+        if (items && items[index]) {
+            items[index].completed = completed;
+            this.taskForm.get('checklistItems').setValue([...items], { emitEvent: false });
+            
+            // Trigger update to save changes
+            const currentFormValue = this.taskForm.value;
+            this.updateUserCard(currentFormValue);
+        }
+    }
+
+    /**
+     * Delete checklist item
+     */
+    deleteChecklistItem(index: number): void {
+        const items = this.taskForm.get('checklistItems').value;
+        if (items && items[index]) {
+            const item = items[index];
+            
+            // Show confirmation dialog
+            const confirmation = this._fuseConfirmationService.open({
+                title: 'Delete Checklist Item',
+                message: 'Are you sure you want to delete this checklist item?',
+                actions: {
+                    confirm: {
+                        label: 'Delete'
+                    },
+                    cancel: {
+                        label: 'Cancel'
+                    }
+                }
+            });
+
+            confirmation.afterClosed().subscribe((result) => {
+                if (result === 'confirmed') {
+                    // Remove item from local array
+                    items.splice(index, 1);
+                    this.taskForm.get('checklistItems').setValue([...items], { emitEvent: false });
+                    
+                    // Trigger update to save changes
+                    const currentFormValue = this.taskForm.value;
+                    this.updateUserCard(currentFormValue);
+                    
+                    // Force UI update
+                    this._changeDetectorRef.markForCheck();
+                }
+            });
+        }
     }
 }

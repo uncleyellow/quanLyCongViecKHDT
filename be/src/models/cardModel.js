@@ -45,7 +45,9 @@ const CARD_TABLE_SCHEMA = Joi.object({
     totalTimeSpent: Joi.number().integer().default(0), // Total time in seconds
     isTracking: Joi.number().integer().valid(0, 1).default(0), // 0: not tracking, 1: tracking
     trackingStartTime: Joi.date().allow(null).default(null),
-    trackingPauseTime: Joi.number().integer().default(0) // Total pause time in seconds
+    trackingPauseTime: Joi.number().integer().default(0), // Total pause time in seconds
+    // Metadata field for custom data
+    metadata: Joi.object().default({}) // JSON object for storing custom fields
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
@@ -131,11 +133,27 @@ const updatePartial = async (data, dataUpdate) => {
     } catch (error) { throw new Error(error) }
 }
 
-const deleteNote = async (data) => {
+const deleteItem = async (data) => {
     try {
         const query = `DELETE FROM ${CARD_TABLE_NAME} WHERE id = ? AND boardId = ?`
         const deletedList = await db.query(query, [data.id, data.boardId])
         return deletedList[0]
+    } catch (error) { throw new Error(error) }
+}
+
+const getAllUserCards = async (userId) => {
+    try {
+        const query = `
+            SELECT c.*, b.title as boardTitle, l.title as listTitle, l.color as listColor
+            FROM ${CARD_TABLE_NAME} c
+            INNER JOIN cardmembers cm ON c.id = cm.cardId
+            INNER JOIN boards b ON c.boardId = b.id
+            INNER JOIN lists l ON c.listId = l.id
+            WHERE cm.memberId = ? AND c.archived = 0
+            ORDER BY c.createdAt DESC
+        `
+        const cards = await db.query(query, [userId])
+        return cards[0]
     } catch (error) { throw new Error(error) }
 }
 
@@ -147,5 +165,6 @@ export const cardModel = {
     getDetail,
     update,
     updatePartial,
-    deleteNote
+    deleteItem,
+    getAllUserCards
 }

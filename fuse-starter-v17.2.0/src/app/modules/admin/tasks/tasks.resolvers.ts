@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve, Router, RouterStateSnapshot } from '@angular/router';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, Observable, throwError, map, switchMap } from 'rxjs';
 import { TasksService } from 'app/modules/admin/tasks/tasks.service';
 import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
 
@@ -56,7 +56,14 @@ export class TasksResolver implements Resolve<any>
      */
     resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<Task[]>
     {
-        return this._tasksService.getTasks();
+        console.log('TasksResolver - resolving tasks');
+        // Use getUserCards instead of getTasks to ensure userCards data is loaded
+        return this._tasksService.getUserCards().pipe(
+            map((userCards) => {
+                console.log('TasksResolver - loaded userCards:', userCards?.length || 0);
+                return []; // Return empty array since we're using userCards for display
+            })
+        );
     }
 }
 
@@ -87,23 +94,26 @@ export class TasksTaskResolver implements Resolve<any>
      */
     resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<Task>
     {
-        return this._tasksService.getTaskById(route.paramMap.get('id'))
-                   .pipe(
-                       // Error here means the requested task is not available
-                       catchError((error) => {
+        const taskId = route.paramMap.get('id');
+        console.log('TasksTaskResolver - resolving task with id:', taskId);
+        
+        // First ensure user cards are loaded, then get the specific task
+        return this._tasksService.getUserCards().pipe(
+            switchMap(() => this._tasksService.getTaskById(taskId)),
+            catchError((error) => {
 
-                           // Log the error
-                           console.error(error);
+                // Log the error
+                console.error('TasksTaskResolver - error:', error);
 
-                           // Get the parent url
-                           const parentUrl = state.url.split('/').slice(0, -1).join('/');
+                // Get the parent url
+                const parentUrl = state.url.split('/').slice(0, -1).join('/');
 
-                           // Navigate to there
-                           this._router.navigateByUrl(parentUrl);
+                // Navigate to there
+                this._router.navigateByUrl(parentUrl);
 
-                           // Throw an error
-                           return throwError(error);
-                       })
-                   );
+                // Throw an error
+                return throwError(error);
+            })
+        );
     }
 }

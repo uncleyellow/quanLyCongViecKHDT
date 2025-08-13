@@ -1,0 +1,104 @@
+<div class="custom-field-dialog">
+    <h2 mat-dialog-title>{{dialogTitle}}</h2>
+    
+    <form [formGroup]="customFieldForm" (ngSubmit)="onSubmit()">
+        <mat-dialog-content class="mat-dialog-content">
+            <div class="space-y-4">
+                <!-- Field Name -->
+                <mat-form-field class="w-full">
+                    <mat-label>Field Name</mat-label>
+                    <input 
+                        matInput 
+                        formControlName="fieldName"
+                        placeholder="Enter field name"
+                        [readonly]="isEditMode"
+                        [attr.disabled]="isEditMode">
+                    <mat-error *ngIf="customFieldForm.get('fieldName').hasError('required')">
+                        Field name is required
+                    </mat-error>
+                    <mat-error *ngIf="customFieldForm.get('fieldName').hasError('minlength')">
+                        Field name must be at least 1 character
+                    </mat-error>
+                </mat-form-field>
+
+                <!-- Field Type -->
+                <mat-form-field class="w-full">
+                    <mat-label>Field Type</mat-label>
+                    <mat-select formControlName="fieldType" [disabled]="isEditMode">
+                        <mat-option *ngFor="let type of fieldTypes" [value]="type.value">
+                            {{type.label}}
+                        </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="customFieldForm.get('fieldType').hasError('required')">
+                        Field type is required
+                    </mat-error>
+                </mat-form-field>
+
+                <!-- Field Value -->
+                <div class="field-value-container">
+                    <mat-label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Field Value
+                    </mat-label>
+                    
+                    <!-- String/Text Input -->
+                    <mat-form-field *ngIf="customFieldForm.get('fieldType').value === 'string'" class="w-full">
+                        <input 
+                            matInput 
+                            formControlName="fieldValue"
+                            placeholder="Enter text value">
+                    </mat-form-field>
+
+                    <!-- Number Input -->
+                    <mat-form-field *ngIf="customFieldForm.get('fieldType').value === 'number'" class="w-full">
+                        <input 
+                            matInput 
+                            type="number"
+                            formControlName="fieldValue"
+                            placeholder="Enter number value"
+                            step="any">
+                    </mat-form-field>
+
+                    <!-- Boolean Input -->
+                    <div *ngIf="customFieldForm.get('fieldType').value === 'boolean'" class="flex items-center">
+                        <mat-checkbox formControlName="fieldValue">
+                            {{customFieldForm.get('fieldValue').value ? 'True' : 'False'}}
+                        </mat-checkbox>
+                        <span class="ml-2 text-sm text-gray-600">
+                            {{customFieldForm.get('fieldValue').value ? 'True' : 'False'}}
+                        </span>
+                    </div>
+
+                    <!-- Date Input -->
+                    <mat-form-field *ngIf="customFieldForm.get('fieldType').value === 'date'" class="w-full">
+                        <input 
+                            matInput 
+                            [matDatepicker]="datePicker"
+                            formControlName="fieldValue"
+                            placeholder="Choose a date">
+                        <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
+                        <mat-datepicker #datePicker></mat-datepicker>
+                        <mat-error *ngIf="customFieldForm.get('fieldValue').hasError('matDatepickerParse')">
+                            Please enter a valid date
+                        </mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+        </mat-dialog-content>
+
+        <mat-dialog-actions align="end" class="mat-dialog-actions">
+            <button 
+                mat-button 
+                type="button"
+                (click)="onCancel()">
+                Cancel
+            </button>
+            <button 
+                mat-flat-button 
+                color="primary"
+                type="submit"
+                [disabled]="!customFieldForm.valid">
+                {{submitButtonText}}
+            </button>
+        </mat-dialog-actions>
+    </form>
+</div>

@@ -1,0 +1,165 @@
+// Drag and drop styles
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+              0 8px 10px 1px rgba(0, 0, 0, 0.14),
+              0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  background: white;
+  opacity: 0.9;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  background: #ccc;
+  border: 2px dashed #999;
+  border-radius: 4px;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Hover effect for draggable items
+.cursor-move:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+// Visual feedback during drag
+.cdk-drag-preview {
+  transform: rotate(2deg);
+}
+
+// Loading state for drag operations
+.dragging {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+// Sticky header styling
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.3s ease;
+  
+  &.scrolled {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Dark mode support for sticky header
+.dark .sticky {
+  background-color: rgba(17, 24, 39, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+// Scrollable content area
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  }
+}
+
+// Dark mode scrollbar
+.dark .overflow-y-auto {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+// Board group styling
+.board-group {
+    .board-header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        transition: all 0.2s ease;
+        border-radius: 4px;
+        
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+            transform: translateX(2px);
+        }
+        
+        .mat-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        h3 {
+            flex: 1;
+        }
+    }
+    
+    // Style for collapsed state
+    &.collapsed .board-header {
+        border-bottom: none;
+        margin-bottom: 0.5rem;
+    }
+}
+
+// Drag and drop styling
+.dragging {
+    .cdk-drag-placeholder {
+        opacity: 0.3;
+    }
+    
+    .cdk-drag-preview {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+}
+
+// Board group spacing
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+// Animation styles
+.cdk-drop-list {
+    transition: all 0.3s ease-in-out;
+}
+
+// Rotate animation for chevron
+.rotate-90 {
+    transform: rotate(90deg);
+}
+
+// Dark mode support
+.dark {
+    .board-group .board-header {
+        border-bottom-color: rgba(255, 255, 255, 0.12);
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+    }
+}

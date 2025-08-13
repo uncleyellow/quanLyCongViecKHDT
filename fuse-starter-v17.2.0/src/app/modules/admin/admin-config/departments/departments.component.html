@@ -1,0 +1,236 @@
+<div class="sm:absolute sm:inset-0 flex flex-col flex-auto min-w-0 sm:overflow-hidden bg-card dark:bg-transparent">
+
+    <!-- Header -->
+    <div class="relative flex flex-col sm:flex-row flex-0 sm:items-center sm:justify-between py-8 px-6 md:px-8 border-b">
+        <!-- Loader -->
+        <div
+            class="absolute inset-x-0 bottom-0"
+            *ngIf="isLoading">
+            <mat-progress-bar [mode]="'indeterminate'"></mat-progress-bar>
+        </div>
+        <!-- Title -->
+        <div class="text-4xl font-extrabold tracking-tight">Quản lý phòng ban</div>
+        <!-- Actions -->
+        <div class="flex shrink-0 items-center mt-6 sm:mt-0 sm:ml-4">
+            <!-- Flash message -->
+            <div
+                class="flex items-center mr-4"
+                *ngIf="flashMessage">
+                <ng-container *ngIf="flashMessage === 'success'">
+                    <mat-icon
+                        class="text-green-500"
+                        [svgIcon]="'heroicons_outline:check'"></mat-icon>
+                    <span class="ml-2">Cập nhật thành công!</span>
+                </ng-container>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="flex flex-auto overflow-hidden">
+
+        <!-- Content -->
+        <div class="flex flex-col flex-auto sm:mb-18 overflow-hidden sm:overflow-y-auto">
+
+            <!-- Tabs -->
+            <mat-tab-group [(selectedIndex)]="activeTab" class="flex-auto">
+                
+                <!-- Companies Tab -->
+                <mat-tab label="Công ty">
+                    <div class="p-6 md:p-8">
+                        
+                        <!-- Companies Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+                            <div class="text-2xl font-bold">Danh sách công ty</div>
+                            <div class="flex items-center mt-4 sm:mt-0">
+                                <!-- Search -->
+                                <mat-form-field
+                                    class="fuse-mat-dense fuse-mat-rounded min-w-64"
+                                    [subscriptSizing]="'dynamic'">
+                                    <mat-icon
+                                        class="icon-size-5"
+                                        matPrefix
+                                        [svgIcon]="'heroicons_solid:search'"></mat-icon>
+                                    <input
+                                        matInput
+                                        (keyup)="applyCompanyFilter($event)"
+                                        [placeholder]="'Tìm kiếm công ty'">
+                                </mat-form-field>
+                                <!-- Add company button -->
+                                <button
+                                    class="ml-4"
+                                    mat-flat-button
+                                    [color]="'primary'"
+                                    (click)="createCompany()">
+                                    <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                                    <span class="ml-2 mr-1">Thêm công ty</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Companies Table -->
+                        <div class="mat-elevation-z8 overflow-hidden">
+                            <table mat-table [dataSource]="companiesDataSource" matSort (matSortChange)="onCompaniesSortChange($event)" class="w-full">
+                                
+                                <!-- Name Column -->
+                                <ng-container matColumnDef="name">
+                                    <th mat-header-cell *matHeaderCellDef mat-sort-header> Tên công ty </th>
+                                    <td mat-cell *matCellDef="let company"> {{company.name}} </td>
+                                </ng-container>
+
+                                <!-- Description Column -->
+                                <ng-container matColumnDef="description">
+                                    <th mat-header-cell *matHeaderCellDef> Mô tả </th>
+                                    <td mat-cell *matCellDef="let company"> {{company.description || 'N/A'}} </td>
+                                </ng-container>
+
+                                <!-- Created At Column -->
+                                <ng-container matColumnDef="created_at">
+                                    <th mat-header-cell *matHeaderCellDef mat-sort-header> Ngày tạo </th>
+                                    <td mat-cell *matCellDef="let company"> {{company.createdAt | date:'dd/MM/yyyy'}} </td>
+                                </ng-container>
+
+                                <!-- Actions Column -->
+                                <ng-container matColumnDef="actions">
+                                    <th mat-header-cell *matHeaderCellDef> Thao tác </th>
+                                    <td mat-cell *matCellDef="let company">
+                                        <button
+                                            mat-icon-button
+                                            (click)="editCompany(company)"
+                                            class="mr-2">
+                                            <mat-icon [svgIcon]="'heroicons_outline:pencil'"></mat-icon>
+                                        </button>
+                                        <button
+                                            mat-icon-button
+                                            [color]="'warn'"
+                                            (click)="deleteCompany(company)">
+                                            <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                        </button>
+                                    </td>
+                                </ng-container>
+
+                                <tr mat-header-row *matHeaderRowDef="companiesDisplayedColumns"></tr>
+                                <tr mat-row *matRowDef="let row; columns: companiesDisplayedColumns;"></tr>
+                            </table>
+
+                            <!-- Companies Pagination -->
+                            <mat-paginator 
+                                #companiesPaginator
+                                [length]="companiesPagination.total"
+                                [pageSize]="companiesPagination.limit"
+                                [pageSizeOptions]="[5, 10, 25, 100]"
+                                [pageIndex]="companiesPagination.page - 1"
+                                (page)="onCompaniesPageChange($event)"
+                                showFirstLastButtons>
+                            </mat-paginator>
+                        </div>
+
+                    </div>
+                </mat-tab>
+
+                <!-- Departments Tab -->
+                <mat-tab label="Phòng ban">
+                    <div class="p-6 md:p-8">
+                        
+                        <!-- Departments Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+                            <div class="text-2xl font-bold">Danh sách phòng ban</div>
+                            <div class="flex items-center mt-4 sm:mt-0">
+                                <!-- Search -->
+                                <mat-form-field
+                                    class="fuse-mat-dense fuse-mat-rounded min-w-64"
+                                    [subscriptSizing]="'dynamic'">
+                                    <mat-icon
+                                        class="icon-size-5"
+                                        matPrefix
+                                        [svgIcon]="'heroicons_solid:search'"></mat-icon>
+                                    <input
+                                        matInput
+                                        (keyup)="applyDepartmentFilter($event)"
+                                        [placeholder]="'Tìm kiếm phòng ban'">
+                                </mat-form-field>
+                                <!-- Add department button -->
+                                <button
+                                    class="ml-4"
+                                    mat-flat-button
+                                    [color]="'primary'"
+                                    (click)="createDepartment()">
+                                    <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                                    <span class="ml-2 mr-1">Thêm phòng ban</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Departments Table -->
+                        <div class="mat-elevation-z8 overflow-hidden">
+                            <table mat-table [dataSource]="departmentsDataSource" matSort (matSortChange)="onDepartmentsSortChange($event)" class="w-full">
+                                
+                                <!-- Name Column -->
+                                <ng-container matColumnDef="name">
+                                    <th mat-header-cell *matHeaderCellDef mat-sort-header> Tên phòng ban </th>
+                                    <td mat-cell *matCellDef="let department"> {{department.name}} </td>
+                                </ng-container>
+
+                                <!-- Company Name Column -->
+                                <ng-container matColumnDef="company_name">
+                                    <th mat-header-cell *matHeaderCellDef> Công ty </th>
+                                    <td mat-cell *matCellDef="let department"> {{department.companyName || 'N/A'}} </td>
+                                </ng-container>
+
+                                <!-- Description Column -->
+                                <ng-container matColumnDef="description">
+                                    <th mat-header-cell *matHeaderCellDef> Mô tả </th>
+                                    <td mat-cell *matCellDef="let department"> {{department.description || 'N/A'}} </td>
+                                </ng-container>
+
+                                <!-- Created At Column -->
+                                <ng-container matColumnDef="created_at">
+                                    <th mat-header-cell *matHeaderCellDef mat-sort-header> Ngày tạo </th>
+                                    <td mat-cell *matCellDef="let department"> {{department.createdAt | date:'dd/MM/yyyy'}} </td>
+                                </ng-container>
+
+                                <!-- Actions Column -->
+                                <ng-container matColumnDef="actions">
+                                    <th mat-header-cell *matHeaderCellDef> Thao tác </th>
+                                    <td mat-cell *matCellDef="let department">
+                                        <button
+                                            mat-icon-button
+                                            (click)="editDepartment(department)"
+                                            class="mr-2">
+                                            <mat-icon [svgIcon]="'heroicons_outline:pencil'"></mat-icon>
+                                        </button>
+                                        <button
+                                            mat-icon-button
+                                            [color]="'warn'"
+                                            (click)="deleteDepartment(department)">
+                                            <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                        </button>
+                                    </td>
+                                </ng-container>
+
+                                <tr mat-header-row *matHeaderRowDef="departmentsDisplayedColumns"></tr>
+                                <tr mat-row *matRowDef="let row; columns: departmentsDisplayedColumns;"></tr>
+                            </table>
+
+                            <!-- Departments Pagination -->
+                            <mat-paginator 
+                                #departmentsPaginator
+                                [length]="departmentsPagination.total"
+                                [pageSize]="departmentsPagination.limit"
+                                [pageSizeOptions]="[5, 10, 25, 100]"
+                                [pageIndex]="departmentsPagination.page - 1"
+                                (page)="onDepartmentsPageChange($event)"
+                                showFirstLastButtons>
+                            </mat-paginator>
+                        </div>
+
+                    </div>
+                </mat-tab>
+
+            </mat-tab-group>
+
+        </div>
+
+    </div>
+
+</div>

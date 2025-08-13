@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, filter, map, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
-import { Tag, Task } from 'app/modules/admin/tasks/tasks.types';
+import { Tag, Task, UserCard } from 'app/modules/admin/tasks/tasks.types';
+import { environment } from 'environments/environment.local';
 
 @Injectable({
     providedIn: 'root'
@@ -12,6 +13,7 @@ export class TasksService
     private _tags: BehaviorSubject<Tag[] | null> = new BehaviorSubject(null);
     private _task: BehaviorSubject<Task | null> = new BehaviorSubject(null);
     private _tasks: BehaviorSubject<Task[] | null> = new BehaviorSubject(null);
+    private _userCards: BehaviorSubject<UserCard[] | null> = new BehaviorSubject(null);
 
     /**
      * Constructor
@@ -46,6 +48,14 @@ export class TasksService
     get tasks$(): Observable<Task[]>
     {
         return this._tasks.asObservable();
+    }
+
+    /**
+     * Getter for user cards
+     */
+    get userCards$(): Observable<UserCard[]>
+    {
+        return this._userCards.asObservable();
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -204,12 +214,38 @@ export class TasksService
      */
     getTaskById(id: string): Observable<Task>
     {
-        return this._tasks.pipe(
+        console.log('getTaskById called with id:', id);
+        return this._userCards.pipe(
             take(1),
-            map((tasks) => {
+            map((userCards) => {
+                console.log('getTaskById - userCards:', userCards);
 
-                // Find the task
-                const task = tasks.find(item => item.id === id) || null;
+                // Find the task in user cards
+                const userCard = userCards?.find(item => item.id === id) || null;
+                console.log('getTaskById - found userCard:', userCard);
+
+                // Convert UserCard to Task format if found
+                let task: Task = null;
+                if (userCard) {
+                    task = {
+                        id: userCard.id,
+                        type: 'task',
+                        title: userCard.title,
+                        notes: userCard.description || '',
+                        completed: userCard.status === 'completed' || userCard.status === 'done',
+                        dueDate: userCard.dueDate,
+                        priority: userCard.metadata?.priority?.value || 'normal',
+                        tags: [],
+                        order: userCard.position || 0,
+                        checklistItems: (userCard.checklistItems || []).map(item => ({
+                            id: item.id || Date.now().toString(),
+                            title: item.title || item.text || '',
+                            completed: item.completed || item.checked || false
+                        }))
+                    };
+                }
+
+                console.log('getTaskById - created task:', task);
 
                 // Update the task
                 this._task.next(task);
@@ -221,6 +257,7 @@ export class TasksService
 
                 if ( !task )
                 {
+                    console.error('getTaskById - task not found for id:', id);
                     return throwError('Could not found task with id of ' + id + '!');
                 }
 
@@ -321,6 +358,286 @@ export class TasksService
                     return isDeleted;
                 })
             ))
+        );
+    }
+
+    /**
+     * Get user cards
+     */
+    getUserCards(): Observable<UserCard[]>
+    {
+        console.log('getUserCards - calling API');
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/user/all`).pipe(
+            map((response: any) => {
+                // Handle API response format
+                const cards = response.data || response;
+                console.log('getUserCards - received cards:', cards?.length || 0);
+                this._userCards.next(cards);
+                return cards;
+            })
+        );
+    }
+
+    /**
+     * Update card status
+     *
+     * @param cardId
+     * @param status
+     */
+    updateCardStatus(cardId: string, status: string): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}`, {
+            status: status
+        }).pipe(
+            tap(() => {
+                // Update local cards data
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.map(card => 
+                        card.id === cardId ? { ...card, status } : card
+                    );
+                    this._userCards.next(updatedCards);
+                }
+            })
+        );
+    }
+
+    /**
+     * Update card
+     *
+     * @param cardId
+     * @param updateData
+     */
+    updateCard(cardId: string, updateData: any): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}`, updateData).pipe(
+            tap((response) => {
+                // Update local cards data
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.map(card => {
+                        if (card.id === cardId) {
+                            // Merge the update data with existing card data
+                            const updatedCard = { ...card, ...updateData };
+                            
+                            // Handle special field mappings
+                            if (updateData.title !== undefined) {
+                                updatedCard.title = updateData.title;
+                            }
+                            if (updateData.description !== undefined) {
+                                updatedCard.description = updateData.description;
+                            }
+                            if (updateData.status !== undefined) {
+                                updatedCard.status = updateData.status;
+                            }
+                            if (updateData.dueDate !== undefined) {
+                                updatedCard.dueDate = updateData.dueDate;
+                            }
+                            if (updateData.position !== undefined) {
+                                updatedCard.position = updateData.position;
+                            }
+                            if (updateData.startDate !== undefined) {
+                                updatedCard.startDate = updateData.startDate;
+                            }
+                            if (updateData.endDate !== undefined) {
+                                updatedCard.endDate = updateData.endDate;
+                            }
+                            if (updateData.totalTimeSpent !== undefined) {
+                                updatedCard.totalTimeSpent = updateData.totalTimeSpent;
+                            }
+                            if (updateData.isTracking !== undefined) {
+                                updatedCard.isTracking = updateData.isTracking;
+                            }
+                            if (updateData.trackingStartTime !== undefined) {
+                                updatedCard.trackingStartTime = updateData.trackingStartTime;
+                            }
+                            if (updateData.trackingPauseTime !== undefined) {
+                                updatedCard.trackingPauseTime = updateData.trackingPauseTime;
+                            }
+                            if (updateData.metadata !== undefined) {
+                                updatedCard.metadata = updateData.metadata;
+                            }
+                            if (updateData.checklistItems !== undefined) {
+                                updatedCard.checklistItems = updateData.checklistItems;
+                            }
+                            
+                            console.log('Updated card in local state:', updatedCard);
+                            return updatedCard;
+                        }
+                        return card;
+                    });
+                    this._userCards.next(updatedCards);
+                    console.log('Local state updated with new cards:', updatedCards.length);
+                }
+            })
+        );
+    }
+
+    /**
+     * Update cards order
+     *
+     * @param cardOrderIds
+     */
+    updateCardsOrder(cardOrderIds: string[]): Observable<any>
+    {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/users/card-order`, {
+            cardOrderIds: cardOrderIds
+        }).pipe(
+            tap(() => {
+                // Update local cards data with new order
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const cardMap = new Map(currentCards.map(card => [card.id, card]));
+                    const orderedCards: UserCard[] = [];
+                    const completedCards: UserCard[] = [];
+                    
+                    // Process cards in the order specified by cardOrderIds
+                    cardOrderIds.forEach(cardId => {
+                        const card = cardMap.get(cardId);
+                        if (card) {
+                            // Check if card is completed
+                            if (this.isCardCompleted(card)) {
+                                completedCards.push(card);
+                            } else {
+                                orderedCards.push(card);
+                            }
+                            cardMap.delete(cardId);
+                        }
+                    });
+                    
+                    // Add any remaining cards that weren't in the order list
+                    cardMap.forEach(card => {
+                        if (this.isCardCompleted(card)) {
+                            completedCards.push(card);
+                        } else {
+                            orderedCards.push(card);
+                        }
+                    });
+                    
+                    // Return ordered cards first, then completed cards at the end
+                    this._userCards.next([...orderedCards, ...completedCards]);
+                }
+            })
+        );
+    }
+
+    /**
+     * Check if a card is completed
+     *
+     * @param card
+     */
+    private isCardCompleted(card: UserCard): boolean {
+        return card.status === 'completed' || card.status === 'done';
+    }
+
+    /**
+     * Update UserCard in local state
+     *
+     * @param updatedCard
+     */
+    updateUserCard(updatedCard: UserCard): void {
+        const currentCards = this._userCards.getValue();
+        if (currentCards) {
+            const cardIndex = currentCards.findIndex(card => card.id === updatedCard.id);
+            if (cardIndex !== -1) {
+                const updatedCards = [...currentCards];
+                updatedCards[cardIndex] = updatedCard;
+                this._userCards.next(updatedCards);
+            }
+        }
+    }
+
+    /**
+     * Add custom field to card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     * @param fieldValue
+     * @param fieldType
+     */
+    addCustomField(cardId: string, fieldName: string, fieldValue: any, fieldType: 'string' | 'number' | 'boolean' | 'date' = 'string'): Observable<any> {
+        return this._httpClient.post<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields`, {
+            fieldName,
+            fieldValue,
+            fieldType
+        }).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Update custom field in card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     * @param fieldValue
+     */
+    updateCustomField(cardId: string, fieldName: string, fieldValue: any): Observable<any> {
+        return this._httpClient.patch<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields/${fieldName}`, {
+            fieldValue
+        }).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Remove custom field from card metadata
+     *
+     * @param cardId
+     * @param fieldName
+     */
+    removeCustomField(cardId: string, fieldName: string): Observable<any> {
+        return this._httpClient.delete<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields/${fieldName}`).pipe(
+            tap((response) => {
+                // Update local card data
+                if (response.data) {
+                    this.updateUserCard(response.data);
+                }
+            })
+        );
+    }
+
+    /**
+     * Get custom fields from card metadata
+     *
+     * @param cardId
+     */
+    getCustomFields(cardId: string): Observable<any> {
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/${cardId}/custom-fields`);
+    }
+
+    /**
+     * Refresh user cards from server
+     */
+    refreshUserCards(): Observable<UserCard[]> {
+        return this.getUserCards();
+    }
+
+    /**
+     * Delete card
+     *
+     * @param cardId
+     */
+    deleteCard(cardId: string): Observable<any> {
+        return this._httpClient.delete<any>(`${environment.apiBaseUrl}/cards/${cardId}`).pipe(
+            tap((response) => {
+                // Remove card from local state
+                const currentCards = this._userCards.getValue();
+                if (currentCards) {
+                    const updatedCards = currentCards.filter(card => card.id !== cardId);
+                    this._userCards.next(updatedCards);
+                }
+            })
         );
     }
 }

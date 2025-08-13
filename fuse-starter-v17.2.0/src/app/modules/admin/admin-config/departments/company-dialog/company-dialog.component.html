@@ -1,0 +1,54 @@
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold">{{ getTitle() }}</h2>
+        <button
+            mat-icon-button
+            (click)="onCancel()"
+            class="text-gray-500 hover:text-gray-700">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+        <mat-form-field class="w-full">
+            <mat-label>Tên công ty</mat-label>
+            <input 
+                matInput 
+                formControlName="name" 
+                placeholder="Nhập tên công ty"
+                required>
+            <mat-error *ngIf="form.get('name')?.hasError('required')">
+                Tên công ty là bắt buộc
+            </mat-error>
+            <mat-error *ngIf="form.get('name')?.hasError('minlength')">
+                Tên công ty phải có ít nhất 2 ký tự
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Mô tả</mat-label>
+            <textarea 
+                matInput 
+                formControlName="description" 
+                placeholder="Nhập mô tả công ty"
+                rows="3">
+            </textarea>
+        </mat-form-field>
+
+        <div class="flex justify-end gap-3 pt-4">
+            <button
+                type="button"
+                mat-stroked-button
+                (click)="onCancel()">
+                Hủy
+            </button>
+            <button
+                type="submit"
+                mat-flat-button
+                [color]="'primary'"
+                [disabled]="!form.valid">
+                {{ getSubmitButtonText() }}
+            </button>
+        </div>
+    </form>
+</div>
