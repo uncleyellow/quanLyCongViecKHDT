@@ -461,6 +461,84 @@ Router.route('/:id')
 
 /**
  * @swagger
+ * /cards/{cardId}/members:
+ *   get:
+ *     summary: Get all members of a card
+ *     tags: [Cards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Card ID
+ *     responses:
+ *       200:
+ *         description: Card members retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Card members fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       cardId:
+ *                         type: string
+ *                         format: uuid
+ *                         description: Card ID
+ *                       memberId:
+ *                         type: string
+ *                         format: uuid
+ *                         description: Member ID
+ *                       joinedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         description: When the member joined
+ *                       role:
+ *                         type: string
+ *                         enum: [owner, admin, member, viewer]
+ *                         description: Member role
+ *                       name:
+ *                         type: string
+ *                         description: Member name
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         description: Member email
+ *                       avatar:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Member avatar URL
+ *                       userType:
+ *                         type: string
+ *                         description: User type
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Card not found
+ *       500:
+ *         description: Internal server error
+ */
+Router.route('/:cardId/members')
+    .get(verifyToken, cardController.getCardMembers)
+
+/**
+ * @swagger
  * /cards/board/{boardId}:
  *   get:
  *     summary: Get all cards by board ID

@@ -19,6 +19,25 @@ const getWorkStatistics = async (req, res, next) => {
   }
 }
 
+const getActiveMembers = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const members = await dashboardService.getActiveMembers({ userId })
+    
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Active members retrieved successfully',
+      data: members
+    }
+    
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const dashboardController = {
-  getWorkStatistics
+  getWorkStatistics,
+  getActiveMembers
 }

@@ -16,8 +16,28 @@ export interface WorkStatistics {
     completedPercentage?: number;
     inProgressPercentage?: number;
     pendingPercentage?: number;
-    pausedPercentage?: number;
     overduePercentage?: number;
+}
+
+export interface ActiveMember {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    userType: string;
+    totalTasks: number;
+    todoTasks: number;
+    inProgressTasks: number;
+    doneTasks: number;
+    overdueTasks: number;
+}
+
+export interface BasicUser {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    userType: string;
 }
 
 export interface DashboardResponse {
@@ -25,6 +45,20 @@ export interface DashboardResponse {
     status: string;
     message: string;
     data: WorkStatistics;
+}
+
+export interface ActiveMembersResponse {
+    code: number;
+    status: string;
+    message: string;
+    data: ActiveMember[];
+}
+
+export interface BasicUserListResponse {
+    code: number;
+    status: string;
+    message: string;
+    data: BasicUser[];
 }
 
 @Injectable({
@@ -40,5 +74,19 @@ export class DashboardService {
      */
     getWorkStatistics(): Observable<DashboardResponse> {
         return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/work-statistics`);
+    }
+
+    /**
+     * Get active members from dashboard API
+     */
+    getActiveMembers(): Observable<ActiveMembersResponse> {
+        return this.http.get<ActiveMembersResponse>(`${this.apiUrl}/dashboard/active-members`);
+    }
+
+    /**
+     * Get basic user list for selection
+     */
+    getBasicUserList(): Observable<BasicUserListResponse> {
+        return this.http.get<BasicUserListResponse>(`${this.apiUrl}/users/basic-list`);
     }
 }

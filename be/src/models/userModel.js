@@ -235,6 +235,76 @@ const updateCardOrder = async (userId, cardOrderIds) => {
   }
 }
 
+const getBasicUserList = async (data) => {
+  try {
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return []
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only get users from their own department
+      query = `
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.avatar,
+          u.type as userType
+        FROM ${USER_TABLE_NAME} u
+        WHERE u.departmentId = ? 
+        AND u.deletedAt IS NULL
+        AND u.status = 'online'
+        ORDER BY u.name
+      `
+      params = [user.departmentId]
+    } else if (user.type === 'manager') {
+      // Manager users: get users from their department
+      query = `
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.avatar,
+          u.type as userType
+        FROM ${USER_TABLE_NAME} u
+        WHERE u.departmentId = ? 
+        AND u.deletedAt IS NULL
+        AND u.status = 'online'
+        ORDER BY u.name
+      `
+      params = [user.departmentId]
+    } else {
+      // For other roles (boss, admin), get all active users
+      query = `
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.avatar,
+          u.type as userType
+        FROM ${USER_TABLE_NAME} u
+        WHERE u.deletedAt IS NULL
+        AND u.status = 'online'
+        ORDER BY u.name
+      `
+      params = []
+    }
+
+    const result = await db.query(query, params)
+    return result[0]
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const userModel = {
   USER_TABLE_NAME,
   USER_TABLE_SCHEMA,
@@ -249,5 +319,6 @@ export const userModel = {
   deleteUser,
   changePassword,
   updateBoardOrder,
-  updateCardOrder
+  updateCardOrder,
+  getBasicUserList
 }

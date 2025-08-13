@@ -8,6 +8,7 @@ import { assign } from 'lodash-es';
 import { DateTime } from 'luxon';
 import { ScrumboardService } from 'app/modules/admin/scrumboard/scrumboard.service';
 import { Board, Card, Label, Member } from 'app/modules/admin/scrumboard/scrumboard.models';
+import { DashboardService } from 'app/modules/admin/example/dashboard.service';
 
 @Component({
     selector: 'scrumboard-card-details',
@@ -30,6 +31,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     currentSessionTime: number = 0;
     showHistory: boolean = false; // Mặc định là đóng
     private sessionTimer: any;
+    // Track card members separately to ensure updates are preserved
+    private _cardMembers: any[] = [];
 
     // Private
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -41,7 +44,8 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
         public matDialogRef: MatDialogRef<ScrumboardCardDetailsComponent>,
         private _changeDetectorRef: ChangeDetectorRef,
         private _formBuilder: UntypedFormBuilder,
-        private _scrumboardService: ScrumboardService
+        private _scrumboardService: ScrumboardService,
+        private _dashboardService: DashboardService
     ) {
     }
 
@@ -84,6 +88,18 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                     if (foundListId) break;
                 }
                 this.card.listId = foundListId;
+                
+                // Debug: Log card members khi load
+                console.log('Card loaded with members:', card.members);
+                
+                // Initialize _cardMembers with card members
+                if (card.members && Array.isArray(card.members)) {
+                    this._cardMembers = [...card.members];
+                } else {
+                    this._cardMembers = [];
+                }
+                console.log('Initialized _cardMembers:', this._cardMembers);
+                
                 // Sử dụng members thực tế từ card
                 if (card.members && Array.isArray(card.members) && card.members.length > 0) {
                     this.selectedMember = card.members[0]; // Lấy member đầu tiên làm selected
@@ -658,14 +674,14 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                 creatorId = user.id;
             } catch { }
         }
-        // Xử lý members từ card thực tế
-        let members: any[] = [];
-        // Lấy members hiện tại từ card
-        if (this.card.members && Array.isArray(this.card.members)) {
-            members = [...this.card.members];
-        } else if (this.card.members && typeof this.card.members === 'string') {
-            members = [this.card.members];
-        }
+        
+        console.log('saveDetails called');
+        console.log('Current _cardMembers in saveDetails:', this._cardMembers);
+        console.log('Current card.members in saveDetails:', this.card.members);
+        
+        // Xử lý members từ _cardMembers (đã được cập nhật bởi user select component)
+        let members: any[] = [...this._cardMembers];
+        console.log('Members from _cardMembers array:', members);
         
         // Nếu card chưa có members, set người tạo là member đầu tiên
         if (members.length === 0 && creatorId) {
@@ -673,34 +689,34 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
                 memberId: creatorId,
                 cardId: this.card.id,
                 role: 'member'
-            })
-            // members = [creatorId];
+            });
+            console.log('Added creator as first member:', members);
         }
-        
-        // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp)
-        if (this.selectedMember && !members.includes(this.selectedMember)) {
-            members.push(this.selectedMember);
-        }
-        // Không cho xóa creator (phần tử đầu tiên)
-        // (Nếu có UI xóa member, cần kiểm tra index > 0 mới cho xóa)
 
         // Lấy danh sách label id hiện tại
         const labelIds = this.card.labels.map(l => l.id);
 
-        // Nếu có nhãn mới, tạo nhãn mới trước (nếu có API)
-        // Ở đây chỉ lấy id các nhãn đã có, nhãn mới sẽ được tạo ở chỗ khác
-
         const updateData = {
             ...formValue,
             checklistItems: this.card.checklistItems, // Sử dụng checklistItems từ card object
-            // member: this.selectedMember,
-            members: members,
+            members: members, // Sử dụng members đã được cập nhật từ card
             labels: labelIds, // <-- truyền mảng id nhãn
             listId: this.card.listId,
             boardId: this.board.id
         };
         delete updateData.id;
-        this._scrumboardService.updateCard(this.card.id, updateData).subscribe();
+        
+        console.log('Final members array for API:', members);
+        console.log('Final update data:', updateData);
+        
+        this._scrumboardService.updateCard(this.card.id, updateData).subscribe({
+            next: (response) => {
+                console.log('Card updated successfully:', response);
+            },
+            error: (error) => {
+                console.error('Error updating card:', error);
+            }
+        });
     }
 
     onSave() {
@@ -710,6 +726,78 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
 
     onCancel() {
         this.matDialogRef.close(false); // Đóng dialog, không lưu
+    }
+
+    /**
+     * Handle new member selection from user select component
+     */
+    onNewMemberSelected(userId: string): void {
+        console.log('=== onNewMemberSelected START ===');
+        console.log('onNewMemberSelected called with userId:', userId);
+        console.log('Current _cardMembers before adding:', this._cardMembers);
+        
+        if (!userId) {
+            console.log('userId is empty, returning');
+            return;
+        }
+        
+        // Kiểm tra xem user đã được thêm vào card chưa
+        const existingMember = this._cardMembers.find(member => member.id === userId || member.memberId === userId);
+        if (existingMember) {
+            console.log('User already exists in card members:', existingMember);
+            return;
+        }
+
+        // Thêm user mới vào card members
+        // Lấy thông tin user từ dashboard service
+        this._dashboardService.getBasicUserList().subscribe({
+            next: (response) => {
+                const user = response.data.find(u => u.id === userId);
+                if (user) {
+                    const newMember = {
+                        id: user.id,
+                        memberId: user.id,
+                        name: user.name,
+                        email: user.email,
+                        avatar: user.avatar,
+                        role: 'member',
+                        cardId: this.card.id
+                    };
+                    
+                    // Thêm vào _cardMembers
+                    this._cardMembers.push(newMember);
+                    
+                    // Cập nhật card.members để UI hiển thị
+                    this.card.members = [...this._cardMembers] as any;
+                    
+                                         console.log('Added new member to card:', newMember);
+                     console.log('Updated _cardMembers after adding:', this._cardMembers);
+                     console.log('Updated card.members after adding:', this.card.members);
+                     
+                     // Cập nhật UI
+                     this._changeDetectorRef.markForCheck();
+                     console.log('=== onNewMemberSelected END ===');
+                }
+            },
+            error: (error) => {
+                console.error('Error getting user details:', error);
+            }
+        });
+    }
+
+    /**
+     * Remove member from card
+     */
+    removeMember(member: any): void {
+        const index = this._cardMembers.findIndex(m => m.id === member.id || m.memberId === member.memberId);
+        if (index > -1) {
+            this._cardMembers.splice(index, 1);
+            // Cập nhật card.members để UI hiển thị
+            this.card.members = [...this._cardMembers] as any;
+            this._changeDetectorRef.markForCheck();
+            console.log('Removed member from card:', member);
+            console.log('Updated _cardMembers after removing:', this._cardMembers);
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------

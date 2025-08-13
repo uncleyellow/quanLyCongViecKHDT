@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { GanttService, GanttTask } from './gantt.service';
-import { DashboardService, WorkStatistics } from './dashboard.service';
+import { DashboardService, WorkStatistics, ActiveMember } from './dashboard.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
@@ -81,6 +81,10 @@ export interface ProjectMember {
     role: string;
     status: 'online' | 'offline' | 'away';
     tasksCount: number;
+    doneTasks?: number;
+    inProgressTasks?: number;
+    overdueTasks?: number;
+    todoTasks?: number;
 }
 
 export interface WidgetSize {
@@ -125,6 +129,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         overdue: 0
     };
     workStatistics: WorkStatistics | null = null;
+    activeMembers: ActiveMember[] = [];
     teamMembers: TeamMember[] = [];
     projectMembers: ProjectMember[] = [];
     
@@ -195,8 +200,8 @@ export class ExampleComponent implements OnInit, OnDestroy
         {
             id: 'members',
             type: 'members',
-            title: 'Thành viên dự án',
-            description: 'Danh sách thành viên và trạng thái hoạt động',
+            title: 'Thành viên hoạt động',
+            description: 'Hiển thị danh sách thành viên đang hoạt động và thống kê công việc',
             icon: 'people',
             defaultSize: '1x2'
         },
@@ -526,13 +531,30 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadProjectMembers(): void {
-        this.projectMembers = [
-            { id: '1', name: 'Nguyễn Văn A', avatar: 'assets/images/avatars/male-01.jpg', role: 'Frontend Dev', status: 'online', tasksCount: 8 },
-            { id: '2', name: 'Trần Thị B', avatar: 'assets/images/avatars/female-01.jpg', role: 'UI/UX Designer', status: 'online', tasksCount: 4 },
-            { id: '3', name: 'Giang IT', avatar: 'assets/images/avatars/male-03.jpg', role: 'Backend Dev', status: 'away', tasksCount: 12 },
-            { id: '4', name: 'Huyen', avatar: 'assets/images/avatars/female-01.jpg', role: 'Project Manager', status: 'offline', tasksCount: 3 },
-            { id: '5', name: 'Tuan Anh', avatar: 'assets/images/avatars/male-02.jpg', role: 'QA Engineer', status: 'online', tasksCount: 6 }
-        ];
+        this.dashboardService.getActiveMembers()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    // Map ActiveMember data to ProjectMember format
+                    this.projectMembers = response.data.map(member => ({
+                        id: member.id,
+                        name: member.name,
+                        avatar: member.avatar || 'assets/images/avatars/male-01.jpg', // Default avatar if none provided
+                        role: member.userType || 'Member',
+                        status: 'online' as const, // Default status since API doesn't provide it
+                        tasksCount: member.totalTasks,
+                        doneTasks: member.doneTasks,
+                        inProgressTasks: member.inProgressTasks,
+                        overdueTasks: member.overdueTasks,
+                        todoTasks: member.todoTasks
+                    }));
+                    console.log('Project members loaded:', this.projectMembers);
+                },
+                error: (error) => {
+                    console.error('Error loading project members:', error);
+                    this.projectMembers = []; // Clear on error
+                }
+            });
     }
 
     loadRecentActivities(): void {

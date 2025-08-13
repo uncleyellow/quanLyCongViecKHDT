@@ -1,5 +1,6 @@
 import { StatusCodes } from 'http-status-codes'
 import { cardService } from '../services/cardService'
+import { cardMemberModel } from '../models/cardMemberModel'
 
 const getList = async (req, res, next) => {
     try {
@@ -28,12 +29,36 @@ const createNew = async (req, res, next) => {
         // Filter out fields that don't exist in database
         const { labels, members, metadata, ...validFields } = req.body
         
-        const newList = await cardService.createNew({ ...validFields, createdBy: userId })
+        const newCard = await cardService.createNew({ ...validFields, createdBy: userId })
+        
+        // Handle members separately if provided
+        if (members && Array.isArray(members) && newCard && newCard.id) {
+            try {
+                console.log('Processing members for new card:', newCard.id, 'Members:', members);
+                
+                // Add new members
+                for (const member of members) {
+                    if (member.id || member.memberId) {
+                        const memberId = member.id || member.memberId;
+                        const role = member.role || 'member';
+                        
+                        console.log('Adding member to new card:', memberId, 'with role:', role, 'to card:', newCard.id);
+                        await cardMemberModel.addMemberIfNotExists(newCard.id, memberId, role);
+                    }
+                }
+                
+                console.log('Card members added successfully for new card:', newCard.id);
+            } catch (memberError) {
+                console.error('Error adding card members:', memberError);
+                // Don't fail the entire creation if member addition fails
+            }
+        }
+        
         const responseObject = {
             code: StatusCodes.CREATED,
             status: 'success',
-            message: 'List created successfully',
-            data: newList
+            message: 'Card created successfully',
+            data: newCard
         }
         res.status(StatusCodes.CREATED).json(responseObject)
     } catch (error) { next(error) }
@@ -56,15 +81,44 @@ const getDetail = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { userId } = req.user
+        const { id } = req.params
         
         // Filter out fields that don't exist in database
         const { labels, members, metadata, ...validFields } = req.body
         
         const updatedList = await cardService.update({ ...req.params, userId: userId }, { ...validFields, updatedBy: userId })
+        
+        // Handle members separately if provided
+        if (members && Array.isArray(members)) {
+            try {
+                console.log('Processing members for card:', id, 'Members:', members);
+                
+                // Clear existing members for this card
+                await cardMemberModel.removeAllCardMembers(id);
+                console.log('Cleared existing members for card:', id);
+                
+                // Add new members
+                for (const member of members) {
+                    if (member.id || member.memberId) {
+                        const memberId = member.id || member.memberId;
+                        const role = member.role || 'member';
+                        
+                        console.log('Adding member:', memberId, 'with role:', role, 'to card:', id);
+                        await cardMemberModel.addMemberIfNotExists(id, memberId, role);
+                    }
+                }
+                
+                console.log('Card members updated successfully for card:', id);
+            } catch (memberError) {
+                console.error('Error updating card members:', memberError);
+                // Don't fail the entire update if member update fails
+            }
+        }
+        
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
-            message: 'List updated successfully',
+            message: 'Card updated successfully',
             data: updatedList
         }
         res.status(StatusCodes.OK).json(responseObject)
@@ -74,15 +128,44 @@ const update = async (req, res, next) => {
 const updatePartial = async (req, res, next) => {
     try {
         const { userId } = req.user
+        const { id } = req.params
         
         // Filter out fields that don't exist in database
         const { labels, members, metadata, ...validFields } = req.body
         
         const updatedList = await cardService.updatePartial({ ...req.params, userId: userId }, { ...validFields, updatedBy: userId })
+        
+        // Handle members separately if provided
+        if (members && Array.isArray(members)) {
+            try {
+                console.log('Processing members for card (partial update):', id, 'Members:', members);
+                
+                // Clear existing members for this card
+                await cardMemberModel.removeAllCardMembers(id);
+                console.log('Cleared existing members for card (partial update):', id);
+                
+                // Add new members
+                for (const member of members) {
+                    if (member.id || member.memberId) {
+                        const memberId = member.id || member.memberId;
+                        const role = member.role || 'member';
+                        
+                        console.log('Adding member (partial update):', memberId, 'with role:', role, 'to card:', id);
+                        await cardMemberModel.addMemberIfNotExists(id, memberId, role);
+                    }
+                }
+                
+                console.log('Card members updated successfully for card (partial update):', id);
+            } catch (memberError) {
+                console.error('Error updating card members (partial update):', memberError);
+                // Don't fail the entire update if member update fails
+            }
+        }
+        
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
-            message: 'List updated successfully',
+            message: 'Card updated successfully',
             data: updatedList
         }
         res.status(StatusCodes.OK).json(responseObject)
@@ -146,6 +229,20 @@ const getAllUserCards = async (req, res, next) => {
                 limit: cards.length
             },
             data: cards
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
+
+const getCardMembers = async (req, res, next) => {
+    try {
+        const { cardId } = req.params
+        const members = await cardMemberModel.getCardMembers(cardId)
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Card members fetched successfully',
+            data: members
         }
         res.status(StatusCodes.OK).json(responseObject)
     } catch (error) { next(error) }
@@ -243,6 +340,7 @@ export const cardController = {
     getListsByBoard,
     updateCardOrder,
     getAllUserCards,
+    getCardMembers,
     addCustomField,
     updateCustomField,
     removeCustomField,

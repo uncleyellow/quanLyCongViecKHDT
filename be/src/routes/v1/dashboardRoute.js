@@ -60,4 +60,85 @@ const router = express.Router()
  */
 router.get('/work-statistics', verifyToken, dashboardController.getWorkStatistics)
 
+/**
+ * @swagger
+ * /api/v1/dashboard/active-members:
+ *   get:
+ *     summary: Get active members with their task statistics
+ *     description: Retrieve list of all members who are currently participating in tasks, with their task statistics by status
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Active members retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active members retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: User ID
+ *                         example: "04c0e666-6f53-11f0-be72-089798dd3038"
+ *                       name:
+ *                         type: string
+ *                         description: User full name
+ *                         example: "Nguyễn Văn A"
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         description: User email
+ *                         example: "user@example.com"
+ *                       avatar:
+ *                         type: string
+ *                         nullable: true
+ *                         description: User avatar URL
+ *                         example: "https://example.com/avatar.jpg"
+ *                       userType:
+ *                         type: string
+ *                         description: User role type
+ *                         example: "staff"
+ *                       totalTasks:
+ *                         type: integer
+ *                         description: Total number of tasks assigned to this member
+ *                         example: 15
+ *                       todoTasks:
+ *                         type: integer
+ *                         description: Number of todo tasks
+ *                         example: 5
+ *                       inProgressTasks:
+ *                         type: integer
+ *                         description: Number of in-progress tasks
+ *                         example: 3
+ *                       doneTasks:
+ *                         type: integer
+ *                         description: Number of completed tasks
+ *                         example: 7
+ *                       overdueTasks:
+ *                         type: integer
+ *                         description: Number of overdue tasks
+ *                         example: 2
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/active-members', verifyToken, dashboardController.getActiveMembers)
+
 export default router

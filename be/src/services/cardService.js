@@ -44,6 +44,18 @@ const createNew = async (reqBody) => {
 const getDetail = async (reqBody) => {
   try {
     const listDetail = await cardModel.getDetail(reqBody)
+    
+    // Get card members if card exists
+    if (listDetail && listDetail.id) {
+      try {
+        const members = await cardMemberModel.getCardMembers(listDetail.id)
+        listDetail.members = members
+      } catch (memberError) {
+        console.error('Error fetching card members:', memberError)
+        listDetail.members = []
+      }
+    }
+    
     return listDetail
   } catch (error) { throw error }
 }

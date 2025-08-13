@@ -230,7 +230,7 @@
                                                 <ng-container *ngFor="let member of card.members">
                                                     <img
                                                         class="w-6 h-6 rounded-full mr-1 border-2 border-white"
-                                                        [src]="member.avatar"
+                                                        [src]="member.avatar ? member.avatar : 'assets/images/avatars/avatar-1.png'"
                                                         [alt]="member.name">
                                                 </ng-container>
                                             </div>
