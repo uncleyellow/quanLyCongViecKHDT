@@ -9,6 +9,16 @@ import { AddBoardDialogComponent } from './add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './share-board-dialog.compoment';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
+// Interface for grouped boards by staff
+interface BoardGroup {
+    staffId: string;
+    staffName: string;
+    staffEmail: string;
+    staffRole: string;
+    isCurrentUser: boolean;
+    boards: Board[];
+    collapsed?: boolean;
+}
 
 @Component({
     selector       : 'scrumboard-boards',
@@ -20,6 +30,9 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 export class ScrumboardBoardsComponent implements OnInit, OnDestroy
 {
     boards: Board[];
+    boardGroups: BoardGroup[] = [];
+    currentUser: any = null;
+    isManagerOrBoss: boolean = false;
 
     // Private
     private _unsubscribeAll: Subject<any> = new Subject<any>();
@@ -45,13 +58,105 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
-        const userStr = localStorage.getItem('user');
-        let email = '';
-        if (userStr) {
-            const user = JSON.parse(userStr);
-            email = user.email;
+        // Get current user info
+        this._userService.user$.pipe(takeUntil(this._unsubscribeAll)).subscribe(user => {
+            console.log('UserService user:', user);
+            this.currentUser = user;
+            this.isManagerOrBoss = user?.type === 'manager' || user?.type === 'boss';
+            console.log('isManagerOrBoss:', this.isManagerOrBoss, 'user type:', user?.type);
+            
+            const userStr = localStorage.getItem('user');
+            let email = '';
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                email = user.email;
+                console.log('LocalStorage user:', user);
+                // Fallback: if UserService doesn't have user, use localStorage
+                if (!this.currentUser) {
+                    this.currentUser = user;
+                    this.isManagerOrBoss = user?.type === 'manager' || user?.type === 'boss';
+                    console.log('Using localStorage user, isManagerOrBoss:', this.isManagerOrBoss);
+                }
+            }
+            this.fetch(email);
+        });
+    }
+
+    /**
+     * Group boards by staff for manager/boss view
+     */
+    private groupBoardsByStaff(boards: Board[]): BoardGroup[]
+    {
+        console.log('groupBoardsByStaff called with boards:', boards?.length);
+        console.log('currentUser:', this.currentUser);
+        
+        if (!boards || boards.length === 0) {
+            return [];
         }
-        this.fetch(email);
+
+        // Group boards by owner
+        const groupsMap = new Map<string, BoardGroup>();
+        
+        boards.forEach(board => {
+            const ownerId = board.ownerId || 'unknown';
+            const ownerName = board.ownerName || 'Unknown User';
+            const ownerEmail = board.ownerEmail || '';
+            const ownerRole = board.ownerRole || 'staff';
+            const isCurrentUser = ownerId === this.currentUser?.id;
+            
+            console.log('Board:', board.title, 'ownerId:', ownerId, 'isCurrentUser:', isCurrentUser);
+            
+            if (!groupsMap.has(ownerId)) {
+                groupsMap.set(ownerId, {
+                    staffId: ownerId,
+                    staffName: ownerName,
+                    staffEmail: ownerEmail,
+                    staffRole: ownerRole,
+                    isCurrentUser: isCurrentUser,
+                    boards: [],
+                    collapsed: false
+                });
+            }
+            
+            const group = groupsMap.get(ownerId)!;
+            group.boards.push(board);
+        });
+
+        // Convert map to array and sort (current user's boards first, then by name)
+        const groups = Array.from(groupsMap.values()).sort((a, b) => {
+            // Current user's boards come first
+            if (a.isCurrentUser && !b.isCurrentUser) return -1;
+            if (!a.isCurrentUser && b.isCurrentUser) return 1;
+            
+            // Then sort by staff name
+            return a.staffName.localeCompare(b.staffName);
+        });
+
+        console.log('Created groups:', groups.length, groups.map(g => ({ name: g.staffName, boards: g.boards.length, isCurrent: g.isCurrentUser })));
+
+        // Sort boards within each group by title
+        groups.forEach(group => {
+            group.boards.sort((a, b) => a.title.localeCompare(b.title));
+        });
+
+        return groups;
+    }
+
+    /**
+     * Toggle collapse state of a board group
+     */
+    toggleBoardGroupCollapse(group: BoardGroup): void
+    {
+        group.collapsed = !group.collapsed;
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Track by function for board groups
+     */
+    trackByGroupFn(index: number, item: BoardGroup): any
+    {
+        return item.staffId || index;
     }
     fetch(userEmail?: string) {
         // Gọi API lấy boards theo userEmail
@@ -60,7 +165,21 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
             this._scrumboardService.boards$
                 .pipe(takeUntil(this._unsubscribeAll))
                 .subscribe((boards: Board[]) => {
+                    console.log('Fetched boards:', boards?.length);
+                    console.log('isManagerOrBoss:', this.isManagerOrBoss);
+                    
                     this.boards = boards;
+                    
+                    // Group boards by staff if current user is manager or boss
+                    if (this.isManagerOrBoss) {
+                        console.log('Creating board groups for manager/boss');
+                        this.boardGroups = this.groupBoardsByStaff(boards);
+                        console.log('Board groups created:', this.boardGroups.length);
+                    } else {
+                        console.log('Not manager/boss, using regular view');
+                        this.boardGroups = [];
+                    }
+                    
                     this._changeDetectorRef.markForCheck();
                 });
         });
@@ -130,7 +249,11 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                         recurringConfig: {
                             isRecurring: false,
                             completedListId: null
-                        }
+                        },
+                        ownerId: user.id,
+                        ownerName: user.name,
+                        ownerEmail: user.email,
+                        ownerRole: user.type || 'staff'
                     }, user.email).subscribe((newBoard) => {
                         if(newBoard){
                             this.fetch(user.email);

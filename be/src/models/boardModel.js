@@ -49,8 +49,55 @@ const validateBeforeCreate = async (data) => {
 
 const getList = async (data) => {
   try {
-    const query = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE ownerId = ?`
-    const boardList = await db.query(query, [data.userId])
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return []
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only get boards where they are the owner
+      query = `
+        SELECT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE b.ownerId = ? AND b.deletedAt IS NULL
+      `
+      params = [data.userId]
+    } else if (user.type === 'manager') {
+      // Manager users: get their own boards + boards owned by staff in their department
+      query = `
+        SELECT DISTINCT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE (b.ownerId = ? 
+        OR (b.ownerId IN (
+          SELECT u2.id 
+          FROM users u2 
+          WHERE u2.departmentId = ? 
+          AND u2.type = 'staff'
+        )))
+        AND b.deletedAt IS NULL
+      `
+      params = [data.userId, user.departmentId]
+    } else {
+      // For other roles (boss, admin), get all boards (existing behavior)
+      query = `
+        SELECT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE b.ownerId = ? AND b.deletedAt IS NULL
+      `
+      params = [data.userId]
+    }
+
+    const boardList = await db.query(query, params)
     return boardList[0]
   } catch (error) { throw new Error(error) }
 }
@@ -69,32 +116,190 @@ const createNew = async (data) => {
 
 const getDetail = async (data) => {
   try {
-    const query = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
-    const boardDetail = await db.query(query, [data.id, data.userId])
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return null
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only get boards where they are the owner
+      query = `
+        SELECT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+      `
+      params = [data.id, data.userId]
+    } else if (user.type === 'manager') {
+      // Manager users: get their own boards + boards owned by staff in their department
+      query = `
+        SELECT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE b.id = ? 
+        AND (b.ownerId = ? 
+        OR b.ownerId IN (
+          SELECT u2.id 
+          FROM users u2 
+          WHERE u2.departmentId = ? 
+          AND u2.type = 'staff'
+        ))
+        AND b.deletedAt IS NULL
+      `
+      params = [data.id, data.userId, user.departmentId]
+    } else {
+      // For other roles (boss, admin), get all boards (existing behavior)
+      query = `
+        SELECT b.*, u.name as ownerName 
+        FROM ${BOARD_TABLE_NAME} b
+        LEFT JOIN users u ON b.ownerId = u.id
+        WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+      `
+      params = [data.id, data.userId]
+    }
+
+    const boardDetail = await db.query(query, params)
     return boardDetail[0][0]
   } catch (error) { throw new Error(error) }
 }
 
 const update = async (data, dataUpdate) => {
   try {
-    const query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ?`
-    const updatedBoard = await db.query(query, [dataUpdate, data.id, data.userId])
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return { affectedRows: 0 }
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only update boards where they are the owner
+      query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [dataUpdate, data.id, data.userId]
+    } else if (user.type === 'manager') {
+      // Manager users: can update their own boards + boards owned by staff in their department
+      query = `
+        UPDATE ${BOARD_TABLE_NAME} b
+        SET ?
+        WHERE b.id = ? 
+        AND (b.ownerId = ? 
+        OR b.ownerId IN (
+          SELECT u.id 
+          FROM users u 
+          WHERE u.departmentId = ? 
+          AND u.type = 'staff'
+        ))
+        AND b.deletedAt IS NULL
+      `
+      params = [dataUpdate, data.id, data.userId, user.departmentId]
+    } else {
+      // For other roles (boss, admin), existing behavior
+      query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [dataUpdate, data.id, data.userId]
+    }
+
+    const updatedBoard = await db.query(query, params)
     return updatedBoard[0]
   } catch (error) { throw new Error(error) }
 }
 
 const updatePartial = async (data, dataUpdate) => {
   try {
-    const query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ?`
-    const updatedBoard = await db.query(query, [dataUpdate, data.id, data.userId])
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return { affectedRows: 0 }
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only update boards where they are the owner
+      query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [dataUpdate, data.id, data.userId]
+    } else if (user.type === 'manager') {
+      // Manager users: can update their own boards + boards owned by staff in their department
+      query = `
+        UPDATE ${BOARD_TABLE_NAME} b
+        SET ?
+        WHERE b.id = ? 
+        AND (b.ownerId = ? 
+        OR b.ownerId IN (
+          SELECT u.id 
+          FROM users u 
+          WHERE u.departmentId = ? 
+          AND u.type = 'staff'
+        ))
+        AND b.deletedAt IS NULL
+      `
+      params = [dataUpdate, data.id, data.userId, user.departmentId]
+    } else {
+      // For other roles (boss, admin), existing behavior
+      query = `UPDATE ${BOARD_TABLE_NAME} SET ? WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [dataUpdate, data.id, data.userId]
+    }
+
+    const updatedBoard = await db.query(query, params)
     return updatedBoard[0]
   } catch (error) { throw new Error(error) }
 }
 
 const deleteNote = async (data) => {
   try {
-    const query = `DELETE FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
-    const deletedBoard = await db.query(query, [data.id, data.userId])
+    // First, get user information to determine their role and department
+    const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
+    const userResult = await db.query(userQuery, [data.userId])
+    const user = userResult[0][0]
+
+    if (!user) {
+      return { affectedRows: 0 }
+    }
+
+    let query
+    let params = []
+
+    if (user.type === 'staff') {
+      // Staff users: only delete boards where they are the owner
+      query = `DELETE FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [data.id, data.userId]
+    } else if (user.type === 'manager') {
+      // Manager users: can delete their own boards + boards owned by staff in their department
+      query = `
+        DELETE b FROM ${BOARD_TABLE_NAME} b
+        WHERE b.id = ? 
+        AND (b.ownerId = ? 
+        OR b.ownerId IN (
+          SELECT u.id 
+          FROM users u 
+          WHERE u.departmentId = ? 
+          AND u.type = 'staff'
+        ))
+        AND b.deletedAt IS NULL
+      `
+      params = [data.id, data.userId, user.departmentId]
+    } else {
+      // For other roles (boss, admin), existing behavior
+      query = `DELETE FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+      params = [data.id, data.userId]
+    }
+
+    const deletedBoard = await db.query(query, params)
     return deletedBoard[0]
   } catch (error) { throw new Error(error) }
 }
@@ -102,11 +307,16 @@ const deleteNote = async (data) => {
 const reorder = async (data, reorderData) => {
   try {
     const { listOrderIds } = reorderData
-    const query = `UPDATE ${BOARD_TABLE_NAME} SET listOrderIds = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET listOrderIds = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
     const updatedBoard = await db.query(query, [JSON.stringify(listOrderIds), data.id, data.userId])
-    
+
     // Return the updated board details
-    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const getUpdatedBoard = `
+      SELECT b.*, u.name as ownerName 
+      FROM ${BOARD_TABLE_NAME} b
+      LEFT JOIN users u ON b.ownerId = u.id
+      WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+    `
     const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
     return boardDetail[0][0]
   } catch (error) { throw new Error(error) }
@@ -115,11 +325,16 @@ const reorder = async (data, reorderData) => {
 const updateViewConfig = async (data, dataUpdate) => {
   try {
     const { viewConfig } = dataUpdate
-    const query = `UPDATE ${BOARD_TABLE_NAME} SET viewConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET viewConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
     const updatedBoard = await db.query(query, [JSON.stringify(viewConfig), data.id, data.userId])
-    
+
     // Return the updated board details
-    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const getUpdatedBoard = `
+      SELECT b.*, u.name as ownerName 
+      FROM ${BOARD_TABLE_NAME} b
+      LEFT JOIN users u ON b.ownerId = u.id
+      WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+    `
     const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
     return boardDetail[0][0]
   } catch (error) { throw new Error(error) }
@@ -128,11 +343,16 @@ const updateViewConfig = async (data, dataUpdate) => {
 const updateRecurringConfig = async (data, dataUpdate) => {
   try {
     const { recurringConfig } = dataUpdate
-    const query = `UPDATE ${BOARD_TABLE_NAME} SET recurringConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ?`
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET recurringConfig = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
     const updatedBoard = await db.query(query, [JSON.stringify(recurringConfig), data.id, data.userId])
-    
+
     // Return the updated board details
-    const getUpdatedBoard = `SELECT * FROM ${BOARD_TABLE_NAME} WHERE id = ? AND ownerId = ?`
+    const getUpdatedBoard = `
+      SELECT b.*, u.name as ownerName 
+      FROM ${BOARD_TABLE_NAME} b
+      LEFT JOIN users u ON b.ownerId = u.id
+      WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+    `
     const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
     return boardDetail[0][0]
   } catch (error) { throw new Error(error) }
