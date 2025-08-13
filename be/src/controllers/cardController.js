@@ -24,7 +24,11 @@ const getList = async (req, res, next) => {
 const createNew = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const newList = await cardService.createNew({ ...req.body, createdBy: userId })
+        
+        // Filter out fields that don't exist in database
+        const { labels, members, metadata, ...validFields } = req.body
+        
+        const newList = await cardService.createNew({ ...validFields, createdBy: userId })
         const responseObject = {
             code: StatusCodes.CREATED,
             status: 'success',
@@ -52,7 +56,11 @@ const getDetail = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedList = await cardService.update({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
+        
+        // Filter out fields that don't exist in database
+        const { labels, members, metadata, ...validFields } = req.body
+        
+        const updatedList = await cardService.update({ ...req.params, userId: userId }, { ...validFields, updatedBy: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
@@ -66,7 +74,11 @@ const update = async (req, res, next) => {
 const updatePartial = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const updatedList = await cardService.updatePartial({ ...req.params, userId: userId }, { ...req.body, updatedBy: userId })
+        
+        // Filter out fields that don't exist in database
+        const { labels, members, metadata, ...validFields } = req.body
+        
+        const updatedList = await cardService.updatePartial({ ...req.params, userId: userId }, { ...validFields, updatedBy: userId })
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',

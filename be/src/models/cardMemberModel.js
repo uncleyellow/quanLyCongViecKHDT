@@ -2,7 +2,7 @@ import Joi from 'joi'
 import db from '../config/db'
 
 // Define Collection (Name & Schema)
-const CARD_MEMBER_TABLE_NAME = 'cardMembers'
+const CARD_MEMBER_TABLE_NAME = 'cardmembers'
 const CARD_MEMBER_TABLE_SCHEMA = Joi.object({
   cardId: Joi.string().uuid().required(),
   memberId: Joi.string().uuid().required(),

@@ -25,13 +25,8 @@ const CARD_TABLE_SCHEMA = Joi.object({
             )
         ).allow(null)
     ).default(null),
-    labels: Joi.alternatives().try(
-        Joi.string().allow(null),
-        Joi.array().items(Joi.string().uuid().allow(null))
-    ).default(null),
     startDate: Joi.date().allow(null).default(null),
     endDate: Joi.date().allow(null).default(null),
-    members: Joi.array().items(Joi.object().allow(null)).default(null),
     createdAt: Joi.date().default(Date.now),
     createdBy: Joi.string().uuid().allow(null).default(null),
     updatedBy: Joi.string().uuid().allow(null).default(null),
@@ -45,9 +40,7 @@ const CARD_TABLE_SCHEMA = Joi.object({
     totalTimeSpent: Joi.number().integer().default(0), // Total time in seconds
     isTracking: Joi.number().integer().valid(0, 1).default(0), // 0: not tracking, 1: tracking
     trackingStartTime: Joi.date().allow(null).default(null),
-    trackingPauseTime: Joi.number().integer().default(0), // Total pause time in seconds
-    // Metadata field for custom data
-    metadata: Joi.object().default({}) // JSON object for storing custom fields
+    trackingPauseTime: Joi.number().integer().default(0) // Total pause time in seconds
 })
 
 const INVALID_UPDATE_FIELDS = ['id', 'createdAt']
@@ -73,7 +66,7 @@ const createNew = async (data) => {
         const validData = await validateBeforeCreate(data)
         const dataToInsertCleaned = {}
         Object.entries(validData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
+            if (value !== undefined && value !== '') {
                 dataToInsertCleaned[key] = value
             }
         })
@@ -89,12 +82,15 @@ const createNew = async (data) => {
         const values = Object.values(dataToInsertCleaned)
             .map(value => {
                 if (typeof value === 'string') {
-                    return `'${value.replace(/'/g, "''")}'`
+                    return `'${value.replace(/'/g, '\'\'')}'`
                 } else if (value === null) {
                     return 'NULL'
                 } else if (value instanceof Date) {
                     // Format date for MySQL
                     return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`
+                } else if (Array.isArray(value) || typeof value === 'object') {
+                    // Convert arrays and objects to JSON strings
+                    return `'${JSON.stringify(value).replace(/'/g, '\'\'')}'`
                 } else {
                     return value
                 }
@@ -135,8 +131,8 @@ const updatePartial = async (data, dataUpdate) => {
 
 const deleteItem = async (data) => {
     try {
-        const query = `DELETE FROM ${CARD_TABLE_NAME} WHERE id = ? AND boardId = ?`
-        const deletedList = await db.query(query, [data.id, data.boardId])
+        const query = `DELETE FROM ${CARD_TABLE_NAME} WHERE id = ?`
+        const deletedList = await db.query(query, [data.id])
         return deletedList[0]
     } catch (error) { throw new Error(error) }
 }
@@ -144,7 +140,7 @@ const deleteItem = async (data) => {
 const getAllUserCards = async (userId) => {
     try {
         const query = `
-            SELECT c.*, b.title as boardTitle, l.title as listTitle, l.color as listColor
+            SELECT c.*, b.title as boardTitle, b.recurringConfig, l.title as listTitle, l.color as listColor
             FROM ${CARD_TABLE_NAME} c
             INNER JOIN cardmembers cm ON c.id = cm.cardId
             INNER JOIN boards b ON c.boardId = b.id

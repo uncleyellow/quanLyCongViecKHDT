@@ -100,8 +100,7 @@
 // Board group styling
 .board-group {
     .board-header {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        margin-bottom: 1rem;
+        border-bottom: none;
         padding: 0.75rem;
         transition: all 0.2s ease;
         border-radius: 4px;
@@ -122,8 +121,7 @@
     
     // Style for collapsed state
     &.collapsed .board-header {
-        border-bottom: none;
-        margin-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     }
 }
 

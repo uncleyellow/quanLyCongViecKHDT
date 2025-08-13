@@ -58,7 +58,7 @@
                             <!-- Board Group -->
                             <ng-container *ngFor="let group of boardGroups; trackBy: trackByFn">
                                 <!-- Board Header -->
-                                <div class="px-6 md:px-8 board-group" [class.collapsed]="group.collapsed">
+                                <div class="board-group" [class.collapsed]="group.collapsed">
                                     <div class="flex items-center space-x-3 board-header cursor-pointer" (click)="toggleBoardCollapse(group)">
                                         <!-- Collapse/Expand icon -->
                                         <mat-icon class="text-primary transition-transform duration-200" 

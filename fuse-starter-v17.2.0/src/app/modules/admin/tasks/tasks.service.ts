@@ -372,8 +372,33 @@ export class TasksService
                 // Handle API response format
                 const cards = response.data || response;
                 console.log('getUserCards - received cards:', cards?.length || 0);
-                this._userCards.next(cards);
-                return cards;
+                
+                // Process cards to include board information
+                const processedCards = cards.map((card: any) => {
+                    let recurringConfig = null;
+                    if (card.recurringConfig) {
+                        try {
+                            recurringConfig = typeof card.recurringConfig === 'string' 
+                                ? JSON.parse(card.recurringConfig) 
+                                : card.recurringConfig;
+                        } catch (error) {
+                            console.warn('Failed to parse recurringConfig for card:', card.id);
+                            recurringConfig = null;
+                        }
+                    }
+                    
+                    return {
+                        ...card,
+                        board: {
+                            id: card.boardId,
+                            title: card.boardTitle,
+                            recurringConfig: recurringConfig
+                        }
+                    };
+                });
+                
+                this._userCards.next(processedCards);
+                return processedCards;
             })
         );
     }

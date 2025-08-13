@@ -360,7 +360,6 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
     }
 
     toggleChecklistItem(i: number) {
-        debugger
         if (this.card.checklistItems && this.card.checklistItems[i]) {
             const item = this.card.checklistItems[i];
             const itemId = item.id;
@@ -661,7 +660,6 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
         }
         // Xử lý members từ card thực tế
         let members: any[] = [];
-        debugger
         // Lấy members hiện tại từ card
         if (this.card.members && Array.isArray(this.card.members)) {
             members = [...this.card.members];
@@ -678,7 +676,6 @@ export class ScrumboardCardDetailsComponent implements OnInit, OnDestroy {
             })
             // members = [creatorId];
         }
-        debugger
         
         // Nếu chọn thêm member mới, thêm vào mảng (không trùng lặp)
         if (this.selectedMember && !members.includes(this.selectedMember)) {
