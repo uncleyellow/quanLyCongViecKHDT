@@ -1,72 +1,192 @@
 <div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden">
 
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row flex-0 sm:items-center sm:justify-between p-6 sm:py-8 sm:px-10 border-b bg-card dark:bg-transparent">
-        <!-- Title -->
-        <div class="flex-1 min-w-0">
-            <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight leading-7 sm:leading-10 truncate">
-                {{board.title}}
-            </h2>
-        </div>
-        <!-- Actions -->
-        <div class="flex shrink-0 items-center mt-6 sm:mt-0 sm:ml-4">
-            <!-- Export data button -->
-            <button
-                class="mr-3"
-                mat-stroked-button
-                color="primary"
-                (click)="exportToExcel()">
-                <mat-icon
-                    class="icon-size-5"
-                    [svgIcon]="'heroicons_solid:document-text'"></mat-icon>
-                <span class="ml-2">Xuất dữ liệu</span>
-            </button>
+    <!-- Sticky Header -->
+    <div class="sticky top-0 z-10 bg-card dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between py-8 px-6 md:px-8">
+            <!-- Title -->
+            <div>
+                <h2 class="text-4xl font-extrabold tracking-tight leading-none">{{board.title}}</h2>
+                <div class="ml-0.5 font-medium text-secondary">
+                    {{board.description || 'Quản lý công việc theo bảng'}}
+                </div>
+            </div>
 
-            <!-- Filter button -->
-            <button
-                class="mr-3"
-                mat-stroked-button
-                [color]="isFilterApplied ? 'warn' : 'accent'"
-                (click)="openFilterDialog()">
-                <mat-icon
-                    class="icon-size-5"
-                    [svgIcon]="'heroicons_solid:funnel'"></mat-icon>
-                <span class="ml-2">Lọc</span>
-                <span *ngIf="isFilterApplied" class="ml-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                    Đang lọc
-                </span>
-            </button>
-            
-            <!-- Refresh button for recurring boards -->
-            <button
-                *ngIf="board.recurringConfig?.isRecurring"
-                class="mr-3"
-                mat-stroked-button
-                color="accent"
-                (click)="refreshRecurringBoard()">
-                <mat-icon
-                    class="icon-size-5"
-                    [svgIcon]="'heroicons_solid:refresh'"></mat-icon>
-                <span class="ml-2">Làm mới công việc</span>
-            </button>
-            
-            <a
-                mat-stroked-button
-                [routerLink]="['..']">
-                <mat-icon
-                    class="icon-size-5"
-                    [svgIcon]="'heroicons_solid:view-boards'"></mat-icon>
-                <span class="ml-2">Boards</span>
-            </a>
-            <button
-                class="ml-3"
-                mat-stroked-button
-                (click)="openViewConfigDialog()">
-                <mat-icon
-                    class="icon-size-5"
-                    [svgIcon]="'heroicons_solid:cog'"></mat-icon>
-                <span class="ml-2">Tùy chọn</span>
-            </button>
+            <!-- Search Box -->
+            <div class="mt-4 sm:mt-0 flex-1 max-w-md mx-4">
+                <mat-form-field class="w-full" appearance="outline" floatLabel="always">
+                    <mat-label>Tìm kiếm công việc</mat-label>
+                    <input matInput 
+                           [(ngModel)]="searchTerm" 
+                           (ngModelChange)="onSearchChange($event)"
+                           placeholder="Tìm theo tên hoặc mô tả...">
+                    <mat-icon matSuffix [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+                    <button mat-icon-button matSuffix 
+                            *ngIf="searchTerm" 
+                            (click)="clearSearch()">
+                        <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                    </button>
+                </mat-form-field>
+                <!-- Search results count -->
+                <div class="text-xs text-secondary mt-1" *ngIf="searchTerm || filters.length > 0">
+                    <span *ngIf="searchTerm && filters.length > 0">
+                        Tìm thấy {{getFilteredCardsCount()}} công việc (tìm kiếm + bộ lọc)
+                    </span>
+                    <span *ngIf="searchTerm && filters.length === 0">
+                        Tìm thấy {{getFilteredCardsCount()}} công việc
+                    </span>
+                    <span *ngIf="!searchTerm && filters.length > 0">
+                        Hiển thị {{getFilteredCardsCount()}} công việc (bộ lọc)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-4 sm:mt-0 flex space-x-2">
+                <!-- Filter button -->
+                <button mat-stroked-button 
+                        (click)="toggleFilterPanel()" 
+                        [class.mat-primary]="filters.length > 0">
+                    <mat-icon [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                    <span class="ml-2">{{ showFilterPanel ? 'Đóng bộ lọc' : 'Bộ lọc' }}</span>
+                    <span class="ml-1 px-2 py-0.5 bg-primary text-white text-xs rounded-full" 
+                          *ngIf="filters.length > 0">{{filters.length}}</span>
+                </button>
+
+                <!-- Export data button -->
+                <button mat-stroked-button color="primary" (click)="exportToExcel()">
+                    <mat-icon [svgIcon]="'heroicons_solid:document-text'"></mat-icon>
+                    <span class="ml-2">Xuất dữ liệu</span>
+                </button>
+                
+                <!-- Refresh button for recurring boards -->
+                <button *ngIf="board.recurringConfig?.isRecurring"
+                        mat-stroked-button color="accent" (click)="refreshRecurringBoard()">
+                    <mat-icon [svgIcon]="'heroicons_solid:refresh'"></mat-icon>
+                    <span class="ml-2">Làm mới công việc</span>
+                </button>
+                
+                <a mat-stroked-button [routerLink]="['..']">
+                    <mat-icon [svgIcon]="'heroicons_solid:view-boards'"></mat-icon>
+                    <span class="ml-2">Boards</span>
+                </a>
+                <button mat-stroked-button (click)="openViewConfigDialog()">
+                    <mat-icon [svgIcon]="'heroicons_solid:cog'"></mat-icon>
+                    <span class="ml-2">Tùy chọn</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" 
+         *ngIf="showFilterPanel">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Bộ lọc nâng cao</h3>
+                <div class="flex space-x-2">
+                    <button mat-stroked-button 
+                            (click)="addFilter()">
+                        <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                        <span class="ml-2">Thêm bộ lọc</span>
+                    </button>
+                    <button mat-stroked-button 
+                            (click)="clearAllFilters()" 
+                            *ngIf="filters.length > 0">
+                        <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                        <span class="ml-2">Xóa tất cả</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter list -->
+            <div class="space-y-4" *ngIf="filters.length > 0">
+                <div class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4" 
+                     *ngFor="let filter of filters; trackBy: trackByFn">
+                    <div class="flex items-center space-x-4">
+                        <!-- Field selection -->
+                        <mat-form-field appearance="outline" class="flex-1">
+                            <mat-label>Trường</mat-label>
+                            <mat-select [(ngModel)]="filter.field" 
+                                       (ngModelChange)="onFilterChange()"
+                                       placeholder="Chọn trường">
+                                <mat-option *ngFor="let field of availableFields" 
+                                           [value]="field.key">
+                                    {{field.label}}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <!-- Operator selection -->
+                        <mat-form-field appearance="outline" class="flex-1">
+                            <mat-label>Điều kiện</mat-label>
+                            <mat-select [(ngModel)]="filter.operator" 
+                                       (ngModelChange)="onFilterChange()"
+                                       placeholder="Chọn điều kiện"
+                                       [disabled]="!filter.field">
+                                <mat-option *ngFor="let op of getOperatorsForFieldType(getFieldConfig(filter.field)?.type || 'string')" 
+                                           [value]="op.value">
+                                    {{op.label}}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <!-- Value input -->
+                        <div class="flex-1">
+                            <!-- String/Number input -->
+                            <mat-form-field appearance="outline" class="w-full" 
+                                           *ngIf="getFieldConfig(filter.field)?.type === 'string' || getFieldConfig(filter.field)?.type === 'number'">
+                                <mat-label>Giá trị</mat-label>
+                                <input matInput 
+                                       [(ngModel)]="filter.value" 
+                                       (ngModelChange)="onFilterChange()"
+                                       [type]="getFieldConfig(filter.field)?.type === 'number' ? 'number' : 'text'"
+                                       placeholder="Nhập giá trị">
+                            </mat-form-field>
+
+                            <!-- Date picker -->
+                            <mat-form-field appearance="outline" class="w-full" 
+                                           *ngIf="getFieldConfig(filter.field)?.type === 'date'">
+                                <mat-label>Ngày</mat-label>
+                                <input matInput 
+                                       [matDatepicker]="picker"
+                                       [(ngModel)]="filter.value" 
+                                       (ngModelChange)="onFilterChange()"
+                                       placeholder="Chọn ngày">
+                                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                                <mat-datepicker #picker></mat-datepicker>
+                            </mat-form-field>
+
+                            <!-- Select dropdown -->
+                            <mat-form-field appearance="outline" class="w-full" 
+                                           *ngIf="getFieldConfig(filter.field)?.type === 'select'">
+                                <mat-label>Giá trị</mat-label>
+                                <mat-select [(ngModel)]="filter.value" 
+                                           (ngModelChange)="onFilterChange()"
+                                           placeholder="Chọn giá trị">
+                                    <mat-option *ngFor="let option of getFieldConfig(filter.field)?.options" 
+                                               [value]="option.value">
+                                        {{option.label}}
+                                    </mat-option>
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+
+                        <!-- Remove filter button -->
+                        <button mat-icon-button 
+                                (click)="removeFilter(filter.id)"
+                                class="text-red-500">
+                            <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No filters message -->
+            <div class="text-center text-gray-500 py-8" *ngIf="filters.length === 0">
+                <mat-icon class="icon-size-16 mb-2" [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                <p>Chưa có bộ lọc nào. Nhấn "Thêm bộ lọc" để bắt đầu.</p>
+            </div>
         </div>
     </div>
 

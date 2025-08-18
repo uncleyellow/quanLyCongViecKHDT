@@ -61,6 +61,56 @@ export interface BasicUserListResponse {
     data: BasicUser[];
 }
 
+// Thêm các interface mới cho biểu đồ
+export interface ChartData {
+    series: number[] | Array<{ name: string; data: number[] }>;
+    labels?: string[];
+    categories?: string[];
+}
+
+export interface ChartDataResponse {
+    code: number;
+    status: string;
+    message: string;
+    data: ChartData;
+}
+
+export interface DashboardOverview {
+    totalBoards: number;
+    totalCards: number;
+    totalMembers: number;
+    completionRate: number;
+    recentActivity: Array<{
+        title: string;
+        status: string;
+        updatedAt: string;
+        updatedBy: string;
+    }>;
+}
+
+export interface DashboardOverviewResponse {
+    code: number;
+    status: string;
+    message: string;
+    data: DashboardOverview;
+}
+
+export interface GanttChartData {
+    series: Array<{ name: string; data: number[] }>;
+    categories: string[];
+    timeRange: string;
+}
+
+export interface GanttChartResponse {
+    code: number;
+    status: string;
+    message: string;
+    data: GanttChartData;
+}
+
+export type ChartType = 'status' | 'timeline' | 'member' | 'priority' | 'department';
+export type TimeRange = 'week' | 'month' | 'quarter' | 'day';
+
 @Injectable({
     providedIn: 'root'
 })
@@ -88,5 +138,28 @@ export class DashboardService {
      */
     getBasicUserList(): Observable<BasicUserListResponse> {
         return this.http.get<BasicUserListResponse>(`${this.apiUrl}/users/basic-list`);
+    }
+
+    /**
+     * Get chart data for different chart types
+     */
+    getChartData(chartType: ChartType, timeRange: TimeRange = 'month'): Observable<ChartDataResponse> {
+        const params = { chartType, timeRange };
+        return this.http.get<ChartDataResponse>(`${this.apiUrl}/dashboard/chart-data`, { params });
+    }
+
+    /**
+     * Get dashboard overview statistics
+     */
+    getDashboardOverview(): Observable<DashboardOverviewResponse> {
+        return this.http.get<DashboardOverviewResponse>(`${this.apiUrl}/dashboard/overview`);
+    }
+
+    /**
+     * Get Gantt chart data for completed tasks
+     */
+    getGanttChartData(timeRange: TimeRange = 'month'): Observable<GanttChartResponse> {
+        const params = { timeRange };
+        return this.http.get<GanttChartResponse>(`${this.apiUrl}/dashboard/gantt-chart`, { params });
     }
 }

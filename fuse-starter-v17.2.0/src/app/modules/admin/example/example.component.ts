@@ -28,6 +28,19 @@ export type ChartOptions = {
     colors?: string[];
 };
 
+export type DynamicChartOptions = {
+    series: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart: ApexChart;
+    xaxis?: ApexXAxis;
+    yaxis?: ApexYAxis;
+    dataLabels?: ApexDataLabels;
+    plotOptions?: ApexPlotOptions;
+    tooltip?: ApexTooltip;
+    title?: ApexTitleSubtitle;
+    colors?: string[];
+    labels?: string[];
+};
+
 export type PieChartOptions = {
     series: ApexNonAxisChartSeries;
     chart: ApexChart;
@@ -115,7 +128,7 @@ export class ExampleComponent implements OnInit, OnDestroy
     // Chart options
     chartOptions: Partial<ChartOptions> = {};
     statusChartOptions: Partial<PieChartOptions> = {};
-    dynamicChartOptions: Partial<ChartOptions> = {};
+    dynamicChartOptions: Partial<DynamicChartOptions> = {};
     
     // Data
     tasks: GanttTask[] = [];
@@ -149,7 +162,9 @@ export class ExampleComponent implements OnInit, OnDestroy
     showAdvancedFilters = false;
     showWidgetConfig = false;
     configuringWidget: Widget | null = null;
-    selectedChartType: string = 'bar';
+    selectedChartType: string = 'status';
+    selectedTimeRange: string = 'month';
+    selectedGanttTimeRange: string = 'month';
     selectedWidgetSize: string = '1x1';
     selectedDataSource: string = 'all';
     refreshInterval: string = '0';
@@ -169,7 +184,7 @@ export class ExampleComponent implements OnInit, OnDestroy
             id: 'gantt',
             type: 'gantt',
             title: 'Biểu đồ Gantt',
-            description: 'Hiển thị tiến độ công việc theo thời gian',
+            description: 'Hiển thị số công việc hoàn thành theo thời gian',
             icon: 'timeline',
             defaultSize: '2x2'
         },
@@ -216,12 +231,11 @@ export class ExampleComponent implements OnInit, OnDestroy
     ];
     
     chartTypes: ChartType[] = [
-        { value: 'bar', label: 'Biểu đồ cột' },
-        { value: 'line', label: 'Biểu đồ đường' },
-        { value: 'pie', label: 'Biểu đồ tròn' },
-        { value: 'radar', label: 'Biểu đồ radar' },
-        { value: 'area', label: 'Biểu đồ vùng' },
-        { value: 'column', label: 'Biểu đồ cột dọc' }
+        { value: 'status', label: 'Trạng thái công việc' },
+        { value: 'timeline', label: 'Timeline công việc' },
+        { value: 'member', label: 'Thành viên' },
+        { value: 'priority', label: 'Độ ưu tiên' },
+        { value: 'department', label: 'Phòng ban' }
     ];
     
     widgetSizeOptions: WidgetSizeOption[] = [
@@ -232,9 +246,17 @@ export class ExampleComponent implements OnInit, OnDestroy
         { value: '2x3', label: 'Rất cao' },
         { value: '3x2', label: 'Rất rộng' }
     ];
+
+    timeRangeOptions: WidgetSizeOption[] = [
+        { value: 'day', label: 'Ngày' },
+        { value: 'week', label: 'Tuần' },
+        { value: 'month', label: 'Tháng' },
+        { value: 'quarter', label: 'Quý' }
+    ];
     
     // UI state
     loading = false;
+    ganttLoading = false;
     error = '';
     private _unsubscribeAll = new Subject<void>();
 
@@ -395,6 +417,31 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.prepareDynamicChartData();
     }
 
+    selectTimeRange(timeRange: string): void {
+        this.selectedTimeRange = timeRange;
+        this.prepareDynamicChartData();
+    }
+
+    selectGanttTimeRange(timeRange: string): void {
+        this.selectedGanttTimeRange = timeRange;
+        this.loadGanttData();
+    }
+
+    getTimeRangeLabel(timeRange: string): string {
+        switch (timeRange) {
+            case 'day':
+                return 'ngày';
+            case 'week':
+                return 'tuần';
+            case 'month':
+                return 'tháng';
+            case 'quarter':
+                return 'quý';
+            default:
+                return 'tháng';
+        }
+    }
+
     selectWidgetSize(size: string): void {
         this.selectedWidgetSize = size;
         // Update widget size based on selection
@@ -444,24 +491,117 @@ export class ExampleComponent implements OnInit, OnDestroy
 
     // Data Loading Methods
     loadGanttData(): void {
-        this.loading = true;
+        this.ganttLoading = true;
         this.error = '';
 
-        this.ganttService.getGanttData(this.boardId)
+        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
-                next: (tasks) => {
-                    this.tasks = tasks.filter(task =>
-                        task.start_date && task.end_date
-                    );
-                    this.calculateTimeline();
-                    this.prepareApexChartData();
-                    this.loading = false;
+                next: (response) => {
+                    console.log('Gantt chart data response:', response);
+                    const ganttData = response.data;
+                    
+                    // Cập nhật chart options cho Gantt chart
+                    this.chartOptions = {
+                        series: ganttData.series,
+                        chart: {
+                            type: 'bar',
+                            height: 400,
+                            toolbar: {
+                                show: true,
+                                tools: {
+                                    download: true,
+                                    selection: false,
+                                    zoom: false,
+                                    zoomin: false,
+                                    zoomout: false,
+                                    pan: false,
+                                    reset: false
+                                }
+                            }
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '70%',
+                                borderRadius: 4
+                            }
+                        },
+                        xaxis: {
+                            categories: ganttData.categories,
+                            labels: {
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số công việc hoàn thành'
+                            },
+                            labels: {
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            formatter: function (val: any) {
+                                return val || 0;
+                            },
+                            style: {
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                            }
+                        },
+                        colors: ['#4caf50'],
+                        tooltip: {
+                            y: {
+                                formatter: function (val: any) {
+                                    return val + ' công việc';
+                                }
+                            }
+                        },
+                        title: {
+                            text: `Số công việc hoàn thành theo ${this.getTimeRangeLabel(this.selectedGanttTimeRange)}`,
+                            align: 'center',
+                            style: {
+                                fontSize: '16px',
+                                fontWeight: 'bold'
+                            }
+                        }
+                    };
+                    
+                    this.ganttLoading = false;
                 },
                 error: (err) => {
-                    this.error = 'Failed to load Gantt data';
-                    this.loading = false;
-                    console.error('Gantt data error:', err);
+                    this.error = 'Không thể tải dữ liệu Gantt chart';
+                    this.ganttLoading = false;
+                    console.error('Gantt chart data error:', err);
+                    
+                    // Fallback to empty chart
+                    this.chartOptions = {
+                        series: [{
+                            name: 'Công việc hoàn thành',
+                            data: []
+                        }],
+                        chart: {
+                            type: 'bar',
+                            height: 400
+                        },
+                        xaxis: {
+                            categories: []
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số công việc hoàn thành'
+                            }
+                        },
+                        title: {
+                            text: 'Không có dữ liệu'
+                        }
+                    };
                 }
             });
     }
@@ -694,38 +834,118 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     prepareDynamicChartData(): void {
-        const data = [30, 40, 35, 50, 49, 60, 70, 91, 125];
-        const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+        // Load chart data from API based on selected chart type
+        this.loading = true;
+        
+        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any)
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    console.log('Chart data response:', response);
+                    const chartData = response.data;
+                    
+                    // Determine chart type based on selected chart type
+                    let chartType: any = 'bar';
+                    if (this.selectedChartType === 'status') {
+                        chartType = 'pie';
+                    } else if (this.selectedChartType === 'timeline') {
+                        chartType = 'line';
+                    } else if (this.selectedChartType === 'member' || this.selectedChartType === 'priority' || this.selectedChartType === 'department') {
+                        chartType = 'bar';
+                    }
+                    
+                    if (chartType === 'pie') {
+                        // For pie charts, use series as array of numbers
+                        this.dynamicChartOptions = {
+                            series: chartData.series as ApexNonAxisChartSeries,
+                            chart: {
+                                type: chartType,
+                                height: 250
+                            },
+                            labels: chartData.labels || [],
+                            colors: ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'],
+                            dataLabels: {
+                                enabled: true,
+                                formatter: function (val: any, opts: any) {
+                                    return opts.w.globals.seriesTotals[opts.seriesIndex] || 0;
+                                }
+                            },
+                            plotOptions: {
+                                pie: {
+                                    donut: {
+                                        size: '70%'
+                                    }
+                                }
+                            }
+                        };
+                    } else {
+                        // For other chart types, use series as array of objects
+                        this.dynamicChartOptions = {
+                            series: chartData.series as ApexAxisChartSeries,
+                            chart: {
+                                type: chartType,
+                                height: 250
+                            },
+                            xaxis: {
+                                categories: chartData.categories || chartData.labels || []
+                            },
+                            yaxis: {
+                                title: {
+                                    text: 'Số lượng'
+                                }
+                            },
+                            colors: ['#2196f3', '#4caf50', '#ff9800', '#f44336'],
+                            dataLabels: {
+                                enabled: false
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: false
+                                }
+                            }
+                        };
+                    }
+                    
+                    this.loading = false;
+                },
+                error: (error) => {
+                    console.error('Error loading chart data:', error);
+                    // Fallback to mock data
+                    const data = [30, 40, 35, 50, 49, 60, 70, 91, 125];
+                    const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
 
-        this.dynamicChartOptions = {
-            series: [
-                {
-                    name: 'Công việc',
-                    data: data
+                    this.dynamicChartOptions = {
+                        series: [
+                            {
+                                name: 'Công việc',
+                                data: data
+                            }
+                        ] as ApexAxisChartSeries,
+                        chart: {
+                            type: 'bar',
+                            height: 250
+                        },
+                        xaxis: {
+                            categories: categories
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số lượng'
+                            }
+                        },
+                        colors: ['#2196f3'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false
+                            }
+                        }
+                    };
+                    this.loading = false;
                 }
-            ],
-            chart: {
-                type: this.selectedChartType as any,
-                height: 250
-            },
-            xaxis: {
-                categories: categories
-            },
-            yaxis: {
-                title: {
-                    text: 'Số lượng'
-                }
-            },
-            colors: ['#2196f3'],
-            dataLabels: {
-                enabled: false
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: false
-                }
-            }
-        };
+            });
     }
 
     calculateTimeline(): void {

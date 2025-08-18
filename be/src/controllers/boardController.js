@@ -146,7 +146,7 @@ const getFilteredBoard = async (req, res, next) => {
     try {
         const { boardId } = req.params;
         const { userId } = req.user;
-        const filterCriteria = req.query;
+        const { search, filters } = req.query;
 
         // Get the board with basic info
         const board = await boardModel.getDetail({ id: boardId, userId: userId });
@@ -160,55 +160,29 @@ const getFilteredBoard = async (req, res, next) => {
         // Apply filters to cards in each list
         for (let list of lists) {
             let cards = await cardModel.getList({ boardId: boardId, listId: list.id });
-            console.log(cards)
-            // Apply member filter
-            if (filterCriteria.member && filterCriteria.member !== '') {
+
+            // Apply search filter
+            if (search && search.trim() !== '') {
+                const searchLower = search.toLowerCase();
                 cards = cards.filter(card => {
-                    if (!card.members || !Array.isArray(card.members)) return false;
-                    return card.members.some(member => member.memberId === filterCriteria.member);
+                    const titleMatch = card.title && card.title.toLowerCase().includes(searchLower);
+                    const descMatch = card.description && card.description.toLowerCase().includes(searchLower);
+                    return titleMatch || descMatch;
                 });
             }
 
-            // Apply title filter
-            if (filterCriteria.title && filterCriteria.title.trim() !== '') {
-                const titleLower = filterCriteria.title.toLowerCase();
-                cards = cards.filter(card =>
-                    card.title && card.title.toLowerCase().includes(titleLower)
-                );
-            }
-
-            // Apply description filter
-            if (filterCriteria.description && filterCriteria.description.trim() !== '') {
-                const descLower = filterCriteria.description.toLowerCase();
-                cards = cards.filter(card =>
-                    card.description && card.description.toLowerCase().includes(descLower)
-                );
-            }
-
-            // Apply status filter
-            if (filterCriteria.status && filterCriteria.status !== '') {
-                cards = cards.filter(card => card.status === filterCriteria.status);
-            }
-
-            // Apply date range filter
-            if (filterCriteria.startDate || filterCriteria.endDate) {
-                cards = cards.filter(card => {
-                    const cardDate = new Date(card.createdAt);
-
-                    if (filterCriteria.startDate) {
-                        const startDate = new Date(filterCriteria.startDate);
-                        startDate.setHours(0, 0, 0, 0);
-                        if (cardDate < startDate) return false;
-                    }
-
-                    if (filterCriteria.endDate) {
-                        const endDate = new Date(filterCriteria.endDate);
-                        endDate.setHours(23, 59, 59, 999);
-                        if (cardDate > endDate) return false;
-                    }
-
-                    return true;
-                });
+            // Apply advanced filters
+            if (filters) {
+                try {
+                    const filterArray = JSON.parse(filters);
+                    cards = cards.filter(card => {
+                        return filterArray.every(filter => {
+                            return cardService.evaluateFilter(card, filter);
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error parsing filters:', error);
+                }
             }
 
             // Ensure all cards have required properties
