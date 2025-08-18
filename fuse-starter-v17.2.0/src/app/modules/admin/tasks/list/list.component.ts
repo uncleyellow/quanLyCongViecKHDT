@@ -593,6 +593,38 @@ export class TasksListComponent implements OnInit, OnDestroy
     }
 
     /**
+     * Get priority icon
+     */
+    getPriorityIcon(priority: string): string {
+        switch (priority) {
+            case 'high':
+                return 'heroicons_solid:arrow-up';
+            case 'medium':
+                return 'heroicons_solid:minus';
+            case 'low':
+                return 'heroicons_solid:arrow-down';
+            default:
+                return 'heroicons_solid:minus';
+        }
+    }
+
+    /**
+     * Get priority color class
+     */
+    getPriorityColor(priority: string): string {
+        switch (priority) {
+            case 'high':
+                return 'text-red-500';
+            case 'medium':
+                return 'text-yellow-500';
+            case 'low':
+                return 'text-green-500';
+            default:
+                return 'text-gray-500';
+        }
+    }
+
+    /**
      * Format time spent in seconds to HH:mm:ss
      *
      * @param seconds

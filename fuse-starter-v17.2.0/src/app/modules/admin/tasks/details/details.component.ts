@@ -624,20 +624,10 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 if (formValue.order !== userCard.position) {
                     updateData.position = formValue.order || 0;
                 }
-                // Handle priority - store in metadata since it's not a direct field
-                const currentPriority = userCard.metadata?.priority?.value || 'normal';
+                // Handle priority - update the priority field directly
+                const currentPriority = userCard.priority || 'medium';
                 if (formValue.priority !== currentPriority) {
-                    // Update metadata with new priority
-                    const currentMetadata = userCard.metadata || {};
-                    const updatedMetadata = {
-                        ...currentMetadata,
-                        priority: {
-                            value: formValue.priority,
-                            type: 'string',
-                            createdAt: new Date().toISOString()
-                        }
-                    };
-                    updateData.metadata = updatedMetadata;
+                    updateData.priority = formValue.priority;
                 }
                 // Handle date range from dateRangeForm
                 const dateRangeValue = this.dateRangeForm.value;
@@ -746,7 +736,7 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
                 notes: userCard.description || '',
                 completed: userCard.status === 'completed',
                 dueDate: userCard.dueDate,
-                priority: userCard.metadata?.priority?.value || task.priority || 'normal', // Read from metadata first, then task, then default
+                priority: userCard.priority || task.priority || 'medium', // Read from priority field first, then task, then default
                 tags: [], // Default empty tags
                 order: userCard.position || 0,
                 
@@ -788,8 +778,12 @@ export class TasksDetailsComponent implements OnInit, AfterViewInit, OnDestroy
             }, {emitEvent: false});
         } else {
             console.log('mapUserCardToForm - using fallback task data');
-            // Fallback to original task data
-            this.taskForm.patchValue(task, {emitEvent: false});
+            // Fallback to original task data with priority mapping
+            const fallbackData = {
+                ...task,
+                priority: task.priority === 'normal' ? 'medium' : task.priority || 'medium'
+            };
+            this.taskForm.patchValue(fallbackData, {emitEvent: false});
 
             // Update date range form with fallback data
             this.dateRangeForm.patchValue({

@@ -183,26 +183,26 @@
             <!-- Priority -->
             <div>
                 <div class="font-medium">Priority</div>
-                <div class="flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer" [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': task.priority === 'low',
-                                'text-gray-800 bg-gray-200 dark:text-gray-100 dark:bg-gray-500': task.priority === 'normal',
-                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': task.priority === 'high'}"
+                <div class="flex items-center mt-1.5 px-4 leading-9 rounded-full cursor-pointer" [ngClass]="{'text-green-800 bg-green-200 dark:text-green-100 dark:bg-green-500': taskForm.get('priority').value === 'low',
+                                'text-yellow-800 bg-yellow-200 dark:text-yellow-100 dark:bg-yellow-500': taskForm.get('priority').value === 'medium',
+                                'text-red-800 bg-red-200 dark:text-red-100 dark:bg-red-500': taskForm.get('priority').value === 'high'}"
                     [matMenuTriggerFor]="priorityMenu">
 
                     <!-- Low -->
-                    <ng-container *ngIf="task.priority === 'low'">
+                    <ng-container *ngIf="taskForm.get('priority').value === 'low'">
                         <mat-icon class="icon-size-5 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-down'"></mat-icon>
                         <span class="ml-2 mr-1 text-md font-medium">Low</span>
                     </ng-container>
 
-                    <!-- Normal -->
-                    <ng-container *ngIf="task.priority === 'normal'">
+                    <!-- Medium -->
+                    <ng-container *ngIf="taskForm.get('priority').value === 'medium'">
                         <mat-icon class="icon-size-4 text-current" [svgIcon]="'heroicons_solid:minus'"></mat-icon>
-                        <span class="ml-2 mr-1 text-md font-medium">Normal</span>
+                        <span class="ml-2 mr-1 text-md font-medium">Medium</span>
                     </ng-container>
 
                     <!-- High -->
-                    <ng-container *ngIf="task.priority === 'high'">
+                    <ng-container *ngIf="taskForm.get('priority').value === 'high'">
                         <mat-icon class="icon-size-4 text-current"
                             [svgIcon]="'heroicons_solid:arrow-narrow-up'"></mat-icon>
                         <span class="ml-2 mr-1 text-md font-medium">High</span>
@@ -210,7 +210,7 @@
                 </div>
                 <mat-menu #priorityMenu="matMenu">
                     <!-- Low -->
-                    <button [ngClass]="{'bg-hover': task.priority === 'low'}" mat-menu-item
+                    <button [ngClass]="{'bg-hover': taskForm.get('priority').value === 'low'}" mat-menu-item
                         (click)="setTaskPriority('low')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">Low</span>
@@ -219,18 +219,18 @@
                         </span>
                     </button>
 
-                    <!-- Normal -->
-                    <button [ngClass]="{'bg-hover': task.priority === 'normal'}" mat-menu-item
-                        (click)="setTaskPriority('normal')">
+                    <!-- Medium -->
+                    <button [ngClass]="{'bg-hover': taskForm.get('priority').value === 'medium'}" mat-menu-item
+                        (click)="setTaskPriority('medium')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
-                            <span class="font-medium">Normal</span>
-                            <mat-icon class="mr-0 icon-size-4 text-gray-600 dark:text-gray-500"
+                            <span class="font-medium">Medium</span>
+                            <mat-icon class="mr-0 icon-size-4 text-yellow-600 dark:text-yellow-500"
                                 [svgIcon]="'heroicons_solid:minus'"></mat-icon>
                         </span>
                     </button>
 
                     <!-- High -->
-                    <button [ngClass]="{'bg-hover': task.priority === 'high'}" mat-menu-item
+                    <button [ngClass]="{'bg-hover': taskForm.get('priority').value === 'high'}" mat-menu-item
                         (click)="setTaskPriority('high')">
                         <span class="inline-flex items-center justify-between w-full min-w-30 leading-5">
                             <span class="font-medium">High</span>

@@ -307,22 +307,30 @@
                                                             {{card.status | titlecase}}
                                                         </div>
 
-                                                        <!-- Time tracking info -->
-                                                        <div class="flex items-center space-x-1" *ngIf="card.totalTimeSpent > 0">
-                                                            <mat-icon class="icon-size-4 text-blue-500">access_time</mat-icon>
-                                                            <span class="text-xs">{{formatTimeSpent(card.totalTimeSpent)}}</span>
-                                                        </div>
+                                                                                                                 <!-- Priority indicator -->
+                                                         <div class="flex items-center space-x-1" *ngIf="card.priority">
+                                                             <mat-icon class="icon-size-4" 
+                                                                      [svgIcon]="getPriorityIcon(card.priority)"
+                                                                      [ngClass]="getPriorityColor(card.priority)">
+                                                             </mat-icon>
+                                                         </div>
 
-                                                        <!-- Due date -->
-                                                        <div class="text-xs whitespace-nowrap" *ngIf="card.dueDate">
-                                                            <span [ngClass]="{
-                                                            'text-red-600': isOverdue(card.dueDate),
-                                                            'text-yellow-600': isDueSoon(card.dueDate),
-                                                            'text-secondary': !isOverdue(card.dueDate) && !isDueSoon(card.dueDate)
-                                                        }">
-                                                                {{card.dueDate | date:'MMM dd'}}
-                                                            </span>
-                                                        </div>
+                                                         <!-- Time tracking info -->
+                                                         <div class="flex items-center space-x-1" *ngIf="card.totalTimeSpent > 0">
+                                                             <mat-icon class="icon-size-4 text-blue-500">access_time</mat-icon>
+                                                             <span class="text-xs">{{formatTimeSpent(card.totalTimeSpent)}}</span>
+                                                         </div>
+
+                                                         <!-- Due date -->
+                                                         <div class="text-xs whitespace-nowrap" *ngIf="card.dueDate">
+                                                             <span [ngClass]="{
+                                                             'text-red-600': isOverdue(card.dueDate),
+                                                             'text-yellow-600': isDueSoon(card.dueDate),
+                                                             'text-secondary': !isOverdue(card.dueDate) && !isDueSoon(card.dueDate)
+                                                         }">
+                                                                 {{card.dueDate | date:'MMM dd'}}
+                                                             </span>
+                                                         </div>
                                                     </div>
                                                 </a>
                                             </div>

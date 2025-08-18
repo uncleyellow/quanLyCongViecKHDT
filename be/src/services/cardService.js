@@ -62,7 +62,12 @@ const getDetail = async (reqBody) => {
 
 const update = async (reqBody, reqBodyUpdate) => {
   reqBodyUpdate.archived = reqBodyUpdate.archived === true ? 1 : 0
-  reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+  
+  // Only process checklistItems if it exists
+  if (reqBodyUpdate.checklistItems !== undefined) {
+    reqBodyUpdate.checklistItems = JSON.stringify(reqBodyUpdate.checklistItems)
+  }
+  
   // Format datetime fields for MySQL
   if (reqBodyUpdate.dueDate) {
     reqBodyUpdate.dueDate = formatDateTimeForMySQL(reqBodyUpdate.dueDate)

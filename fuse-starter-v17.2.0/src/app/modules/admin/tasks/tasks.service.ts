@@ -506,6 +506,9 @@ export class TasksService
                             if (updateData.checklistItems !== undefined) {
                                 updatedCard.checklistItems = updateData.checklistItems;
                             }
+                            if (updateData.priority !== undefined) {
+                                updatedCard.priority = updateData.priority;
+                            }
                             
                             console.log('Updated card in local state:', updatedCard);
                             return updatedCard;
