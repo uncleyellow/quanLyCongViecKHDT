@@ -48,13 +48,31 @@
                                 </button>
                             </mat-form-field>
                             <!-- Search results count -->
-                            <div class="text-xs text-secondary mt-1" *ngIf="searchTerm">
-                                Tìm thấy {{getFilteredTasksCount()}} công việc
+                            <div class="text-xs text-secondary mt-1" *ngIf="searchTerm || filters.length > 0">
+                                <span *ngIf="searchTerm && filters.length > 0">
+                                    Tìm thấy {{getFilteredTasksCount()}} công việc (tìm kiếm + bộ lọc)
+                                </span>
+                                <span *ngIf="searchTerm && filters.length === 0">
+                                    Tìm thấy {{getFilteredTasksCount()}} công việc
+                                </span>
+                                <span *ngIf="!searchTerm && filters.length > 0">
+                                    Hiển thị {{getFilteredTasksCount()}} công việc (bộ lọc)
+                                </span>
                             </div>
                         </div>
 
                         <!-- Actions -->
                         <div class="mt-4 sm:mt-0 flex space-x-2">
+                                                         <!-- Filter button -->
+                             <button mat-stroked-button 
+                                     (click)="toggleFilterPanel()" 
+                                     [matTooltip]="showFilterPanel ? 'Đóng bộ lọc' : 'Bộ lọc nâng cao'"
+                                     [class.mat-primary]="filters.length > 0">
+                                 <mat-icon [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                                 <span class="ml-2">{{ showFilterPanel ? 'Đóng bộ lọc' : 'Bộ lọc' }}</span>
+                                 <span class="ml-1 px-2 py-0.5 bg-primary text-white text-xs rounded-full" 
+                                       *ngIf="filters.length > 0">{{filters.length}}</span>
+                             </button>
                             <!-- Expand/Collapse buttons -->
                             <button mat-stroked-button (click)="expandAllBoards()" [matTooltip]="'Mở rộng tất cả'">
                                 <mat-icon [svgIcon]="'heroicons_outline:arrows-expand'"></mat-icon>
@@ -70,6 +88,121 @@
                                 <mat-icon [svgIcon]="'heroicons_outline:refresh'"></mat-icon>
                                 <span class="ml-2 mr-1">Làm mới</span>
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Panel -->
+                <div class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" 
+                     *ngIf="showFilterPanel">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Bộ lọc nâng cao</h3>
+                            <div class="flex space-x-2">
+                                <button mat-stroked-button 
+                                        (click)="addFilter()" 
+                                        [matTooltip]="'Thêm bộ lọc'">
+                                    <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                                    <span class="ml-2">Thêm bộ lọc</span>
+                                </button>
+                                <button mat-stroked-button 
+                                        (click)="clearAllFilters()" 
+                                        [matTooltip]="'Xóa tất cả bộ lọc'"
+                                        *ngIf="filters.length > 0">
+                                    <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                    <span class="ml-2">Xóa tất cả</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter list -->
+                        <div class="space-y-4" *ngIf="filters.length > 0">
+                            <div class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4" 
+                                 *ngFor="let filter of filters; trackBy: trackByFn">
+                                <div class="flex items-center space-x-4">
+                                    <!-- Field selection -->
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                        <mat-label>Trường</mat-label>
+                                        <mat-select [(ngModel)]="filter.field" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   placeholder="Chọn trường">
+                                            <mat-option *ngFor="let field of availableFields" 
+                                                       [value]="field.key">
+                                                {{field.label}}
+                                            </mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+
+                                    <!-- Operator selection -->
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                        <mat-label>Điều kiện</mat-label>
+                                        <mat-select [(ngModel)]="filter.operator" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   placeholder="Chọn điều kiện"
+                                                   [disabled]="!filter.field">
+                                            <mat-option *ngFor="let op of getOperatorsForFieldType(getFieldConfig(filter.field)?.type || 'string')" 
+                                                       [value]="op.value">
+                                                {{op.label}}
+                                            </mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+
+                                    <!-- Value input -->
+                                    <div class="flex-1">
+                                        <!-- String/Number input -->
+                                        <mat-form-field appearance="outline" class="w-full" 
+                                                       *ngIf="getFieldConfig(filter.field)?.type === 'string' || getFieldConfig(filter.field)?.type === 'number'">
+                                            <mat-label>Giá trị</mat-label>
+                                            <input matInput 
+                                                   [(ngModel)]="filter.value" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   [type]="getFieldConfig(filter.field)?.type === 'number' ? 'number' : 'text'"
+                                                   placeholder="Nhập giá trị">
+                                        </mat-form-field>
+
+                                        <!-- Date picker -->
+                                        <mat-form-field appearance="outline" class="w-full" 
+                                                       *ngIf="getFieldConfig(filter.field)?.type === 'date'">
+                                            <mat-label>Ngày</mat-label>
+                                            <input matInput 
+                                                   [matDatepicker]="picker"
+                                                   [(ngModel)]="filter.value" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   placeholder="Chọn ngày">
+                                            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                                            <mat-datepicker #picker></mat-datepicker>
+                                        </mat-form-field>
+
+                                        <!-- Select dropdown -->
+                                        <mat-form-field appearance="outline" class="w-full" 
+                                                       *ngIf="getFieldConfig(filter.field)?.type === 'select'">
+                                            <mat-label>Giá trị</mat-label>
+                                            <mat-select [(ngModel)]="filter.value" 
+                                                       (ngModelChange)="onFilterChange()"
+                                                       placeholder="Chọn giá trị">
+                                                <mat-option *ngFor="let option of getFieldConfig(filter.field)?.options" 
+                                                           [value]="option.value">
+                                                    {{option.label}}
+                                                </mat-option>
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
+
+                                    <!-- Remove filter button -->
+                                    <button mat-icon-button 
+                                            (click)="removeFilter(filter.id)"
+                                            [matTooltip]="'Xóa bộ lọc'"
+                                            class="text-red-500">
+                                        <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No filters message -->
+                        <div class="text-center text-gray-500 py-8" *ngIf="filters.length === 0">
+                            <mat-icon class="icon-size-16 mb-2" [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                            <p>Chưa có bộ lọc nào. Nhấn "Thêm bộ lọc" để bắt đầu.</p>
                         </div>
                     </div>
                 </div>
@@ -204,12 +337,12 @@
                         <div class="flex flex-auto flex-col items-center justify-center bg-gray-100 dark:bg-transparent">
                             <mat-icon class="icon-size-24" [svgIcon]="'heroicons_outline:clipboard-list'"></mat-icon>
                             <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">
-                                <span *ngIf="searchTerm">Không tìm thấy công việc nào phù hợp!</span>
-                                <span *ngIf="!searchTerm">Chưa có công việc nào được giao!</span>
+                                <span *ngIf="searchTerm || filters.length > 0">Không tìm thấy công việc nào phù hợp!</span>
+                                <span *ngIf="!searchTerm && filters.length === 0">Chưa có công việc nào được giao!</span>
                             </div>
                             <div class="mt-2 text-secondary">
-                                <span *ngIf="searchTerm">Thử thay đổi từ khóa tìm kiếm hoặc xóa bộ lọc.</span>
-                                <span *ngIf="!searchTerm">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</span>
+                                <span *ngIf="searchTerm || filters.length > 0">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc.</span>
+                                <span *ngIf="!searchTerm && filters.length === 0">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</span>
                             </div>
                         </div>
                     </ng-template>

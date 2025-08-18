@@ -18,6 +18,58 @@ interface BoardGroup {
     collapsed?: boolean;
 }
 
+// Interface for filter configuration
+interface FilterField {
+    key: string;
+    label: string;
+    type: 'string' | 'number' | 'date' | 'select';
+    options?: { value: any; label: string }[];
+}
+
+// Interface for filter
+interface Filter {
+    id: string;
+    field: string;
+    operator: string;
+    value: any;
+}
+
+// Available operators for different field types
+const STRING_OPERATORS = [
+    { value: 'contains', label: 'Chứa' },
+    { value: 'not_contains', label: 'Không chứa' },
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'starts_with', label: 'Bắt đầu bằng' },
+    { value: 'ends_with', label: 'Kết thúc bằng' }
+];
+
+const NUMBER_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'greater_than', label: 'Lớn hơn' },
+    { value: 'greater_than_or_equal', label: 'Lớn hơn hoặc bằng' },
+    { value: 'less_than', label: 'Nhỏ hơn' },
+    { value: 'less_than_or_equal', label: 'Nhỏ hơn hoặc bằng' }
+];
+
+const DATE_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'greater_than', label: 'Sau ngày' },
+    { value: 'greater_than_or_equal', label: 'Từ ngày' },
+    { value: 'less_than', label: 'Trước ngày' },
+    { value: 'less_than_or_equal', label: 'Đến ngày' },
+    { value: 'between', label: 'Trong khoảng' }
+];
+
+const SELECT_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'in', label: 'Trong danh sách' },
+    { value: 'not_in', label: 'Không trong danh sách' }
+];
+
 @Component({
     selector       : 'tasks-list',
     templateUrl    : './list.component.html',
@@ -56,6 +108,10 @@ export class TasksListComponent implements OnInit, OnDestroy
     hasRecurringBoards: boolean = false;
     searchTerm: string = '';
     filteredBoardGroups: BoardGroup[] = [];
+    // Filter properties
+    filters: Filter[] = [];
+    availableFields: FilterField[] = [];
+    showFilterPanel: boolean = false;
     // Store collapse state for each board group
     private boardCollapseStates: Map<string, boolean> = new Map();
     tasksCount: any = {
@@ -91,6 +147,9 @@ export class TasksListComponent implements OnInit, OnDestroy
     {
         // Initialize filtered board groups
         this.filteredBoardGroups = [];
+
+        // Initialize filter fields
+        this.initializeFilterFields();
 
         // Get the tags
         this._tasksService.tags$
@@ -503,7 +562,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             this.boardCollapseStates.set(group.boardId, false);
         });
         // Update filtered groups to reflect the changes
-        this.applySearch();
+        this.filteredBoardGroups = [...this.boardGroups];
         this._changeDetectorRef.markForCheck();
     }
 
@@ -518,7 +577,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             this.boardCollapseStates.set(group.boardId, true);
         });
         // Update filtered groups to reflect the changes
-        this.applySearch();
+        this.filteredBoardGroups = [...this.boardGroups];
         this._changeDetectorRef.markForCheck();
     }
 
@@ -633,7 +692,7 @@ export class TasksListComponent implements OnInit, OnDestroy
     onSearchChange(searchTerm: string): void
     {
         this.searchTerm = searchTerm;
-        this.applySearch();
+        this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
 
@@ -643,48 +702,19 @@ export class TasksListComponent implements OnInit, OnDestroy
     clearSearch(): void
     {
         this.searchTerm = '';
-        this.applySearch();
+        this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
 
-    /**
-     * Apply search filter to board groups
-     */
-    private applySearch(): void
-    {
-        if (!this.searchTerm || this.searchTerm.trim() === '') {
-            this.filteredBoardGroups = [...this.boardGroups];
-            return;
-        }
 
-        const searchLower = this.searchTerm.toLowerCase().trim();
-        
-        this.filteredBoardGroups = this.boardGroups.map(group => {
-            // Filter cards in this group that match the search term
-            const filteredCards = group.cards.filter(card => {
-                const titleMatch = card.title?.toLowerCase().includes(searchLower);
-                const descriptionMatch = card.description?.toLowerCase().includes(searchLower);
-                return titleMatch || descriptionMatch;
-            });
-
-            // Return a new group with filtered cards, or null if no cards match
-            if (filteredCards.length > 0) {
-                return {
-                    ...group,
-                    cards: filteredCards
-                };
-            }
-            return null;
-        }).filter(group => group !== null) as BoardGroup[];
-    }
 
     /**
-     * Update board groups and apply search filter
+     * Update board groups (no need to apply search since it's handled by backend)
      */
     private updateBoardGroupsWithSearch(): void
     {
         this.boardGroups = this.groupTasksByBoard(this.userCards);
-        this.applySearch();
+        this.filteredBoardGroups = [...this.boardGroups];
     }
 
     /**
@@ -693,5 +723,168 @@ export class TasksListComponent implements OnInit, OnDestroy
     getFilteredTasksCount(): number
     {
         return this.filteredBoardGroups.reduce((total, group) => total + group.cards.length, 0);
+    }
+
+    /**
+     * Get operators for a field type
+     */
+    getOperatorsForFieldType(fieldType: string): any[]
+    {
+        switch (fieldType) {
+            case 'string':
+                return STRING_OPERATORS;
+            case 'number':
+                return NUMBER_OPERATORS;
+            case 'date':
+                return DATE_OPERATORS;
+            case 'select':
+                return SELECT_OPERATORS;
+            default:
+                return STRING_OPERATORS;
+        }
+    }
+
+    /**
+     * Get field configuration by key
+     */
+    getFieldConfig(fieldKey: string): FilterField | undefined
+    {
+        return this.availableFields.find(field => field.key === fieldKey);
+    }
+
+    /**
+     * Add a new filter
+     */
+    addFilter(): void
+    {
+        const newFilter: Filter = {
+            id: Date.now().toString(),
+            field: '',
+            operator: '',
+            value: null
+        };
+        this.filters.push(newFilter);
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Remove a filter
+     */
+    removeFilter(filterId: string): void
+    {
+        this.filters = this.filters.filter(f => f.id !== filterId);
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear all filters
+     */
+    clearAllFilters(): void
+    {
+        this.filters = [];
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Toggle filter panel
+     */
+    toggleFilterPanel(): void
+    {
+        this.showFilterPanel = !this.showFilterPanel;
+        this._changeDetectorRef.markForCheck();
+    }
+
+
+
+
+
+    /**
+     * Load cards with current filters and search
+     */
+    private loadCardsWithFilters(): void
+    {
+        const options: any = {};
+        
+        if (this.searchTerm && this.searchTerm.trim()) {
+            options.searchTerm = this.searchTerm.trim();
+        }
+        
+        if (this.filters && this.filters.length > 0) {
+            // Only include filters that have all required fields
+            const validFilters = this.filters.filter(filter => 
+                filter.field && filter.operator && filter.value !== null && filter.value !== undefined
+            );
+            
+            // Process date values for date fields
+            const processedFilters = validFilters.map(filter => {
+                if (filter.field === 'dueDate' && filter.value instanceof Date) {
+                    // Convert Date object to local date string to avoid timezone issues
+                    const year = filter.value.getFullYear();
+                    const month = String(filter.value.getMonth() + 1).padStart(2, '0');
+                    const day = String(filter.value.getDate()).padStart(2, '0');
+                    const localDateString = `${year}-${month}-${day}`;
+                    
+                    const dateFilter = {
+                        ...filter,
+                        value: localDateString // YYYY-MM-DD format using local date
+                    };
+                    console.log('Processing date filter:', {
+                        original: filter.value,
+                        originalLocal: `${filter.value.getFullYear()}-${String(filter.value.getMonth() + 1).padStart(2, '0')}-${String(filter.value.getDate()).padStart(2, '0')}`,
+                        processed: dateFilter.value,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    });
+                    return dateFilter;
+                }
+                return filter;
+            });
+            
+            if (processedFilters.length > 0) {
+                options.filters = processedFilters;
+                console.log('Sending filters to API:', JSON.stringify(processedFilters, null, 2));
+            }
+        }
+        
+        this._tasksService.getUserCards(options).subscribe((userCards: UserCard[]) => {
+            this.userCards = userCards;
+            this.updateBoardGroupsWithSearch();
+            this.updateTasksCount();
+            this.updateNavigationCount();
+            this._changeDetectorRef.markForCheck();
+        });
+    }
+
+    /**
+     * Update filter and apply
+     */
+    onFilterChange(): void
+    {
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+        /**
+     * Initialize filter fields
+     */
+    private initializeFilterFields(): void
+    {
+        this.availableFields = [
+            { key: 'title', label: 'Tiêu đề', type: 'string' },
+            { key: 'description', label: 'Mô tả', type: 'string' },
+            { key: 'dueDate', label: 'Ngày hết hạn', type: 'date' },
+            { key: 'status', label: 'Trạng thái', type: 'select', options: [
+                { value: 'todo', label: 'Chưa làm' },
+                { value: 'in-progress', label: 'Đang thực hiện' },
+                { value: 'doing', label: 'Đang làm' },
+                { value: 'completed', label: 'Đã hoàn thành' },
+                { value: 'done', label: 'Đã làm' }
+            ] },
+            { key: 'recurring', label: 'Lặp lại', type: 'select', options: [
+                { value: true, label: 'Có' },
+                { value: false, label: 'Không' }
+            ] }
+        ];
     }
 }

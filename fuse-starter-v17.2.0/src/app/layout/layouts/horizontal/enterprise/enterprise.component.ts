@@ -5,6 +5,7 @@ import { FuseMediaWatcherService } from '@fuse/services/media-watcher';
 import { FuseNavigationService, FuseVerticalNavigationComponent } from '@fuse/components/navigation';
 import { Navigation } from 'app/core/navigation/navigation.types';
 import { NavigationService } from 'app/core/navigation/navigation.service';
+import { VersionService } from 'app/core/services/version.service';
 
 @Component({
     selector     : 'enterprise-layout',
@@ -15,6 +16,7 @@ export class EnterpriseLayoutComponent implements OnInit, OnDestroy
 {
     isScreenSmall: boolean;
     navigation: Navigation;
+    currentVersion: string = '1.0.0';
     private _unsubscribeAll: Subject<any> = new Subject<any>();
 
     /**
@@ -25,7 +27,8 @@ export class EnterpriseLayoutComponent implements OnInit, OnDestroy
         private _router: Router,
         private _navigationService: NavigationService,
         private _fuseMediaWatcherService: FuseMediaWatcherService,
-        private _fuseNavigationService: FuseNavigationService
+        private _fuseNavigationService: FuseNavigationService,
+        private _versionService: VersionService
     )
     {
     }
@@ -66,6 +69,13 @@ export class EnterpriseLayoutComponent implements OnInit, OnDestroy
                 // Check if the screen is small
                 this.isScreenSmall = !matchingAliases.includes('md');
             });
+
+        // Get current version
+        this._versionService.getCurrentVersion()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe(version => {
+                this.currentVersion = version;
+            });
     }
 
     /**
@@ -97,5 +107,15 @@ export class EnterpriseLayoutComponent implements OnInit, OnDestroy
             // Toggle the opened status
             navigation.toggle();
         }
+    }
+
+    /**
+     * Open version history
+     */
+    openVersionHistory(): void
+    {
+        console.log('Opening version history...');
+        console.log('Current version:', this.currentVersion);
+        this._router.navigate(['/version-history']);
     }
 }

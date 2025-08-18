@@ -140,9 +140,222 @@ const pushCardOrderIds = async (card) => {
   } catch (error) { throw error }
 }
 
-const getAllUserCards = async (userId) => {
+// Helper function to evaluate a single filter against a card
+const evaluateFilter = (card, filter) => {
+  const { field, operator, value } = filter
+  
+  // Get field value from card
+  let fieldValue
+  switch (field) {
+    case 'title':
+      fieldValue = card.title
+      break
+    case 'description':
+      fieldValue = card.description
+      break
+    case 'dueDate':
+      fieldValue = card.dueDate
+      break
+    case 'status':
+      fieldValue = card.status
+      break
+    case 'recurring':
+      fieldValue = card.recurringConfig ? JSON.parse(card.recurringConfig).isRecurring : false
+      break
+    default:
+      fieldValue = card[field]
+  }
+  
+  // Debug logging for date fields
+  if (field === 'dueDate') {
+    console.log(`Field value for dueDate: ${fieldValue}, type: ${typeof fieldValue}`)
+  }
+  
+  // Handle null/undefined field values
+  if (fieldValue === null || fieldValue === undefined) {
+    switch (operator) {
+      case 'equals':
+        return value === null || value === undefined || value === ''
+      case 'not_equals':
+        return value !== null && value !== undefined && value !== ''
+      case 'contains':
+      case 'starts_with':
+      case 'ends_with':
+        return false
+      case 'not_contains':
+        return true
+      default:
+        return false
+    }
+  }
+  
+  // Evaluate based on operator
+  switch (operator) {
+    // String operators
+    case 'contains':
+      return String(fieldValue || '').toLowerCase().includes(String(value || '').toLowerCase())
+    case 'not_contains':
+      return !String(fieldValue || '').toLowerCase().includes(String(value || '').toLowerCase())
+    case 'equals':
+      // Special handling for date fields - compare only date part
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return fieldValue === value
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate.getTime() === valueDate.getTime()
+      }
+      return String(fieldValue || '').toLowerCase() === String(value || '').toLowerCase()
+    case 'not_equals':
+      // Special handling for date fields - compare only date part
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return fieldValue !== value
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate.getTime() !== valueDate.getTime()
+      }
+      return String(fieldValue || '').toLowerCase() !== String(value || '').toLowerCase()
+    case 'starts_with':
+      return String(fieldValue || '').toLowerCase().startsWith(String(value || '').toLowerCase())
+    case 'ends_with':
+      return String(fieldValue || '').toLowerCase().endsWith(String(value || '').toLowerCase())
+    
+    // Number operators
+    case 'greater_than':
+      // Check if this is a date field
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return false
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate > valueDate
+      }
+      return Number(fieldValue) > Number(value)
+    case 'greater_than_or_equal':
+      // Check if this is a date field
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return false
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate >= valueDate
+      }
+      return Number(fieldValue) >= Number(value)
+    case 'less_than':
+      // Check if this is a date field
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return false
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate < valueDate
+      }
+      return Number(fieldValue) < Number(value)
+    case 'less_than_or_equal':
+      // Check if this is a date field
+      if (field === 'dueDate') {
+        if (!fieldValue || !value) return false
+        const fieldDate = new Date(fieldValue)
+        const valueDate = new Date(value)
+        // Set both dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        valueDate.setHours(0, 0, 0, 0)
+        return fieldDate <= valueDate
+      }
+      return Number(fieldValue) <= Number(value)
+    
+    // Date operators (for backward compatibility)
+    case 'date_greater_than':
+      if (!fieldValue || !value) return false
+      const fieldDate1 = new Date(fieldValue)
+      const valueDate1 = new Date(value)
+      fieldDate1.setHours(0, 0, 0, 0)
+      valueDate1.setHours(0, 0, 0, 0)
+      return fieldDate1 > valueDate1
+    case 'date_greater_than_or_equal':
+      if (!fieldValue || !value) return false
+      const fieldDate2 = new Date(fieldValue)
+      const valueDate2 = new Date(value)
+      fieldDate2.setHours(0, 0, 0, 0)
+      valueDate2.setHours(0, 0, 0, 0)
+      return fieldDate2 >= valueDate2
+    case 'date_less_than':
+      if (!fieldValue || !value) return false
+      const fieldDate3 = new Date(fieldValue)
+      const valueDate3 = new Date(value)
+      fieldDate3.setHours(0, 0, 0, 0)
+      valueDate3.setHours(0, 0, 0, 0)
+      return fieldDate3 < valueDate3
+    case 'date_less_than_or_equal':
+      if (!fieldValue || !value) return false
+      const fieldDate4 = new Date(fieldValue)
+      const valueDate4 = new Date(value)
+      fieldDate4.setHours(0, 0, 0, 0)
+      valueDate4.setHours(0, 0, 0, 0)
+      return fieldDate4 <= valueDate4
+    
+    // Select operators
+    case 'in':
+      return Array.isArray(value) ? value.includes(fieldValue) : value === fieldValue
+    case 'not_in':
+      return Array.isArray(value) ? !value.includes(fieldValue) : value !== fieldValue
+    
+    default:
+      return true
+  }
+}
+
+const getAllUserCards = async (userId, options = {}) => {
   try {
-    const cards = await cardModel.getAllUserCards(userId)
+    const { searchTerm, filters = [], page = 1, limit = 50 } = options
+    
+    // Get all cards first
+    let cards = await cardModel.getAllUserCards(userId)
+    
+    // Apply search filter if provided
+    if (searchTerm && searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim()
+      cards = cards.filter(card => {
+        const titleMatch = card.title?.toLowerCase().includes(searchLower)
+        const descriptionMatch = card.description?.toLowerCase().includes(searchLower)
+        return titleMatch || descriptionMatch
+      })
+    }
+    
+    // Apply advanced filters if provided
+    if (filters && filters.length > 0) {
+      console.log('Applying filters:', JSON.stringify(filters, null, 2))
+      
+      // Log some sample cards for debugging
+      if (cards.length > 0) {
+        console.log('Sample cards dueDate values:')
+        cards.slice(0, 3).forEach((card, index) => {
+          console.log(`  Card ${index + 1}: dueDate = ${card.dueDate}, type = ${typeof card.dueDate}`)
+        })
+      }
+      
+      cards = cards.filter(card => {
+        return filters.every(filter => {
+          const result = evaluateFilter(card, filter)
+          if (filter.field === 'dueDate') {
+            console.log(`Date filter: ${filter.operator} ${filter.value} (type: ${typeof filter.value}), card dueDate: ${card.dueDate} (type: ${typeof card.dueDate}), result: ${result}`)
+          }
+          return result
+        })
+      })
+      console.log(`After filtering: ${cards.length} cards`)
+    }
     
     // Get user's card order preference
     const user = await userModel.findOneById(userId)
@@ -238,7 +451,18 @@ const getAllUserCards = async (userId) => {
       card.status === 'completed'
     )
     
-    return [...incompleteCards, ...completedCards]
+    const sortedCards = [...incompleteCards, ...completedCards]
+    
+    // Apply pagination
+    const total = sortedCards.length
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const paginatedCards = sortedCards.slice(startIndex, endIndex)
+    
+    return {
+      cards: paginatedCards,
+      total: total
+    }
   } catch (error) { throw error }
 }
 

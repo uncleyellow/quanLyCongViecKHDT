@@ -1,0 +1,50 @@
+{
+  "currentVersion": "1.2.0",
+  "versions": [
+    {
+      "version": "1.2.0",
+      "releaseDate": "2025-08-18",
+      "type": "feature",
+      "title": "Tính năng lọc và tìm kiếm nâng cao",
+      "description": "Thêm tính năng lọc và tìm kiếm công việc với nhiều tiêu chí khác nhau",
+      "changes": [
+        "Thêm tìm kiếm theo tiêu đề và mô tả",
+        "Thêm bộ lọc nâng cao với các operator: chứa, bằng, lớn hơn, nhỏ hơn...",
+        "Hỗ trợ lọc theo ngày hết hạn với xử lý timezone chính xác",
+        "Lọc theo trạng thái công việc",
+        "Lọc theo tính chất lặp lại",
+        "Chuyển logic lọc từ Frontend sang Backend để tối ưu hiệu suất",
+        "Thêm pagination cho kết quả tìm kiếm"
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.1.0",
+      "releaseDate": "2025-08-15",
+      "type": "feature",
+      "title": "Tính năng quản lý công việc lặp lại",
+      "description": "Thêm khả năng tạo và quản lý các công việc lặp lại theo ngày",
+      "changes": [
+        "Thêm cấu hình lặp lại cho bảng công việc",
+        "Hiển thị công việc lặp lại theo ngày hiện tại",
+        "Tự động tạo công việc mới cho ngày tiếp theo"
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.0",
+      "releaseDate": "2025-08-10",
+      "type": "release",
+      "title": "Phiên bản đầu tiên",
+      "description": "Phát hành phiên bản đầu tiên của hệ thống quản lý công việc",
+      "changes": [
+        "Hệ thống đăng nhập và phân quyền",
+        "Quản lý công việc cơ bản (thêm, sửa, xóa)",
+        "Quản lý bảng và danh sách công việc",
+        "Giao diện người dùng thân thiện",
+        "Hỗ trợ đa cấp: Công ty - Phòng ban - Cá nhân"
+      ],
+      "author": "Development Team"
+    }
+  ]
+}

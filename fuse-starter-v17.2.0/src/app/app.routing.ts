@@ -72,8 +72,7 @@ export const appRoutes: Route[] = [
         },
         children: [
             {path: 'example', loadChildren: () => import('app/modules/admin/example/example.module').then(m => m.ExampleModule)},
-            
-            
+            {path: 'version-history', loadChildren: () => import('app/modules/admin/version-history/version-history.module').then(m => m.VersionHistoryModule)},
             
             {path: 'scrumboard', loadChildren: () => import('app/modules/admin/scrumboard/scrumboard.module').then(m => m.ScrumboardModule)},
             {path: 'files-manager', loadChildren: () => import('app/modules/admin/file-manager/file-manager.module').then(m => m.FileManagerModule)},

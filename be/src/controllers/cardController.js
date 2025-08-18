@@ -218,17 +218,44 @@ const updateCardOrder = async (req, res, next) => {
 const getAllUserCards = async (req, res, next) => {
     try {
         const { userId } = req.user
-        const cards = await cardService.getAllUserCards(userId)
+        
+        // Extract filter parameters from query
+        const {
+            searchTerm,
+            filters,
+            page = 1,
+            limit = 50
+        } = req.query
+        
+        // Parse filters if provided
+        let parsedFilters = []
+        if (filters) {
+            try {
+                parsedFilters = JSON.parse(filters)
+            } catch (error) {
+                console.error('Error parsing filters:', error)
+                parsedFilters = []
+            }
+        }
+        
+        const result = await cardService.getAllUserCards(userId, {
+            searchTerm,
+            filters: parsedFilters,
+            page: parseInt(page),
+            limit: parseInt(limit)
+        })
+        
         const responseObject = {
             code: StatusCodes.OK,
             status: 'success',
             message: 'User cards fetched successfully',
             pagination: {
-                total: cards.length,
-                page: 1,
-                limit: cards.length
+                total: result.total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(result.total / parseInt(limit))
             },
-            data: cards
+            data: result.cards
         }
         res.status(StatusCodes.OK).json(responseObject)
     } catch (error) { next(error) }
