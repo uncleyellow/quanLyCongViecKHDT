@@ -29,6 +29,30 @@
                                 <span>Kéo thả để sắp xếp lại thứ tự công việc</span>
                             </div>
                         </div>
+
+                        <!-- Search Box -->
+                        <div class="mt-4 sm:mt-0 flex-1 max-w-md mx-4">
+                            <mat-form-field class="w-full" appearance="outline" floatLabel="always">
+                                <mat-label>Tìm kiếm công việc</mat-label>
+                                <input matInput 
+                                       [(ngModel)]="searchTerm" 
+                                       (ngModelChange)="onSearchChange($event)"
+                                       placeholder="Tìm theo tên hoặc mô tả..."
+                                       [matTooltip]="'Tìm kiếm theo tên hoặc mô tả công việc'">
+                                <mat-icon matSuffix [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+                                <button mat-icon-button matSuffix 
+                                        *ngIf="searchTerm" 
+                                        (click)="clearSearch()"
+                                        [matTooltip]="'Xóa tìm kiếm'">
+                                    <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+                                </button>
+                            </mat-form-field>
+                            <!-- Search results count -->
+                            <div class="text-xs text-secondary mt-1" *ngIf="searchTerm">
+                                Tìm thấy {{getFilteredTasksCount()}} công việc
+                            </div>
+                        </div>
+
                         <!-- Actions -->
                         <div class="mt-4 sm:mt-0 flex space-x-2">
                             <!-- Expand/Collapse buttons -->
@@ -53,10 +77,10 @@
                 <!-- Scrollable Content -->
                 <div class="flex-1 overflow-y-auto">
                     <!-- User Cards list -->
-                    <ng-container *ngIf="boardGroups && boardGroups.length > 0; else noTasks">
+                    <ng-container *ngIf="filteredBoardGroups && filteredBoardGroups.length > 0; else noTasks">
                         <div class="space-y-6">
                             <!-- Board Group -->
-                            <ng-container *ngFor="let group of boardGroups; trackBy: trackByFn">
+                            <ng-container *ngFor="let group of filteredBoardGroups; trackBy: trackByFn">
                                 <!-- Board Header -->
                                 <div class="board-group" [class.collapsed]="group.collapsed">
                                     <div class="flex items-center space-x-3 board-header cursor-pointer" (click)="toggleBoardCollapse(group)">
@@ -179,9 +203,14 @@
                     <ng-template #noTasks>
                         <div class="flex flex-auto flex-col items-center justify-center bg-gray-100 dark:bg-transparent">
                             <mat-icon class="icon-size-24" [svgIcon]="'heroicons_outline:clipboard-list'"></mat-icon>
-                            <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">Chưa có công việc nào
-                                được giao!</div>
-                            <div class="mt-2 text-secondary">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</div>
+                            <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">
+                                <span *ngIf="searchTerm">Không tìm thấy công việc nào phù hợp!</span>
+                                <span *ngIf="!searchTerm">Chưa có công việc nào được giao!</span>
+                            </div>
+                            <div class="mt-2 text-secondary">
+                                <span *ngIf="searchTerm">Thử thay đổi từ khóa tìm kiếm hoặc xóa bộ lọc.</span>
+                                <span *ngIf="!searchTerm">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</span>
+                            </div>
                         </div>
                     </ng-template>
                 </div>

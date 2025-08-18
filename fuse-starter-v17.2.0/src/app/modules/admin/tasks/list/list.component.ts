@@ -54,6 +54,8 @@ export class TasksListComponent implements OnInit, OnDestroy
     boardGroups: BoardGroup[] = [];
     isReordering: boolean = false;
     hasRecurringBoards: boolean = false;
+    searchTerm: string = '';
+    filteredBoardGroups: BoardGroup[] = [];
     // Store collapse state for each board group
     private boardCollapseStates: Map<string, boolean> = new Map();
     tasksCount: any = {
@@ -87,6 +89,9 @@ export class TasksListComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
+        // Initialize filtered board groups
+        this.filteredBoardGroups = [];
+
         // Get the tags
         this._tasksService.tags$
             .pipe(takeUntil(this._unsubscribeAll))
@@ -102,7 +107,7 @@ export class TasksListComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((userCards: UserCard[]) => {
                 this.userCards = userCards;
-                this.boardGroups = this.groupTasksByBoard(userCards);
+                this.updateBoardGroupsWithSearch();
 
                 // Update the counts based on user cards
                 this.updateTasksCount();
@@ -121,7 +126,7 @@ export class TasksListComponent implements OnInit, OnDestroy
                 if (userCards) {
                     console.log('TasksListComponent received updated userCards:', userCards.length);
                     this.userCards = userCards;
-                    this.boardGroups = this.groupTasksByBoard(userCards);
+                    this.updateBoardGroupsWithSearch();
                     this.updateTasksCount();
                     this.updateNavigationCount();
                     this._changeDetectorRef.markForCheck();
@@ -497,6 +502,8 @@ export class TasksListComponent implements OnInit, OnDestroy
             // Save the collapse state
             this.boardCollapseStates.set(group.boardId, false);
         });
+        // Update filtered groups to reflect the changes
+        this.applySearch();
         this._changeDetectorRef.markForCheck();
     }
 
@@ -510,6 +517,8 @@ export class TasksListComponent implements OnInit, OnDestroy
             // Save the collapse state
             this.boardCollapseStates.set(group.boardId, true);
         });
+        // Update filtered groups to reflect the changes
+        this.applySearch();
         this._changeDetectorRef.markForCheck();
     }
 
@@ -614,5 +623,75 @@ export class TasksListComponent implements OnInit, OnDestroy
                     });
             }
         }, 100);
+    }
+
+    /**
+     * Handle search term change
+     *
+     * @param searchTerm
+     */
+    onSearchChange(searchTerm: string): void
+    {
+        this.searchTerm = searchTerm;
+        this.applySearch();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear search
+     */
+    clearSearch(): void
+    {
+        this.searchTerm = '';
+        this.applySearch();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Apply search filter to board groups
+     */
+    private applySearch(): void
+    {
+        if (!this.searchTerm || this.searchTerm.trim() === '') {
+            this.filteredBoardGroups = [...this.boardGroups];
+            return;
+        }
+
+        const searchLower = this.searchTerm.toLowerCase().trim();
+        
+        this.filteredBoardGroups = this.boardGroups.map(group => {
+            // Filter cards in this group that match the search term
+            const filteredCards = group.cards.filter(card => {
+                const titleMatch = card.title?.toLowerCase().includes(searchLower);
+                const descriptionMatch = card.description?.toLowerCase().includes(searchLower);
+                return titleMatch || descriptionMatch;
+            });
+
+            // Return a new group with filtered cards, or null if no cards match
+            if (filteredCards.length > 0) {
+                return {
+                    ...group,
+                    cards: filteredCards
+                };
+            }
+            return null;
+        }).filter(group => group !== null) as BoardGroup[];
+    }
+
+    /**
+     * Update board groups and apply search filter
+     */
+    private updateBoardGroupsWithSearch(): void
+    {
+        this.boardGroups = this.groupTasksByBoard(this.userCards);
+        this.applySearch();
+    }
+
+    /**
+     * Get filtered tasks count
+     */
+    getFilteredTasksCount(): number
+    {
+        return this.filteredBoardGroups.reduce((total, group) => total + group.cards.length, 0);
     }
 }
