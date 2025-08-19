@@ -161,17 +161,50 @@
                                         </mat-form-field>
 
                                         <!-- Date picker -->
-                                        <mat-form-field appearance="outline" class="w-full" 
-                                                       *ngIf="getFieldConfig(filter.field)?.type === 'date'">
-                                            <mat-label>Ngày</mat-label>
-                                            <input matInput 
-                                                   [matDatepicker]="picker"
-                                                   [(ngModel)]="filter.value" 
-                                                   (ngModelChange)="onFilterChange()"
-                                                   placeholder="Chọn ngày">
-                                            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-                                            <mat-datepicker #picker></mat-datepicker>
-                                        </mat-form-field>
+                                        <div class="w-full" *ngIf="getFieldConfig(filter.field)?.type === 'date'">
+                                            <!-- Single date picker for non-range operators -->
+                                            <mat-form-field appearance="outline" class="w-full" 
+                                                           *ngIf="filter.operator !== 'between'">
+                                                <mat-label>Ngày</mat-label>
+                                                <input matInput 
+                                                       [matDatepicker]="picker"
+                                                       [(ngModel)]="filter.value" 
+                                                       (ngModelChange)="onFilterChange()"
+                                                       placeholder="Chọn ngày">
+                                                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                                                <mat-datepicker #picker></mat-datepicker>
+                                            </mat-form-field>
+
+                                            <!-- Date range picker for 'between' operator -->
+                                            <div class="flex space-x-2" *ngIf="filter.operator === 'between'">
+                                                <mat-form-field appearance="outline" class="flex-1">
+                                                    <mat-label>Từ ngày</mat-label>
+                                                    <input matInput 
+                                                           [matDatepicker]="startPicker"
+                                                           [(ngModel)]="filter.startDate" 
+                                                           (ngModelChange)="onDateRangeChange(filter)"
+                                                           placeholder="Từ ngày">
+                                                    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                                                    <mat-datepicker #startPicker></mat-datepicker>
+                                                </mat-form-field>
+                                                <mat-form-field appearance="outline" class="flex-1">
+                                                    <mat-label>Đến ngày</mat-label>
+                                                    <input matInput 
+                                                           [matDatepicker]="endPicker"
+                                                           [(ngModel)]="filter.endDate" 
+                                                           (ngModelChange)="onDateRangeChange(filter)"
+                                                           placeholder="Đến ngày">
+                                                    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                                                    <mat-datepicker #endPicker></mat-datepicker>
+                                                </mat-form-field>
+                                            </div>
+                                            
+                                            <!-- Date range validation message -->
+                                            <div class="text-xs text-red-500 mt-1" 
+                                                 *ngIf="filter.operator === 'between' && filter.startDate && filter.endDate && isInvalidDateRange(filter)">
+                                                Ngày bắt đầu phải trước hoặc bằng ngày kết thúc
+                                            </div>
+                                        </div>
 
                                         <!-- Select dropdown -->
                                         <mat-form-field appearance="outline" class="w-full" 

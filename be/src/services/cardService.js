@@ -310,6 +310,28 @@ const evaluateFilter = (card, filter) => {
       valueDate4.setHours(0, 0, 0, 0)
       return fieldDate4 <= valueDate4
     
+    // Date range operator
+    case 'between':
+      if (field === 'dueDate') {
+        if (!fieldValue || !value || !value.startDate || !value.endDate) return false
+        const fieldDate = new Date(fieldValue)
+        const startDate = new Date(value.startDate)
+        const endDate = new Date(value.endDate)
+        
+        // Set all dates to start of day for comparison
+        fieldDate.setHours(0, 0, 0, 0)
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(0, 0, 0, 0)
+        
+        return fieldDate >= startDate && fieldDate <= endDate
+      }
+      // For non-date fields, treat as number range
+      if (!fieldValue || !value || !value.startDate || !value.endDate) return false
+      const fieldNum = Number(fieldValue)
+      const startNum = Number(value.startDate)
+      const endNum = Number(value.endDate)
+      return fieldNum >= startNum && fieldNum <= endNum
+    
     // Select operators
     case 'in':
       return Array.isArray(value) ? value.includes(fieldValue) : value === fieldValue

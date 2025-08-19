@@ -32,6 +32,8 @@ interface Filter {
     field: string;
     operator: string;
     value: any;
+    startDate?: Date; // For date range filters
+    endDate?: Date;   // For date range filters
 }
 
 // Available operators for different field types
@@ -851,24 +853,51 @@ export class TasksListComponent implements OnInit, OnDestroy
             
             // Process date values for date fields
             const processedFilters = validFilters.map(filter => {
-                if (filter.field === 'dueDate' && filter.value instanceof Date) {
-                    // Convert Date object to local date string to avoid timezone issues
-                    const year = filter.value.getFullYear();
-                    const month = String(filter.value.getMonth() + 1).padStart(2, '0');
-                    const day = String(filter.value.getDate()).padStart(2, '0');
-                    const localDateString = `${year}-${month}-${day}`;
-                    
-                    const dateFilter = {
-                        ...filter,
-                        value: localDateString // YYYY-MM-DD format using local date
-                    };
-                    console.log('Processing date filter:', {
-                        original: filter.value,
-                        originalLocal: `${filter.value.getFullYear()}-${String(filter.value.getMonth() + 1).padStart(2, '0')}-${String(filter.value.getDate()).padStart(2, '0')}`,
-                        processed: dateFilter.value,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                    });
-                    return dateFilter;
+                if (filter.field === 'dueDate') {
+                    if (filter.operator === 'between' && filter.value && filter.value.startDate && filter.value.endDate) {
+                        // Handle date range filter
+                        const startYear = filter.value.startDate.getFullYear();
+                        const startMonth = String(filter.value.startDate.getMonth() + 1).padStart(2, '0');
+                        const startDay = String(filter.value.startDate.getDate()).padStart(2, '0');
+                        const startDateString = `${startYear}-${startMonth}-${startDay}`;
+                        
+                        const endYear = filter.value.endDate.getFullYear();
+                        const endMonth = String(filter.value.endDate.getMonth() + 1).padStart(2, '0');
+                        const endDay = String(filter.value.endDate.getDate()).padStart(2, '0');
+                        const endDateString = `${endYear}-${endMonth}-${endDay}`;
+                        
+                        const dateRangeFilter = {
+                            ...filter,
+                            value: {
+                                startDate: startDateString,
+                                endDate: endDateString
+                            }
+                        };
+                        console.log('Processing date range filter:', {
+                            startDate: dateRangeFilter.value.startDate,
+                            endDate: dateRangeFilter.value.endDate,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                        return dateRangeFilter;
+                    } else if (filter.value instanceof Date) {
+                        // Handle single date filter
+                        const year = filter.value.getFullYear();
+                        const month = String(filter.value.getMonth() + 1).padStart(2, '0');
+                        const day = String(filter.value.getDate()).padStart(2, '0');
+                        const localDateString = `${year}-${month}-${day}`;
+                        
+                        const dateFilter = {
+                            ...filter,
+                            value: localDateString // YYYY-MM-DD format using local date
+                        };
+                        console.log('Processing date filter:', {
+                            original: filter.value,
+                            originalLocal: `${filter.value.getFullYear()}-${String(filter.value.getMonth() + 1).padStart(2, '0')}-${String(filter.value.getDate()).padStart(2, '0')}`,
+                            processed: dateFilter.value,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                        return dateFilter;
+                    }
                 }
                 return filter;
             });
@@ -893,8 +922,81 @@ export class TasksListComponent implements OnInit, OnDestroy
      */
     onFilterChange(): void
     {
+        // Handle operator changes for date fields
+        this.filters.forEach(filter => {
+            if (filter.field === 'dueDate') {
+                if (filter.operator === 'between') {
+                    // Initialize date range fields if switching to 'between'
+                    if (!filter.startDate && !filter.endDate) {
+                        filter.startDate = null;
+                        filter.endDate = null;
+                        filter.value = null;
+                    }
+                } else {
+                    // Clear date range fields if switching away from 'between'
+                    if (filter.startDate || filter.endDate) {
+                        filter.startDate = null;
+                        filter.endDate = null;
+                        filter.value = null;
+                    }
+                }
+            }
+        });
+        
         this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Handle date range change for 'between' operator
+     */
+    onDateRangeChange(filter: Filter): void
+    {
+        // Validate date range
+        if (filter.startDate && filter.endDate) {
+            const startDate = new Date(filter.startDate);
+            const endDate = new Date(filter.endDate);
+            
+            // Set both dates to start of day for comparison
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(0, 0, 0, 0);
+            
+            if (startDate > endDate) {
+                // If start date is after end date, swap them
+                const temp = filter.startDate;
+                filter.startDate = filter.endDate;
+                filter.endDate = temp;
+            }
+            
+            filter.value = {
+                startDate: filter.startDate,
+                endDate: filter.endDate
+            };
+        } else {
+            filter.value = null;
+        }
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Check if date range is invalid
+     */
+    isInvalidDateRange(filter: Filter): boolean
+    {
+        if (!filter.startDate || !filter.endDate) {
+            return false;
+        }
+        
+        const startDate = new Date(filter.startDate);
+        const endDate = new Date(filter.endDate);
+        
+        // Set both dates to start of day for comparison
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        
+        return startDate > endDate;
     }
 
         /**
