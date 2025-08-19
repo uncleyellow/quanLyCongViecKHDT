@@ -157,36 +157,20 @@ const getFilteredBoard = async (req, res, next) => {
         // Get all lists for this board
         const lists = await listModel.getList({ boardId });
 
-        // Apply filters to cards in each list
+        // Get filtered cards using optimized database-level filtering
+        const filterCriteria = {
+            search: search,
+            filters: filters ? JSON.parse(filters) : []
+        };
+
+        const allFilteredCards = await cardService.getFilteredCards(boardId, filterCriteria);
+
+        // Group cards by list
         for (let list of lists) {
-            let cards = await cardModel.getList({ boardId: boardId, listId: list.id });
-
-            // Apply search filter
-            if (search && search.trim() !== '') {
-                const searchLower = search.toLowerCase();
-                cards = cards.filter(card => {
-                    const titleMatch = card.title && card.title.toLowerCase().includes(searchLower);
-                    const descMatch = card.description && card.description.toLowerCase().includes(searchLower);
-                    return titleMatch || descMatch;
-                });
-            }
-
-            // Apply advanced filters
-            if (filters) {
-                try {
-                    const filterArray = JSON.parse(filters);
-                    cards = cards.filter(card => {
-                        return filterArray.every(filter => {
-                            return cardService.evaluateFilter(card, filter);
-                        });
-                    });
-                } catch (error) {
-                    console.error('Error parsing filters:', error);
-                }
-            }
-
+            const listCards = allFilteredCards.filter(card => card.listId === list.id);
+            
             // Ensure all cards have required properties
-            for (let card of cards) {
+            for (let card of listCards) {
                 // Ensure labels array exists
                 if (!card.labels) {
                     card.labels = [];
@@ -203,7 +187,7 @@ const getFilteredBoard = async (req, res, next) => {
                 }
             }
 
-            list.cards = cards;
+            list.cards = listCards;
         }
 
         // Get board members

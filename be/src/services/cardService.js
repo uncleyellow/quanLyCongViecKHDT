@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { formatDateTimeForMySQL } from '../utils/formatters'
 import { boardMemberModel } from '../models/boardMemberModel'
 import { cardMemberModel } from '../models/cardMemberModel'
+import db from '../config/db'
+import { CARD_TABLE_NAME } from '../models/cardModel'
 
 const getList = async (reqBody) => {
   try {
@@ -36,7 +38,20 @@ const createNew = async (reqBody) => {
     }
 
     const newCard = await cardModel.createNew(reqBody)
+    
+    // Add creator as member to the card
     const newCardMember = await cardMemberModel.addMemberIfNotExists(reqBody.id, reqBody.createdBy, 'member')
+    
+    // Also add creator as member to the board if not already a member
+    if (reqBody.boardId && reqBody.createdBy) {
+        try {
+            await boardMemberModel.addMemberIfNotExists(reqBody.boardId, reqBody.createdBy, 'member')
+        } catch (error) {
+            console.error('Error adding creator to board:', error)
+            // Don't fail the entire creation if board member addition fails
+        }
+    }
+    
     return newCard
   } catch (error) { throw error }
 }
@@ -144,6 +159,117 @@ const pushCardOrderIds = async (card) => {
     return result
   } catch (error) { throw error }
 }
+
+const getFilteredCards = async (boardId, filterCriteria) => {
+  try {
+    let query = `SELECT * FROM ${CARD_TABLE_NAME} WHERE boardId = ? AND (archived IS NULL OR archived = 0)`;
+    const params = [boardId];
+
+    // Add search filter using database-level text search
+    if (filterCriteria.search && filterCriteria.search.trim() !== '') {
+      query += ` AND (title LIKE ? OR description LIKE ?)`;
+      const searchTerm = `%${filterCriteria.search.trim()}%`;
+      params.push(searchTerm, searchTerm);
+    }
+
+    // Add advanced filters using database-level filtering
+    if (filterCriteria.filters && Array.isArray(filterCriteria.filters)) {
+      for (const filter of filterCriteria.filters) {
+        if (filter.field && filter.operator && filter.value !== undefined && filter.value !== '') {
+          switch (filter.field) {
+            case 'status':
+              if (filter.operator === 'equals') {
+                query += ` AND status = ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'not_equals') {
+                query += ` AND status != ?`;
+                params.push(filter.value);
+              }
+              break;
+            
+            case 'type':
+              if (filter.operator === 'equals') {
+                query += ` AND type = ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'not_equals') {
+                query += ` AND type != ?`;
+                params.push(filter.value);
+              }
+              break;
+            
+            case 'dueDate':
+              if (filter.operator === 'equals') {
+                query += ` AND DATE(dueDate) = DATE(?)`;
+                params.push(filter.value);
+              } else if (filter.operator === 'greater_than') {
+                query += ` AND dueDate > ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'less_than') {
+                query += ` AND dueDate < ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'greater_than_or_equal') {
+                query += ` AND dueDate >= ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'less_than_or_equal') {
+                query += ` AND dueDate <= ?`;
+                params.push(filter.value);
+              }
+              break;
+            
+            case 'priority':
+              if (filter.operator === 'equals') {
+                query += ` AND priority = ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'not_equals') {
+                query += ` AND priority != ?`;
+                params.push(filter.value);
+              }
+              break;
+            
+            case 'title':
+              if (filter.operator === 'contains') {
+                query += ` AND title LIKE ?`;
+                params.push(`%${filter.value}%`);
+              } else if (filter.operator === 'equals') {
+                query += ` AND title = ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'starts_with') {
+                query += ` AND title LIKE ?`;
+                params.push(`${filter.value}%`);
+              } else if (filter.operator === 'ends_with') {
+                query += ` AND title LIKE ?`;
+                params.push(`%${filter.value}`);
+              }
+              break;
+            
+            case 'description':
+              if (filter.operator === 'contains') {
+                query += ` AND description LIKE ?`;
+                params.push(`%${filter.value}%`);
+              } else if (filter.operator === 'equals') {
+                query += ` AND description = ?`;
+                params.push(filter.value);
+              } else if (filter.operator === 'starts_with') {
+                query += ` AND description LIKE ?`;
+                params.push(`${filter.value}%`);
+              } else if (filter.operator === 'ends_with') {
+                query += ` AND description LIKE ?`;
+                params.push(`%${filter.value}`);
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    query += ` ORDER BY position ASC`;
+
+    const filteredCards = await db.query(query, params);
+    return filteredCards[0];
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 
 // Helper function to evaluate a single filter against a card
 const evaluateFilter = (card, filter) => {
@@ -503,5 +629,6 @@ export const cardService = {
   getListsByBoard,
   updateCardOrder,
   pushCardOrderIds,
-  getAllUserCards
+  getAllUserCards,
+  getFilteredCards
 }

@@ -1,6 +1,47 @@
 import { StatusCodes } from 'http-status-codes'
 import { cardService } from '../services/cardService'
 import { cardMemberModel } from '../models/cardMemberModel'
+import { boardMemberModel } from '../models/boardMemberModel'
+import { cardModel } from '../models/cardModel'
+
+// Helper function to get board ID from card
+const getBoardIdFromCard = async (cardId) => {
+    try {
+        const card = await cardModel.getDetail({ id: cardId })
+        return card ? card.boardId : null
+    } catch (error) {
+        console.error('Error getting board ID from card:', error)
+        return null
+    }
+}
+
+// Helper function to add members to board if they don't exist
+const addMembersToBoard = async (boardId, members) => {
+    if (!boardId || !members || !Array.isArray(members)) {
+        return
+    }
+    
+    try {
+        for (const member of members) {
+            if (member.id || member.memberId) {
+                const memberId = member.id || member.memberId
+                const role = member.role || 'member'
+                
+                // Check if member already exists in board
+                const isMemberOfBoard = await boardMemberModel.isMemberOfBoard(boardId, memberId)
+                if (!isMemberOfBoard) {
+                    console.log('Adding member to board:', memberId, 'with role:', role, 'to board:', boardId)
+                    await boardMemberModel.addMemberIfNotExists(boardId, memberId, role)
+                } else {
+                    console.log('Member already exists in board:', memberId, 'board:', boardId)
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error adding members to board:', error)
+        // Don't fail the entire operation if board member addition fails
+    }
+}
 
 const getList = async (req, res, next) => {
     try {
@@ -36,7 +77,10 @@ const createNew = async (req, res, next) => {
             try {
                 console.log('Processing members for new card:', newCard.id, 'Members:', members);
                 
-                // Add new members
+                // Get board ID for this card
+                const boardId = newCard.boardId;
+                
+                // Add new members to card
                 for (const member of members) {
                     if (member.id || member.memberId) {
                         const memberId = member.id || member.memberId;
@@ -46,6 +90,9 @@ const createNew = async (req, res, next) => {
                         await cardMemberModel.addMemberIfNotExists(newCard.id, memberId, role);
                     }
                 }
+                
+                // Also add members to the board
+                await addMembersToBoard(boardId, members);
                 
                 console.log('Card members added successfully for new card:', newCard.id);
             } catch (memberError) {
@@ -93,11 +140,14 @@ const update = async (req, res, next) => {
             try {
                 console.log('Processing members for card:', id, 'Members:', members);
                 
+                // Get board ID for this card
+                const boardId = await getBoardIdFromCard(id);
+                
                 // Clear existing members for this card
                 await cardMemberModel.removeAllCardMembers(id);
                 console.log('Cleared existing members for card:', id);
                 
-                // Add new members
+                // Add new members to card
                 for (const member of members) {
                     if (member.id || member.memberId) {
                         const memberId = member.id || member.memberId;
@@ -107,6 +157,9 @@ const update = async (req, res, next) => {
                         await cardMemberModel.addMemberIfNotExists(id, memberId, role);
                     }
                 }
+                
+                // Also add members to the board
+                await addMembersToBoard(boardId, members);
                 
                 console.log('Card members updated successfully for card:', id);
             } catch (memberError) {
@@ -140,11 +193,14 @@ const updatePartial = async (req, res, next) => {
             try {
                 console.log('Processing members for card (partial update):', id, 'Members:', members);
                 
+                // Get board ID for this card
+                const boardId = await getBoardIdFromCard(id);
+                
                 // Clear existing members for this card
                 await cardMemberModel.removeAllCardMembers(id);
                 console.log('Cleared existing members for card (partial update):', id);
                 
-                // Add new members
+                // Add new members to card
                 for (const member of members) {
                     if (member.id || member.memberId) {
                         const memberId = member.id || member.memberId;
@@ -154,6 +210,9 @@ const updatePartial = async (req, res, next) => {
                         await cardMemberModel.addMemberIfNotExists(id, memberId, role);
                     }
                 }
+                
+                // Also add members to the board
+                await addMembersToBoard(boardId, members);
                 
                 console.log('Card members updated successfully for card (partial update):', id);
             } catch (memberError) {
