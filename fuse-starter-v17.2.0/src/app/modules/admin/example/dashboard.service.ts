@@ -122,15 +122,23 @@ export class DashboardService {
     /**
      * Get work statistics from dashboard API
      */
-    getWorkStatistics(): Observable<DashboardResponse> {
-        return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/work-statistics`);
+    getWorkStatistics(departmentId?: string): Observable<DashboardResponse> {
+        const params: any = {};
+        if (departmentId) {
+            params.departmentId = departmentId;
+        }
+        return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/work-statistics`, { params });
     }
 
     /**
      * Get active members from dashboard API
      */
-    getActiveMembers(): Observable<ActiveMembersResponse> {
-        return this.http.get<ActiveMembersResponse>(`${this.apiUrl}/dashboard/active-members`);
+    getActiveMembers(departmentId?: string): Observable<ActiveMembersResponse> {
+        const params: any = {};
+        if (departmentId) {
+            params.departmentId = departmentId;
+        }
+        return this.http.get<ActiveMembersResponse>(`${this.apiUrl}/dashboard/active-members`, { params });
     }
 
     /**
@@ -143,8 +151,11 @@ export class DashboardService {
     /**
      * Get chart data for different chart types
      */
-    getChartData(chartType: ChartType, timeRange: TimeRange = 'month'): Observable<ChartDataResponse> {
-        const params = { chartType, timeRange };
+    getChartData(chartType: ChartType, timeRange: TimeRange = 'month', departmentId?: string): Observable<ChartDataResponse> {
+        const params: any = { chartType, timeRange };
+        if (departmentId) {
+            params.departmentId = departmentId;
+        }
         return this.http.get<ChartDataResponse>(`${this.apiUrl}/dashboard/chart-data`, { params });
     }
 
@@ -158,8 +169,11 @@ export class DashboardService {
     /**
      * Get Gantt chart data for completed tasks
      */
-    getGanttChartData(timeRange: TimeRange = 'month'): Observable<GanttChartResponse> {
-        const params = { timeRange };
+    getGanttChartData(timeRange: TimeRange = 'month', departmentId?: string): Observable<GanttChartResponse> {
+        const params: any = { timeRange };
+        if (departmentId) {
+            params.departmentId = departmentId;
+        }
         return this.http.get<GanttChartResponse>(`${this.apiUrl}/dashboard/gantt-chart`, { params });
     }
 }

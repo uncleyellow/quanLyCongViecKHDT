@@ -1,11 +1,89 @@
 <div class="flex flex-col flex-auto min-w-0">
+    <!-- Department Sidebar for Boss Users -->
+    <div *ngIf="showDepartmentSidebar" class="fixed left-0 top-34 h-[calc(100vh-193px)] w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 shadow-lg">
+        <div class="flex flex-col h-full">
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-2">
+                    <mat-icon class="text-blue-500">business</mat-icon>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Phòng ban</h3>
+                </div>
+                <button 
+                    mat-icon-button 
+                    (click)="clearDepartmentFilter()"
+                    class="text-gray-500 hover:text-gray-700"
+                    [disabled]="!selectedDepartmentId">
+                    <mat-icon>clear_all</mat-icon>
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="departmentSidebarLoading" class="flex items-center justify-center p-8">
+                <mat-spinner diameter="32"></mat-spinner>
+                <span class="ml-3 text-gray-500">Đang tải...</span>
+            </div>
+
+            <!-- Department List -->
+            <div *ngIf="!departmentSidebarLoading" class="flex-1 overflow-y-auto">
+                <!-- All Departments Option -->
+                <div 
+                    class="flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    [class.bg-blue-50]="!selectedDepartmentId"
+                    [class.border-r-4]="!selectedDepartmentId"
+                    [class.border-blue-500]="!selectedDepartmentId"
+                    (click)="clearDepartmentFilter()">
+                    <mat-icon class="text-gray-500">dashboard</mat-icon>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900 dark:text-white">Tất cả phòng ban</p>
+                        <p class="text-sm text-gray-500">Xem tổng quan toàn công ty</p>
+                    </div>
+                    <mat-icon *ngIf="!selectedDepartmentId" class="text-blue-500">check</mat-icon>
+                </div>
+
+                <!-- Individual Departments -->
+                <div 
+                    *ngFor="let department of departments" 
+                    class="flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    [class.bg-blue-50]="selectedDepartmentId === department.id"
+                    [class.border-r-4]="selectedDepartmentId === department.id"
+                    [class.border-blue-500]="selectedDepartmentId === department.id"
+                    (click)="selectDepartment(department.id)">
+                    <mat-icon class="text-gray-500">business</mat-icon>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900 dark:text-white">{{department.name}}</p>
+                        <p *ngIf="department.description" class="text-sm text-gray-500">{{department.description}}</p>
+                    </div>
+                    <mat-icon *ngIf="selectedDepartmentId === department.id" class="text-blue-500">check</mat-icon>
+                </div>
+
+                <!-- Empty State -->
+                <div *ngIf="departments.length === 0" class="flex flex-col items-center justify-center p-8 text-center">
+                    <mat-icon class="text-gray-400 text-4xl mb-2">business</mat-icon>
+                    <p class="text-gray-500">Không có phòng ban nào</p>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-xs text-gray-500 text-center">
+                    <p>Đang xem: {{getSelectedDepartmentName()}}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content with Sidebar Offset -->
+    <div [class.ml-64]="showDepartmentSidebar" class="flex flex-col flex-auto min-w-0 h-[calc(100vh-225px)]">
 
     <!-- Header with Add Widget Button and Filters -->
     <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 border-b bg-white dark:bg-gray-800 space-y-4 lg:space-y-0">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Analytics</h1>
             <p class="text-gray-600 dark:text-gray-400">
-                <span *ngIf="userRole === 'boss'">Tổng quan toàn công ty - Tất cả phòng ban</span>
+                <span *ngIf="userRole === 'boss'">
+                    <span *ngIf="selectedDepartmentId">Tổng quan phòng ban - {{getSelectedDepartmentName()}}</span>
+                    <span *ngIf="!selectedDepartmentId">Tổng quan toàn công ty - Tất cả phòng ban</span>
+                </span>
                 <span *ngIf="userRole === 'manager'">Tổng quan phòng ban - {{userDepartment}}</span>
                 <span *ngIf="userRole === 'staff'">Tổng quan cá nhân</span>
             </p>
@@ -78,7 +156,7 @@
     </div>
 
     <!-- Widget Grid Container -->
-    <div class="flex-auto p-6">
+    <div class="flex-1 p-6 overflow-y-auto">
         <div 
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             cdkDropList
@@ -484,7 +562,10 @@
                                 <div>
                                     <h4 class="font-semibold text-gray-900 dark:text-white">{{getRoleDisplayName(userRole)}}</h4>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        <span *ngIf="userRole === 'boss'">Quyền truy cập: Toàn công ty</span>
+                                        <span *ngIf="userRole === 'boss'">
+                                            <span *ngIf="selectedDepartmentId">Quyền truy cập: Phòng {{getSelectedDepartmentName()}}</span>
+                                            <span *ngIf="!selectedDepartmentId">Quyền truy cập: Toàn công ty</span>
+                                        </span>
                                         <span *ngIf="userRole === 'manager'">Quyền truy cập: Phòng {{userDepartment}}</span>
                                         <span *ngIf="userRole === 'staff'">Quyền truy cập: Cá nhân</span>
                                     </p>
@@ -537,9 +618,12 @@
                             <h5 class="font-medium text-gray-900 dark:text-white mb-2">Thông tin chi tiết</h5>
                             <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                                 <div *ngIf="userRole === 'boss'">
-                                    <p>• Xem thống kê từ tất cả phòng ban trong công ty</p>
-                                    <p>• Theo dõi hiệu suất tổng thể của tổ chức</p>
-                                    <p>• Phân tích xu hướng toàn công ty</p>
+                                    <p *ngIf="!selectedDepartmentId">• Xem thống kê từ tất cả phòng ban trong công ty</p>
+                                    <p *ngIf="!selectedDepartmentId">• Theo dõi hiệu suất tổng thể của tổ chức</p>
+                                    <p *ngIf="!selectedDepartmentId">• Phân tích xu hướng toàn công ty</p>
+                                    <p *ngIf="selectedDepartmentId">• Xem thống kê chi tiết của phòng {{getSelectedDepartmentName()}}</p>
+                                    <p *ngIf="selectedDepartmentId">• Theo dõi hiệu suất và tiến độ của phòng ban</p>
+                                    <p *ngIf="selectedDepartmentId">• Phân tích dữ liệu cụ thể của phòng ban</p>
                                 </div>
                                 <div *ngIf="userRole === 'manager'">
                                     <p>• Quản lý công việc của phòng {{userDepartment}}</p>
@@ -776,4 +860,5 @@
         </div>
     </div>
 
+    </div>
 </div>

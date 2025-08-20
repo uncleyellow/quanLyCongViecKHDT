@@ -1,6 +1,8 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { GanttService, GanttTask } from './gantt.service';
 import { DashboardService, WorkStatistics, ActiveMember } from './dashboard.service';
+import { DepartmentService, Department } from './department.service';
+import { UserService } from 'app/core/user/user.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
@@ -269,6 +271,14 @@ export class ExampleComponent implements OnInit, OnDestroy
     error = '';
     userRole: string = '';
     userDepartment: string = '';
+    userCompanyId: string = '';
+    
+    // Department sidebar properties
+    departments: Department[] = [];
+    selectedDepartmentId: string = '';
+    showDepartmentSidebar = false;
+    departmentSidebarLoading = false;
+    
     private _unsubscribeAll = new Subject<void>();
 
     // Gantt chart properties
@@ -283,7 +293,9 @@ export class ExampleComponent implements OnInit, OnDestroy
      */
     constructor(
         private ganttService: GanttService,
-        private dashboardService: DashboardService
+        private dashboardService: DashboardService,
+        private departmentService: DepartmentService,
+        private userService: UserService
     )
     {
 
@@ -298,10 +310,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         // Initialize chart options first
         this.prepareStatusChartData();
         
-        this.loadDashboardData();
-        this.prepareDynamicChartData();
-        
-        // Load user information for role-based display
+        // Load user information first, then load dashboard data
         this.loadUserInfo();
     }
 
@@ -379,7 +388,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'status':
                 // Reload dashboard data to get fresh statistics
-                this.dashboardService.getWorkStatistics()
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: (response) => {
@@ -405,7 +414,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'role-summary':
                 // Reload dashboard data to get fresh statistics for role summary
-                this.dashboardService.getWorkStatistics()
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: (response) => {
@@ -522,7 +531,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.ganttLoading = true;
         this.error = '';
 
-        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any)
+        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any, this.selectedDepartmentId)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -647,7 +656,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.loading = true;
         this.error = '';
 
-        this.dashboardService.getWorkStatistics()
+        this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -692,7 +701,7 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadProjectMembers(): void {
-        this.dashboardService.getActiveMembers()
+        this.dashboardService.getActiveMembers(this.selectedDepartmentId)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -871,7 +880,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         // Load chart data from API based on selected chart type
         this.loading = true;
         
-        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any)
+        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any, this.selectedDepartmentId)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -1064,10 +1073,68 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadUserInfo(): void {
-        // This would typically come from your auth service
-        // For now, we'll simulate it - in a real app, you'd get this from your auth service
-        this.userRole = 'boss'; // This should come from your auth service
-        this.userDepartment = 'Công nghệ thông tin'; // This should come from your auth service
+        // Get user information from UserService
+        this.userService.user$.subscribe(user => {
+            if (user) {
+                this.userRole = user.type || 'staff';
+                this.userDepartment = user.departmentName || '';
+                this.userCompanyId = user.companyId || '';
+                
+                // If user is boss, load departments and show sidebar
+                if (this.userRole === 'boss' && this.userCompanyId) {
+                    this.loadDepartments();
+                    this.showDepartmentSidebar = true;
+                }
+                
+                // Load dashboard data after user info is loaded
+                this.loadDashboardData();
+                this.prepareDynamicChartData();
+            }
+        });
+    }
+
+    loadDepartments(): void {
+        if (!this.userCompanyId) return;
+        
+        this.departmentSidebarLoading = true;
+        this.departmentService.getDepartmentsByCompany(this.userCompanyId)
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    this.departments = response.data || [];
+                    this.departmentSidebarLoading = false;
+                },
+                error: (error) => {
+                    console.error('Error loading departments:', error);
+                    this.departmentSidebarLoading = false;
+                }
+            });
+    }
+
+    selectDepartment(departmentId: string): void {
+        this.selectedDepartmentId = departmentId;
+        
+        // Reload all dashboard data with department filter
+        this.loadDashboardData();
+        this.loadGanttData();
+        this.prepareDynamicChartData();
+    }
+
+    clearDepartmentFilter(): void {
+        this.selectedDepartmentId = '';
+        
+        // Reload all dashboard data without department filter
+        this.loadDashboardData();
+        this.loadGanttData();
+        this.prepareDynamicChartData();
+    }
+
+    getSelectedDepartmentName(): string {
+        if (!this.selectedDepartmentId) {
+            return 'Tất cả phòng ban';
+        }
+        const department = this.departments.find(d => d.id === this.selectedDepartmentId);
+        return department?.name || 'Phòng ban';
     }
 
     getRoleDisplayName(role: string): string {

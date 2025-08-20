@@ -4,7 +4,8 @@ import { dashboardService } from '../services/dashboardService.js'
 const getWorkStatistics = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const statistics = await dashboardService.getWorkStatistics({ userId })
+    const { departmentId } = req.query
+    const statistics = await dashboardService.getWorkStatistics({ userId, departmentId })
     
     const responseObject = {
       code: StatusCodes.OK,
@@ -22,7 +23,8 @@ const getWorkStatistics = async (req, res, next) => {
 const getActiveMembers = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const members = await dashboardService.getActiveMembers({ userId })
+    const { departmentId } = req.query
+    const members = await dashboardService.getActiveMembers({ userId, departmentId })
     
     const responseObject = {
       code: StatusCodes.OK,
@@ -41,24 +43,24 @@ const getActiveMembers = async (req, res, next) => {
 const getChartData = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { chartType, timeRange = 'month' } = req.query
+    const { chartType, timeRange = 'month', departmentId } = req.query
     
     let chartData
     switch (chartType) {
       case 'status':
-        chartData = await dashboardService.getStatusChartData({ userId, timeRange })
+        chartData = await dashboardService.getStatusChartData({ userId, timeRange, departmentId })
         break
       case 'timeline':
-        chartData = await dashboardService.getTimelineChartData({ userId, timeRange })
+        chartData = await dashboardService.getTimelineChartData({ userId, timeRange, departmentId })
         break
       case 'member':
-        chartData = await dashboardService.getMemberChartData({ userId, timeRange })
+        chartData = await dashboardService.getMemberChartData({ userId, timeRange, departmentId })
         break
       case 'priority':
-        chartData = await dashboardService.getPriorityChartData({ userId, timeRange })
+        chartData = await dashboardService.getPriorityChartData({ userId, timeRange, departmentId })
         break
       case 'department':
-        chartData = await dashboardService.getDepartmentChartData({ userId, timeRange })
+        chartData = await dashboardService.getDepartmentChartData({ userId, timeRange, departmentId })
         break
       default:
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -102,9 +104,9 @@ const getDashboardOverview = async (req, res, next) => {
 const getGanttChartData = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { timeRange = 'month' } = req.query
+    const { timeRange = 'month', departmentId } = req.query
     
-    const ganttData = await dashboardService.getGanttChartData({ userId, timeRange })
+    const ganttData = await dashboardService.getGanttChartData({ userId, timeRange, departmentId })
     
     const responseObject = {
       code: StatusCodes.OK,

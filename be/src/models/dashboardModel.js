@@ -22,7 +22,23 @@ const getWorkStatisticsByStatus = async (data) => {
     let query
     let params = []
 
-    if (user.type === 'staff') {
+    // If departmentId is provided, filter by that specific department
+    if (data.departmentId) {
+      query = `
+        SELECT 
+          c.status,
+          c.dueDate,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.departmentId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY c.status, c.dueDate
+      `
+      params = [data.departmentId]
+    } else if (user.type === 'staff') {
       // Staff users: only get cards from boards where they are the owner
       query = `
         SELECT 
@@ -147,7 +163,34 @@ const getActiveMembers = async (data) => {
     let query
     let params = []
 
-    if (user.type === 'staff') {
+    // If departmentId is provided, filter by that specific department
+    if (data.departmentId) {
+      query = `
+        SELECT DISTINCT
+          u.id,
+          u.name,
+          u.email,
+          u.avatar,
+          u.type as userType,
+          COUNT(DISTINCT c.id) as totalTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'todo' THEN c.id END) as todoTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'inProgress' THEN c.id END) as inProgressTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'done' THEN c.id END) as doneTasks,
+          COUNT(DISTINCT CASE WHEN c.status != 'done' AND c.dueDate IS NOT NULL AND c.dueDate < NOW() THEN c.id END) as overdueTasks
+        FROM users u
+        INNER JOIN boardMembers bm ON u.id = bm.memberId
+        INNER JOIN boards b ON bm.boardId = b.id
+        INNER JOIN cards c ON b.id = c.boardId
+        INNER JOIN users boardOwner ON b.ownerId = boardOwner.id
+        WHERE boardOwner.departmentId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND bm.deletedAt IS NULL
+        GROUP BY u.id, u.name, u.email, u.avatar, u.type
+        ORDER BY u.name
+      `
+      params = [data.departmentId]
+    } else if (user.type === 'staff') {
       // Staff users: only get members from boards where they are the owner
       query = `
         SELECT DISTINCT
@@ -284,7 +327,23 @@ const getStatusChartData = async (data) => {
     let query
     let params = []
 
-    if (user.type === 'staff') {
+    // If departmentId is provided, filter by that specific department
+    if (data.departmentId) {
+      query = `
+        SELECT 
+          c.status,
+          c.dueDate,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.departmentId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY c.status, c.dueDate
+      `
+      params = [data.departmentId]
+    } else if (user.type === 'staff') {
       query = `
         SELECT 
           c.status,
@@ -1069,7 +1128,30 @@ const getGanttChartData = async (data) => {
         break
     }
 
-    if (user.type === 'staff') {
+    // If departmentId is provided, filter by that specific department
+    if (data.departmentId) {
+      query = `
+        SELECT 
+          CASE 
+            WHEN ? = 'day' THEN DATE(c.endDate)
+            WHEN ? = 'week' THEN DATE(DATE_SUB(c.endDate, INTERVAL WEEKDAY(c.endDate) DAY))
+            WHEN ? = 'month' THEN DATE_FORMAT(c.endDate, '%Y-%m-01')
+          END as period,
+          COUNT(*) as completed_count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.departmentId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND c.status = 'done'
+        AND c.endDate IS NOT NULL
+        ${dateFilter}
+        GROUP BY period
+        ORDER BY period ASC
+      `
+      params = [data.timeRange, data.timeRange, data.timeRange, data.departmentId]
+    } else if (user.type === 'staff') {
       query = `
         SELECT 
           CASE 

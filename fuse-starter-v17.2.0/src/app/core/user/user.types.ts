@@ -8,4 +8,8 @@ export interface User
     role?: string;
     type?: string;
     mustChangePassword?: number;
+    departmentId?: string;
+    departmentName?: string;
+    companyId?: string;
+    companyName?: string;
 }
