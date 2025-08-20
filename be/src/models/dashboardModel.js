@@ -58,8 +58,24 @@ const getWorkStatisticsByStatus = async (data) => {
         GROUP BY c.status, c.dueDate
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      // Boss users: get all cards from all departments in their company
+      query = `
+        SELECT 
+          c.status,
+          c.dueDate,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY c.status, c.dueDate
+      `
+      params = [user.companyId]
     } else {
-      // For other roles (boss, admin), get all cards from boards they own
+      // For other roles (admin), get all cards from boards they own
       query = `
         SELECT 
           c.status,
@@ -189,8 +205,35 @@ const getActiveMembers = async (data) => {
         ORDER BY u.name
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      // Boss users: get all members from all departments in their company
+      query = `
+        SELECT DISTINCT
+          u.id,
+          u.name,
+          u.email,
+          u.avatar,
+          u.type as userType,
+          COUNT(DISTINCT c.id) as totalTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'todo' THEN c.id END) as todoTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'inProgress' THEN c.id END) as inProgressTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'done' THEN c.id END) as doneTasks,
+          COUNT(DISTINCT CASE WHEN c.status != 'done' AND c.dueDate IS NOT NULL AND c.dueDate < NOW() THEN c.id END) as overdueTasks
+        FROM users u
+        INNER JOIN boardMembers bm ON u.id = bm.memberId
+        INNER JOIN boards b ON bm.boardId = b.id
+        INNER JOIN cards c ON b.id = c.boardId
+        INNER JOIN users boardOwner ON b.ownerId = boardOwner.id
+        WHERE boardOwner.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND bm.deletedAt IS NULL
+        GROUP BY u.id, u.name, u.email, u.avatar, u.type
+        ORDER BY u.name
+      `
+      params = [user.companyId]
     } else {
-      // For other roles (boss, admin), get all members from boards they own
+      // For other roles (admin), get all members from boards they own
       query = `
         SELECT DISTINCT
           u.id,
@@ -275,6 +318,21 @@ const getStatusChartData = async (data) => {
         GROUP BY c.status, c.dueDate
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          c.status,
+          c.dueDate,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY c.status, c.dueDate
+      `
+      params = [user.companyId]
     } else {
       query = `
         SELECT 
@@ -401,6 +459,22 @@ const getTimelineChartData = async (data) => {
         ORDER BY period
       `
       params = [dateFormat, data.userId, user.departmentId, dateFormat]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          DATE_FORMAT(c.createdAt, ?) as period,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? 
+        AND c.createdAt >= ${dateRange}
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY DATE_FORMAT(c.createdAt, ?)
+        ORDER BY period
+      `
+      params = [dateFormat, user.companyId, dateFormat]
     } else {
       query = `
         SELECT 
@@ -493,6 +567,26 @@ const getMemberChartData = async (data) => {
         LIMIT 10
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          u.name,
+          COUNT(DISTINCT c.id) as totalTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'done' THEN c.id END) as completedTasks
+        FROM users u
+        INNER JOIN boardMembers bm ON u.id = bm.memberId
+        INNER JOIN boards b ON bm.boardId = b.id
+        INNER JOIN cards c ON b.id = c.boardId
+        INNER JOIN users boardOwner ON b.ownerId = boardOwner.id
+        WHERE boardOwner.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND bm.deletedAt IS NULL
+        GROUP BY u.id, u.name
+        ORDER BY totalTasks DESC
+        LIMIT 10
+      `
+      params = [user.companyId]
     } else {
       query = `
         SELECT 
@@ -574,6 +668,20 @@ const getPriorityChartData = async (data) => {
         GROUP BY c.priority
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          c.priority,
+          COUNT(*) as count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        GROUP BY c.priority
+      `
+      params = [user.companyId]
     } else {
       query = `
         SELECT 
@@ -680,6 +788,26 @@ const getDepartmentChartData = async (data) => {
         ORDER BY totalTasks DESC
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          d.name as departmentName,
+          COUNT(DISTINCT c.id) as totalTasks,
+          COUNT(DISTINCT CASE WHEN c.status = 'done' THEN c.id END) as completedTasks
+        FROM departments d
+        INNER JOIN users u ON d.id = u.departmentId
+        INNER JOIN boardMembers bm ON u.id = bm.memberId
+        INNER JOIN boards b ON bm.boardId = b.id
+        INNER JOIN cards c ON b.id = c.boardId
+        INNER JOIN users boardOwner ON b.ownerId = boardOwner.id
+        WHERE boardOwner.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND bm.deletedAt IS NULL
+        GROUP BY d.id, d.name
+        ORDER BY totalTasks DESC
+      `
+      params = [user.companyId]
     } else {
       query = `
         SELECT 
@@ -807,6 +935,41 @@ const getDashboardOverview = async (data) => {
         LIMIT 5
       `
       params = [data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      boardQuery = `
+        SELECT COUNT(*) as count FROM boards b
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? AND b.deletedAt IS NULL
+      `
+      cardQuery = `
+        SELECT COUNT(*) as count FROM cards c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? AND b.deletedAt IS NULL AND c.deletedAt IS NULL
+      `
+      memberQuery = `
+        SELECT COUNT(DISTINCT bm.memberId) as count FROM boardMembers bm
+        INNER JOIN boards b ON bm.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? AND b.deletedAt IS NULL AND bm.deletedAt IS NULL
+      `
+      activityQuery = `
+        SELECT 
+          c.title,
+          c.status,
+          c.updatedAt,
+          u.name as updatedBy
+        FROM cards c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users boardOwner ON b.ownerId = boardOwner.id
+        LEFT JOIN users u ON c.updatedBy = u.id
+        WHERE boardOwner.companyId = ? 
+        AND b.deletedAt IS NULL 
+        AND c.deletedAt IS NULL
+        ORDER BY c.updatedAt DESC
+        LIMIT 5
+      `
+      params = [user.companyId]
     } else {
       boardQuery = `
         SELECT COUNT(*) as count FROM boards WHERE ownerId = ? AND deletedAt IS NULL
@@ -954,6 +1117,28 @@ const getGanttChartData = async (data) => {
         ORDER BY period ASC
       `
       params = [data.timeRange, data.timeRange, data.timeRange, data.userId, user.departmentId]
+    } else if (user.type === 'boss') {
+      query = `
+        SELECT 
+          CASE 
+            WHEN ? = 'day' THEN DATE(c.endDate)
+            WHEN ? = 'week' THEN DATE(DATE_SUB(c.endDate, INTERVAL WEEKDAY(c.endDate) DAY))
+            WHEN ? = 'month' THEN DATE_FORMAT(c.endDate, '%Y-%m-01')
+          END as period,
+          COUNT(*) as completed_count
+        FROM ${DASHBOARD_TABLE_NAME} c
+        INNER JOIN boards b ON c.boardId = b.id
+        INNER JOIN users u ON b.ownerId = u.id
+        WHERE u.companyId = ? 
+        AND b.deletedAt IS NULL
+        AND c.deletedAt IS NULL
+        AND c.status = 'done'
+        AND c.endDate IS NOT NULL
+        ${dateFilter}
+        GROUP BY period
+        ORDER BY period ASC
+      `
+      params = [data.timeRange, data.timeRange, data.timeRange, user.companyId]
     } else {
       query = `
         SELECT 

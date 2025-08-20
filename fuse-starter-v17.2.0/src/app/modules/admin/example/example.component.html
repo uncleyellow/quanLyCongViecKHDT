@@ -3,8 +3,23 @@
     <!-- Header with Add Widget Button and Filters -->
     <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 border-b bg-white dark:bg-gray-800 space-y-4 lg:space-y-0">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            <p class="text-gray-600 dark:text-gray-400">Quản lý công việc Ratraco</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Analytics</h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                <span *ngIf="userRole === 'boss'">Tổng quan toàn công ty - Tất cả phòng ban</span>
+                <span *ngIf="userRole === 'manager'">Tổng quan phòng ban - {{userDepartment}}</span>
+                <span *ngIf="userRole === 'staff'">Tổng quan cá nhân</span>
+            </p>
+            <div class="flex items-center space-x-2 mt-1">
+                <span class="text-sm text-gray-500">Vai trò: </span>
+                <span class="text-sm font-medium px-2 py-1 rounded-full" 
+                      [ngClass]="{
+                        'bg-red-100 text-red-800': userRole === 'boss',
+                        'bg-blue-100 text-blue-800': userRole === 'manager',
+                        'bg-green-100 text-green-800': userRole === 'staff'
+                      }">
+                    {{getRoleDisplayName(userRole)}}
+                </span>
+            </div>
         </div>
         
         <!-- Filter Controls -->
@@ -426,6 +441,118 @@
                             [colors]="dynamicChartOptions.colors"
                             [labels]="dynamicChartOptions.labels">
                         </apx-chart>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Summary Widget -->
+            <div 
+                class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                cdkDrag
+                [cdkDragData]="{ id: 'role-summary', type: 'role-summary' }"
+                [style.grid-column]="widgetSizes['role-summary'].cols"
+                [style.grid-row]="widgetSizes['role-summary'].rows">
+                
+                <!-- Widget Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <mat-icon class="text-purple-500">admin_panel_settings</mat-icon>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Tổng quan theo vai trò</h3>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button mat-icon-button (click)="refreshWidget('role-summary')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="configureWidget('role-summary')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>settings</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="resizeWidget('role-summary')" class="text-gray-500 hover:text-gray-700">
+                            <mat-icon>open_in_full</mat-icon>
+                        </button>
+                        <button mat-icon-button (click)="removeWidget('role-summary')" class="text-red-500 hover:text-red-700">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widget Content -->
+                <div class="p-4">
+                    <div class="space-y-4">
+                        <!-- Role Information -->
+                        <div class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">{{getRoleDisplayName(userRole)}}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        <span *ngIf="userRole === 'boss'">Quyền truy cập: Toàn công ty</span>
+                                        <span *ngIf="userRole === 'manager'">Quyền truy cập: Phòng {{userDepartment}}</span>
+                                        <span *ngIf="userRole === 'staff'">Quyền truy cập: Cá nhân</span>
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                        {{progressData.total}}
+                                    </div>
+                                    <div class="text-xs text-gray-500">Tổng công việc</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics Grid -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <div class="text-xl font-bold text-green-600 dark:text-green-400">{{progressData.completedCount}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Hoàn thành</div>
+                            </div>
+                            <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <div class="text-xl font-bold text-blue-600 dark:text-blue-400">{{progressData.inProgress}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Đang thực hiện</div>
+                            </div>
+                            <div class="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                <div class="text-xl font-bold text-yellow-600 dark:text-yellow-400">{{progressData.pending}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Chờ xử lý</div>
+                            </div>
+                            <div class="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                <div class="text-xl font-bold text-red-600 dark:text-red-400">{{progressData.overdue}}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Quá hạn</div>
+                            </div>
+                        </div>
+
+                        <!-- Completion Rate -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Tỷ lệ hoàn thành</span>
+                                <span class="text-sm font-bold text-green-600">{{progressData.completed?.toFixed(1)}}%</span>
+                            </div>
+                            <mat-progress-bar 
+                                mode="determinate" 
+                                [value]="progressData.completed"
+                                color="primary"
+                                class="h-2">
+                            </mat-progress-bar>
+                        </div>
+
+                        <!-- Role-specific insights -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                            <h5 class="font-medium text-gray-900 dark:text-white mb-2">Thông tin chi tiết</h5>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                <div *ngIf="userRole === 'boss'">
+                                    <p>• Xem thống kê từ tất cả phòng ban trong công ty</p>
+                                    <p>• Theo dõi hiệu suất tổng thể của tổ chức</p>
+                                    <p>• Phân tích xu hướng toàn công ty</p>
+                                </div>
+                                <div *ngIf="userRole === 'manager'">
+                                    <p>• Quản lý công việc của phòng {{userDepartment}}</p>
+                                    <p>• Theo dõi tiến độ nhóm</p>
+                                    <p>• Phân bổ công việc hiệu quả</p>
+                                </div>
+                                <div *ngIf="userRole === 'staff'">
+                                    <p>• Theo dõi công việc cá nhân</p>
+                                    <p>• Quản lý thời gian hiệu quả</p>
+                                    <p>• Cập nhật tiến độ công việc</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -176,7 +176,8 @@ export class ExampleComponent implements OnInit, OnDestroy
         activities: { cols: 'span 1', rows: 'span 2' },
         progress: { cols: 'span 1', rows: 'span 1' },
         members: { cols: 'span 1', rows: 'span 2' },
-        chart: { cols: 'span 2', rows: 'span 1' }
+        chart: { cols: 'span 2', rows: 'span 1' },
+        'role-summary': { cols: 'span 2', rows: 'span 1' }
     };
     
     availableWidgets: Widget[] = [
@@ -227,6 +228,14 @@ export class ExampleComponent implements OnInit, OnDestroy
             description: 'Biểu đồ có thể thay đổi loại (cột, đường, radar...)',
             icon: 'bar_chart',
             defaultSize: '2x1'
+        },
+        {
+            id: 'role-summary',
+            type: 'role-summary',
+            title: 'Tổng quan theo vai trò',
+            description: 'Thống kê tổng quan dựa trên vai trò người dùng',
+            icon: 'admin_panel_settings',
+            defaultSize: '2x1'
         }
     ];
     
@@ -258,6 +267,8 @@ export class ExampleComponent implements OnInit, OnDestroy
     loading = false;
     ganttLoading = false;
     error = '';
+    userRole: string = '';
+    userDepartment: string = '';
     private _unsubscribeAll = new Subject<void>();
 
     // Gantt chart properties
@@ -289,6 +300,9 @@ export class ExampleComponent implements OnInit, OnDestroy
         
         this.loadDashboardData();
         this.prepareDynamicChartData();
+        
+        // Load user information for role-based display
+        this.loadUserInfo();
     }
 
     ngOnDestroy(): void {
@@ -388,6 +402,20 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'chart':
                 this.prepareDynamicChartData();
+                break;
+            case 'role-summary':
+                // Reload dashboard data to get fresh statistics for role summary
+                this.dashboardService.getWorkStatistics()
+                    .pipe(takeUntil(this._unsubscribeAll))
+                    .subscribe({
+                        next: (response) => {
+                            this.workStatistics = response.data;
+                            this.updateProgressData();
+                        },
+                        error: (error) => {
+                            console.error('Error refreshing role summary widget:', error);
+                        }
+                    });
                 break;
         }
     }
@@ -629,14 +657,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                     console.log('workStatistics set to:', this.workStatistics);
                     
                     // Update progress data
-                    this.progressData = {
-                        total: this.workStatistics.total,
-                        completed: this.workStatistics.done > 0 ? (this.workStatistics.done / this.workStatistics.total) * 100 : 0,
-                        completedCount: this.workStatistics.done,
-                        inProgress: this.workStatistics.inProgress,
-                        pending: this.workStatistics.todo,
-                        overdue: this.workStatistics.overdue
-                    };
+                    this.updateProgressData();
                     console.log('progressData updated:', this.progressData);
 
                     // Update status chart with real data
@@ -735,6 +756,19 @@ export class ExampleComponent implements OnInit, OnDestroy
             pending: 3,
             overdue: 2
         };
+    }
+
+    updateProgressData(): void {
+        if (this.workStatistics) {
+            this.progressData = {
+                total: this.workStatistics.total,
+                completed: this.workStatistics.done > 0 ? (this.workStatistics.done / this.workStatistics.total) * 100 : 0,
+                completedCount: this.workStatistics.done,
+                inProgress: this.workStatistics.inProgress,
+                pending: this.workStatistics.todo,
+                overdue: this.workStatistics.overdue
+            };
+        }
     }
 
     initializeWidgets(): void {
@@ -1026,6 +1060,26 @@ export class ExampleComponent implements OnInit, OnDestroy
             return JSON.parse(task.dependencies);
         } catch {
             return [];
+        }
+    }
+
+    loadUserInfo(): void {
+        // This would typically come from your auth service
+        // For now, we'll simulate it - in a real app, you'd get this from your auth service
+        this.userRole = 'boss'; // This should come from your auth service
+        this.userDepartment = 'Công nghệ thông tin'; // This should come from your auth service
+    }
+
+    getRoleDisplayName(role: string): string {
+        switch (role) {
+            case 'boss':
+                return 'Giám đốc';
+            case 'manager':
+                return 'Quản lý';
+            case 'staff':
+                return 'Nhân viên';
+            default:
+                return role;
         }
     }
 
