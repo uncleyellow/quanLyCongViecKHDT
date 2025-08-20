@@ -31,9 +31,10 @@
                         </div>
 
                         <!-- Search Box -->
-                        <div class="mt-4 sm:mt-0 flex-1 max-w-md mx-4">
+                        <div class="mt-4 sm:mt-0 flex-1 max-w-md mx-4 space-y-2">
+                            <div class="text-sm font-medium text-secondary">Tìm kiếm công việc</div>
                             <mat-form-field class="w-full" appearance="outline" floatLabel="always">
-                                <mat-label>Tìm kiếm công việc</mat-label>
+                                <mat-label>Công việc</mat-label>
                                 <input matInput 
                                        [(ngModel)]="searchTerm" 
                                        (ngModelChange)="onSearchChange($event)"
@@ -44,11 +45,11 @@
                                         *ngIf="searchTerm" 
                                         (click)="clearSearch()"
                                         [matTooltip]="'Xóa tìm kiếm'">
-                                    <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+                                    <mat-icon [svgIcon]="'heroicons_outline:x'"></mat-icon>
                                 </button>
                             </mat-form-field>
                             <!-- Search results count -->
-                            <div class="text-xs text-secondary mt-1" *ngIf="searchTerm || filters.length > 0">
+                            <!-- <div class="text-xs text-secondary mt-1" *ngIf="searchTerm || filters.length > 0">
                                 <span *ngIf="searchTerm && filters.length > 0">
                                     Tìm thấy {{getFilteredTasksCount()}} công việc (tìm kiếm + bộ lọc)
                                 </span>
@@ -58,6 +59,47 @@
                                 <span *ngIf="!searchTerm && filters.length > 0">
                                     Hiển thị {{getFilteredTasksCount()}} công việc (bộ lọc)
                                 </span>
+                            </div> -->
+                        </div>
+
+                        <!-- Quick Date Range Filter -->
+                        <div class="mt-4 sm:mt-0 flex flex-col space-y-2">
+                            <div class="text-sm font-medium text-secondary">Ngày hết hạn</div>
+                            <div class="flex space-x-2">
+                                <mat-form-field appearance="outline" class="w-28 sm:w-32">
+                                    <mat-label>Từ ngày</mat-label>
+                                    <input matInput 
+                                           [matDatepicker]="quickStartPicker"
+                                           [(ngModel)]="quickDateRange.startDate" 
+                                           (ngModelChange)="onQuickDateRangeChange()"
+                                           placeholder="Từ ngày"
+                                           [max]="quickDateRange.endDate">
+                                    <mat-datepicker-toggle matSuffix [for]="quickStartPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #quickStartPicker></mat-datepicker>
+                                </mat-form-field>
+                                <mat-form-field appearance="outline" class="w-28 sm:w-32">
+                                    <mat-label>Đến ngày</mat-label>
+                                    <input matInput 
+                                           [matDatepicker]="quickEndPicker"
+                                           [(ngModel)]="quickDateRange.endDate" 
+                                           (ngModelChange)="onQuickDateRangeChange()"
+                                           placeholder="Đến ngày"
+                                           [min]="quickDateRange.startDate">
+                                    <mat-datepicker-toggle matSuffix [for]="quickEndPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #quickEndPicker></mat-datepicker>
+                                </mat-form-field>
+                                <button mat-icon-button 
+                                        (click)="clearQuickDateRange()"
+                                        [matTooltip]="'Xóa bộ lọc ngày'"
+                                        *ngIf="quickDateRange.startDate || quickDateRange.endDate"
+                                        class="text-red-500">
+                                    <mat-icon [svgIcon]="'heroicons_outline:x'"></mat-icon>
+                                </button>
+                            </div>
+                            <!-- Date range validation message -->
+                            <div class="text-xs text-red-500" 
+                                 *ngIf="quickDateRange.startDate && quickDateRange.endDate && isInvalidQuickDateRange()">
+                                Ngày bắt đầu phải trước hoặc bằng ngày kết thúc
                             </div>
                         </div>
 

@@ -114,6 +114,8 @@ export class TasksListComponent implements OnInit, OnDestroy
     filters: Filter[] = [];
     availableFields: FilterField[] = [];
     showFilterPanel: boolean = false;
+    // Quick date range filter
+    quickDateRange: { startDate: Date | null; endDate: Date | null } = { startDate: null, endDate: null };
     // Store collapse state for each board group
     private boardCollapseStates: Map<string, boolean> = new Map();
     tasksCount: any = {
@@ -153,6 +155,9 @@ export class TasksListComponent implements OnInit, OnDestroy
         // Initialize filter fields
         this.initializeFilterFields();
 
+        // Auto-set date range to today (this will also load cards with today's filter)
+        this.autoSetDateRangeToToday();
+
         // Get the tags
         this._tasksService.tags$
             .pipe(takeUntil(this._unsubscribeAll))
@@ -163,22 +168,8 @@ export class TasksListComponent implements OnInit, OnDestroy
                 this._changeDetectorRef.markForCheck();
             });
 
-        // Get the user cards
-        this._tasksService.getUserCards()
-            .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((userCards: UserCard[]) => {
-                this.userCards = userCards;
-                this.updateBoardGroupsWithSearch();
-
-                // Update the counts based on user cards
-                this.updateTasksCount();
-
-                // Mark for check
-                this._changeDetectorRef.markForCheck();
-
-                // Update the count on the navigation
-                this.updateNavigationCount();
-            });
+        // Note: getUserCards is now called by autoSetDateRangeToToday() with today's filter
+        // No need to call it again here as it would override the filtered results
 
         // Subscribe to user cards changes
         this._tasksService.userCards$
@@ -806,7 +797,17 @@ export class TasksListComponent implements OnInit, OnDestroy
      */
     removeFilter(filterId: string): void
     {
+        const filterToRemove = this.filters.find(f => f.id === filterId);
         this.filters = this.filters.filter(f => f.id !== filterId);
+        
+        // If removing a due date filter, also clear the quick date range
+        if (filterToRemove && filterToRemove.field === 'dueDate') {
+            this.quickDateRange = { startDate: null, endDate: null };
+        }
+        
+        // Sync advanced filters with quick date range
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
         this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
@@ -817,6 +818,7 @@ export class TasksListComponent implements OnInit, OnDestroy
     clearAllFilters(): void
     {
         this.filters = [];
+        this.quickDateRange = { startDate: null, endDate: null };
         this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
@@ -847,9 +849,18 @@ export class TasksListComponent implements OnInit, OnDestroy
         
         if (this.filters && this.filters.length > 0) {
             // Only include filters that have all required fields
-            const validFilters = this.filters.filter(filter => 
-                filter.field && filter.operator && filter.value !== null && filter.value !== undefined
-            );
+            const validFilters = this.filters.filter(filter => {
+                const hasBasicFields = filter.field && filter.operator && filter.value !== null && filter.value !== undefined;
+                
+                // Additional validation for date range filters
+                if (filter.field === 'dueDate' && filter.operator === 'between') {
+                    return hasBasicFields && filter.value.startDate && filter.value.endDate;
+                }
+                
+                return hasBasicFields;
+            });
+            
+            console.log('Valid filters before processing:', validFilters);
             
             // Process date values for date fields
             const processedFilters = validFilters.map(filter => {
@@ -943,6 +954,9 @@ export class TasksListComponent implements OnInit, OnDestroy
             }
         });
         
+        // Sync quick date range with advanced filters
+        this.syncQuickDateRangeWithFilters();
+        
         this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
@@ -976,6 +990,9 @@ export class TasksListComponent implements OnInit, OnDestroy
             filter.value = null;
         }
         
+        // Sync quick date range with advanced filters
+        this.syncQuickDateRangeWithFilters();
+        
         this.loadCardsWithFilters();
         this._changeDetectorRef.markForCheck();
     }
@@ -999,7 +1016,164 @@ export class TasksListComponent implements OnInit, OnDestroy
         return startDate > endDate;
     }
 
-        /**
+    /**
+     * Handle quick date range change
+     */
+    onQuickDateRangeChange(): void
+    {
+        // Sync advanced filters with quick date range
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear quick date range filter
+     */
+    clearQuickDateRange(): void
+    {
+        this.quickDateRange = { startDate: null, endDate: null };
+        
+        // Remove any existing due date filters
+        this.filters = this.filters.filter(filter => filter.field !== 'dueDate');
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Check if quick date range is invalid
+     */
+    isInvalidQuickDateRange(): boolean
+    {
+        if (!this.quickDateRange.startDate || !this.quickDateRange.endDate) {
+            return false;
+        }
+        
+        const startDate = new Date(this.quickDateRange.startDate);
+        const endDate = new Date(this.quickDateRange.endDate);
+        
+        // Set both dates to start of day for comparison
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        
+        return startDate > endDate;
+    }
+
+    /**
+     * Sync quick date range with advanced filters
+     */
+    private syncQuickDateRangeWithFilters(): void
+    {
+        const dueDateFilter = this.filters.find(filter => filter.field === 'dueDate');
+        
+        if (dueDateFilter) {
+            if (dueDateFilter.operator === 'between' && dueDateFilter.startDate && dueDateFilter.endDate) {
+                // Both dates in range filter
+                this.quickDateRange = {
+                    startDate: dueDateFilter.startDate,
+                    endDate: dueDateFilter.endDate
+                };
+            } else if (dueDateFilter.operator === 'greater_than_or_equal' && dueDateFilter.value) {
+                // Only start date (from date)
+                this.quickDateRange = {
+                    startDate: dueDateFilter.value,
+                    endDate: null
+                };
+            } else if (dueDateFilter.operator === 'less_than_or_equal' && dueDateFilter.value) {
+                // Only end date (to date)
+                this.quickDateRange = {
+                    startDate: null,
+                    endDate: dueDateFilter.value
+                };
+            } else {
+                this.quickDateRange = { startDate: null, endDate: null };
+            }
+        } else {
+            this.quickDateRange = { startDate: null, endDate: null };
+        }
+    }
+
+    /**
+     * Sync advanced filters with quick date range
+     */
+    private syncAdvancedFiltersWithQuickDateRange(): void
+    {
+        // Remove any existing due date filters
+        this.filters = this.filters.filter(filter => filter.field !== 'dueDate');
+        
+        // Add new filter if at least one date is selected
+        if (this.quickDateRange.startDate || this.quickDateRange.endDate) {
+            let newFilter: Filter;
+            
+            if (this.quickDateRange.startDate && this.quickDateRange.endDate) {
+                // Both dates selected - use 'between' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'between',
+                    value: {
+                        startDate: this.quickDateRange.startDate,
+                        endDate: this.quickDateRange.endDate
+                    },
+                    startDate: this.quickDateRange.startDate,
+                    endDate: this.quickDateRange.endDate
+                };
+                
+                console.log('Created between filter:', newFilter);
+            } else if (this.quickDateRange.startDate) {
+                // Only start date selected - use 'greater_than_or_equal' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'greater_than_or_equal',
+                    value: this.quickDateRange.startDate,
+                    startDate: null,
+                    endDate: null
+                };
+            } else {
+                // Only end date selected - use 'less_than_or_equal' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'less_than_or_equal',
+                    value: this.quickDateRange.endDate,
+                    startDate: null,
+                    endDate: null
+                };
+            }
+            
+            this.filters.push(newFilter);
+        }
+    }
+
+    /**
+     * Auto-set date range to today
+     */
+    private autoSetDateRangeToToday(): void
+    {
+        const today = new Date();
+        console.log('Setting date range to today:', today);
+        
+        this.quickDateRange = {
+            startDate: today,
+            endDate: today
+        };
+        
+        // Sync with advanced filters
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
+        console.log('Filters after sync:', this.filters);
+        
+        // Load cards with the today filter
+        this.loadCardsWithFilters();
+        
+        // Mark for check to update the UI
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
      * Initialize filter fields
      */
     private initializeFilterFields(): void
