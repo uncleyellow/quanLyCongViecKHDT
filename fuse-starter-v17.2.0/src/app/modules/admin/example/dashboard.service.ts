@@ -122,22 +122,41 @@ export class DashboardService {
     /**
      * Get work statistics from dashboard API
      */
-    getWorkStatistics(departmentId?: string): Observable<DashboardResponse> {
+    getWorkStatistics(departmentId?: string, dueDateRange?: { startDate: Date | null; endDate: Date | null }): Observable<DashboardResponse> {
         const params: any = {};
         if (departmentId) {
             params.departmentId = departmentId;
         }
+        if (dueDateRange?.startDate) {
+            params.startDate = dueDateRange.startDate.toISOString();
+        }
+        if (dueDateRange?.endDate) {
+            params.endDate = dueDateRange.endDate.toISOString();
+        }
+        
+        console.log('DashboardService - getWorkStatistics called with params:', params);
+        console.log('Full URL will be:', `${this.apiUrl}/dashboard/work-statistics`);
+        
         return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/work-statistics`, { params });
     }
 
     /**
      * Get active members from dashboard API
      */
-    getActiveMembers(departmentId?: string): Observable<ActiveMembersResponse> {
+    getActiveMembers(departmentId?: string, dueDateRange?: { startDate: Date | null; endDate: Date | null }): Observable<ActiveMembersResponse> {
         const params: any = {};
         if (departmentId) {
             params.departmentId = departmentId;
         }
+        if (dueDateRange?.startDate) {
+            params.startDate = dueDateRange.startDate.toISOString();
+        }
+        if (dueDateRange?.endDate) {
+            params.endDate = dueDateRange.endDate.toISOString();
+        }
+        
+        console.log('DashboardService - getActiveMembers called with params:', params);
+        
         return this.http.get<ActiveMembersResponse>(`${this.apiUrl}/dashboard/active-members`, { params });
     }
 
@@ -151,11 +170,20 @@ export class DashboardService {
     /**
      * Get chart data for different chart types
      */
-    getChartData(chartType: ChartType, timeRange: TimeRange = 'month', departmentId?: string): Observable<ChartDataResponse> {
+    getChartData(chartType: ChartType, timeRange: TimeRange = 'month', departmentId?: string, dueDateRange?: { startDate: Date | null; endDate: Date | null }): Observable<ChartDataResponse> {
         const params: any = { chartType, timeRange };
         if (departmentId) {
             params.departmentId = departmentId;
         }
+        if (dueDateRange?.startDate) {
+            params.startDate = dueDateRange.startDate.toISOString();
+        }
+        if (dueDateRange?.endDate) {
+            params.endDate = dueDateRange.endDate.toISOString();
+        }
+        
+        console.log('DashboardService - getChartData called with params:', params);
+        
         return this.http.get<ChartDataResponse>(`${this.apiUrl}/dashboard/chart-data`, { params });
     }
 
@@ -169,11 +197,20 @@ export class DashboardService {
     /**
      * Get Gantt chart data for completed tasks
      */
-    getGanttChartData(timeRange: TimeRange = 'month', departmentId?: string): Observable<GanttChartResponse> {
+    getGanttChartData(timeRange: TimeRange = 'month', departmentId?: string, dueDateRange?: { startDate: Date | null; endDate: Date | null }): Observable<GanttChartResponse> {
         const params: any = { timeRange };
         if (departmentId) {
             params.departmentId = departmentId;
         }
+        if (dueDateRange?.startDate) {
+            params.startDate = dueDateRange.startDate.toISOString();
+        }
+        if (dueDateRange?.endDate) {
+            params.endDate = dueDateRange.endDate.toISOString();
+        }
+        
+        console.log('DashboardService - getGanttChartData called with params:', params);
+        
         return this.http.get<GanttChartResponse>(`${this.apiUrl}/dashboard/gantt-chart`, { params });
     }
 }

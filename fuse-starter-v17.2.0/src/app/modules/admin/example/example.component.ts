@@ -98,8 +98,11 @@ export interface ProjectMember {
     tasksCount: number;
     doneTasks?: number;
     inProgressTasks?: number;
-    overdueTasks?: number;
-    todoTasks?: number;
+}
+
+export interface DueDateRange {
+    startDate: Date | null;
+    endDate: Date | null;
 }
 
 export interface WidgetSize {
@@ -149,9 +152,10 @@ export class ExampleComponent implements OnInit, OnDestroy
     projectMembers: ProjectMember[] = [];
     
     // Filter properties
-    selectedTaskType: string = '';
-    selectedAuthor: string = '';
-    selectedStatus: string = '';
+    dueDateRange: DueDateRange = {
+        startDate: null,
+        endDate: null
+    };
     dateRange: string = '';
     selectedPriority: string = '';
     completionRate: string = '';
@@ -322,11 +326,33 @@ export class ExampleComponent implements OnInit, OnDestroy
     // Filter Methods
     applyFilters(): void {
         console.log('Applying filters:', {
-            taskType: this.selectedTaskType,
-            author: this.selectedAuthor,
-            status: this.selectedStatus
+            dueDateRange: this.dueDateRange,
+            startDate: this.dueDateRange.startDate?.toISOString(),
+            endDate: this.dueDateRange.endDate?.toISOString()
         });
         this.refreshAllWidgets();
+    }
+
+    onDueDateRangeChange(): void {
+        if (this.isInvalidDueDateRange()) {
+            return; // Don't apply filters if date range is invalid
+        }
+        this.applyFilters();
+    }
+
+    clearDueDateRange(): void {
+        this.dueDateRange = {
+            startDate: null,
+            endDate: null
+        };
+        this.applyFilters();
+    }
+
+    isInvalidDueDateRange(): boolean {
+        if (!this.dueDateRange.startDate || !this.dueDateRange.endDate) {
+            return false;
+        }
+        return this.dueDateRange.startDate > this.dueDateRange.endDate;
     }
 
     openAdvancedFilters(): void {
@@ -388,7 +414,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'status':
                 // Reload dashboard data to get fresh statistics
-                this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: (response) => {
@@ -414,7 +440,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'role-summary':
                 // Reload dashboard data to get fresh statistics for role summary
-                this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: (response) => {
@@ -531,7 +557,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.ganttLoading = true;
         this.error = '';
 
-        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any, this.selectedDepartmentId)
+        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any, this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -656,7 +682,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.loading = true;
         this.error = '';
 
-        this.dashboardService.getWorkStatistics(this.selectedDepartmentId)
+        this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -701,7 +727,7 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadProjectMembers(): void {
-        this.dashboardService.getActiveMembers(this.selectedDepartmentId)
+        this.dashboardService.getActiveMembers(this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -880,7 +906,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         // Load chart data from API based on selected chart type
         this.loading = true;
         
-        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any, this.selectedDepartmentId)
+        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any, this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {

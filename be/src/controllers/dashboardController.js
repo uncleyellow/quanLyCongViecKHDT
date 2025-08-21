@@ -4,8 +4,11 @@ import { dashboardService } from '../services/dashboardService.js'
 const getWorkStatistics = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { departmentId } = req.query
-    const statistics = await dashboardService.getWorkStatistics({ userId, departmentId })
+    const { departmentId, startDate, endDate } = req.query
+    
+    console.log('Dashboard Controller - getWorkStatistics called with:', { userId, departmentId, startDate, endDate })
+    
+    const statistics = await dashboardService.getWorkStatistics({ userId, departmentId, startDate, endDate })
     
     const responseObject = {
       code: StatusCodes.OK,
@@ -23,8 +26,11 @@ const getWorkStatistics = async (req, res, next) => {
 const getActiveMembers = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { departmentId } = req.query
-    const members = await dashboardService.getActiveMembers({ userId, departmentId })
+    const { departmentId, startDate, endDate } = req.query
+    
+    console.log('Dashboard Controller - getActiveMembers called with:', { userId, departmentId, startDate, endDate })
+    
+    const members = await dashboardService.getActiveMembers({ userId, departmentId, startDate, endDate })
     
     const responseObject = {
       code: StatusCodes.OK,
@@ -43,24 +49,26 @@ const getActiveMembers = async (req, res, next) => {
 const getChartData = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { chartType, timeRange = 'month', departmentId } = req.query
+    const { chartType, timeRange = 'month', departmentId, startDate, endDate } = req.query
+    
+    console.log('Dashboard Controller - getChartData called with:', { userId, chartType, timeRange, departmentId, startDate, endDate })
     
     let chartData
     switch (chartType) {
       case 'status':
-        chartData = await dashboardService.getStatusChartData({ userId, timeRange, departmentId })
+        chartData = await dashboardService.getStatusChartData({ userId, timeRange, departmentId, startDate, endDate })
         break
       case 'timeline':
-        chartData = await dashboardService.getTimelineChartData({ userId, timeRange, departmentId })
+        chartData = await dashboardService.getTimelineChartData({ userId, timeRange, departmentId, startDate, endDate })
         break
       case 'member':
-        chartData = await dashboardService.getMemberChartData({ userId, timeRange, departmentId })
+        chartData = await dashboardService.getMemberChartData({ userId, timeRange, departmentId, startDate, endDate })
         break
       case 'priority':
-        chartData = await dashboardService.getPriorityChartData({ userId, timeRange, departmentId })
+        chartData = await dashboardService.getPriorityChartData({ userId, timeRange, departmentId, startDate, endDate })
         break
       case 'department':
-        chartData = await dashboardService.getDepartmentChartData({ userId, timeRange, departmentId })
+        chartData = await dashboardService.getDepartmentChartData({ userId, timeRange, departmentId, startDate, endDate })
         break
       default:
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -104,9 +112,11 @@ const getDashboardOverview = async (req, res, next) => {
 const getGanttChartData = async (req, res, next) => {
   try {
     const { userId } = req.user
-    const { timeRange = 'month', departmentId } = req.query
+    const { timeRange = 'month', departmentId, startDate, endDate } = req.query
     
-    const ganttData = await dashboardService.getGanttChartData({ userId, timeRange, departmentId })
+    console.log('Dashboard Controller - getGanttChartData called with:', { userId, timeRange, departmentId, startDate, endDate })
+    
+    const ganttData = await dashboardService.getGanttChartData({ userId, timeRange, departmentId, startDate, endDate })
     
     const responseObject = {
       code: StatusCodes.OK,

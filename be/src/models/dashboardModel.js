@@ -4,6 +4,8 @@ const DASHBOARD_TABLE_NAME = 'cards'
 
 const getWorkStatisticsByStatus = async (data) => {
   try {
+    console.log('Dashboard Model - getWorkStatisticsByStatus called with:', data)
+    
     // First, get user information to determine their role and department
     const userQuery = `SELECT id, type, departmentId, companyId FROM users WHERE id = ?`
     const userResult = await db.query(userQuery, [data.userId])
@@ -17,6 +19,21 @@ const getWorkStatisticsByStatus = async (data) => {
         overdue: 0,
         total: 0
       }
+    }
+
+    // Build due date filter conditions
+    let dueDateFilter = ''
+    let dueDateParams = []
+    
+    if (data.startDate && data.endDate) {
+      dueDateFilter = 'AND c.dueDate BETWEEN ? AND ?'
+      dueDateParams = [data.startDate, data.endDate]
+    } else if (data.startDate) {
+      dueDateFilter = 'AND c.dueDate >= ?'
+      dueDateParams = [data.startDate]
+    } else if (data.endDate) {
+      dueDateFilter = 'AND c.dueDate <= ?'
+      dueDateParams = [data.endDate]
     }
 
     let query
@@ -35,9 +52,10 @@ const getWorkStatisticsByStatus = async (data) => {
         WHERE u.departmentId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.departmentId]
+      params = [data.departmentId, ...dueDateParams]
     } else if (user.type === 'staff') {
       // Staff users: only get cards from boards where they are the owner
       query = `
@@ -50,9 +68,10 @@ const getWorkStatisticsByStatus = async (data) => {
         WHERE b.ownerId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     } else if (user.type === 'manager') {
       // Manager users: get cards from their own boards + boards owned by staff in their department
       query = `
@@ -71,9 +90,10 @@ const getWorkStatisticsByStatus = async (data) => {
         )))
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId, user.departmentId]
+      params = [data.userId, user.departmentId, ...dueDateParams]
     } else if (user.type === 'boss') {
       // Boss users: get all cards from all departments in their company
       query = `
@@ -87,9 +107,10 @@ const getWorkStatisticsByStatus = async (data) => {
         WHERE u.companyId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [user.companyId]
+      params = [user.companyId, ...dueDateParams]
     } else {
       // For other roles (admin), get all cards from boards they own
       query = `
@@ -102,11 +123,15 @@ const getWorkStatisticsByStatus = async (data) => {
         WHERE b.ownerId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     }
 
+    console.log('Dashboard Model - Final query:', query)
+    console.log('Dashboard Model - Final params:', params)
+    
     const result = await db.query(query, params)
     const statusCounts = result[0]
 
@@ -160,6 +185,21 @@ const getActiveMembers = async (data) => {
       return []
     }
 
+    // Build due date filter conditions
+    let dueDateFilter = ''
+    let dueDateParams = []
+    
+    if (data.startDate && data.endDate) {
+      dueDateFilter = 'AND c.dueDate BETWEEN ? AND ?'
+      dueDateParams = [data.startDate, data.endDate]
+    } else if (data.startDate) {
+      dueDateFilter = 'AND c.dueDate >= ?'
+      dueDateParams = [data.startDate]
+    } else if (data.endDate) {
+      dueDateFilter = 'AND c.dueDate <= ?'
+      dueDateParams = [data.endDate]
+    }
+
     let query
     let params = []
 
@@ -186,10 +226,11 @@ const getActiveMembers = async (data) => {
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
         AND bm.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY u.id, u.name, u.email, u.avatar, u.type
         ORDER BY u.name
       `
-      params = [data.departmentId]
+      params = [data.departmentId, ...dueDateParams]
     } else if (user.type === 'staff') {
       // Staff users: only get members from boards where they are the owner
       query = `
@@ -212,10 +253,11 @@ const getActiveMembers = async (data) => {
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
         AND bm.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY u.id, u.name, u.email, u.avatar, u.type
         ORDER BY u.name
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     } else if (user.type === 'manager') {
       // Manager users: get members from their own boards + boards owned by staff in their department
       query = `
@@ -244,10 +286,11 @@ const getActiveMembers = async (data) => {
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
         AND bm.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY u.id, u.name, u.email, u.avatar, u.type
         ORDER BY u.name
       `
-      params = [data.userId, user.departmentId]
+      params = [data.userId, user.departmentId, ...dueDateParams]
     } else if (user.type === 'boss') {
       // Boss users: get all members from all departments in their company
       query = `
@@ -271,10 +314,11 @@ const getActiveMembers = async (data) => {
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
         AND bm.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY u.id, u.name, u.email, u.avatar, u.type
         ORDER BY u.name
       `
-      params = [user.companyId]
+      params = [user.companyId, ...dueDateParams]
     } else {
       // For other roles (admin), get all members from boards they own
       query = `
@@ -297,10 +341,11 @@ const getActiveMembers = async (data) => {
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
         AND bm.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY u.id, u.name, u.email, u.avatar, u.type
         ORDER BY u.name
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     }
 
     const result = await db.query(query, params)
@@ -324,6 +369,21 @@ const getStatusChartData = async (data) => {
       }
     }
 
+    // Build due date filter conditions
+    let dueDateFilter = ''
+    let dueDateParams = []
+    
+    if (data.startDate && data.endDate) {
+      dueDateFilter = 'AND c.dueDate BETWEEN ? AND ?'
+      dueDateParams = [data.startDate, data.endDate]
+    } else if (data.startDate) {
+      dueDateFilter = 'AND c.dueDate >= ?'
+      dueDateParams = [data.startDate]
+    } else if (data.endDate) {
+      dueDateFilter = 'AND c.dueDate <= ?'
+      dueDateParams = [data.endDate]
+    }
+
     let query
     let params = []
 
@@ -340,9 +400,10 @@ const getStatusChartData = async (data) => {
         WHERE u.departmentId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.departmentId]
+      params = [data.departmentId, ...dueDateParams]
     } else if (user.type === 'staff') {
       query = `
         SELECT 
@@ -354,9 +415,10 @@ const getStatusChartData = async (data) => {
         WHERE b.ownerId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     } else if (user.type === 'manager') {
       query = `
         SELECT 
@@ -374,9 +436,10 @@ const getStatusChartData = async (data) => {
         )))
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId, user.departmentId]
+      params = [data.userId, user.departmentId, ...dueDateParams]
     } else if (user.type === 'boss') {
       query = `
         SELECT 
@@ -389,9 +452,10 @@ const getStatusChartData = async (data) => {
         WHERE u.companyId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [user.companyId]
+      params = [user.companyId, ...dueDateParams]
     } else {
       query = `
         SELECT 
@@ -403,9 +467,10 @@ const getStatusChartData = async (data) => {
         WHERE b.ownerId = ? 
         AND b.deletedAt IS NULL
         AND c.deletedAt IS NULL
+        ${dueDateFilter}
         GROUP BY c.status, c.dueDate
       `
-      params = [data.userId]
+      params = [data.userId, ...dueDateParams]
     }
 
     const result = await db.query(query, params)
@@ -1105,6 +1170,21 @@ const getGanttChartData = async (data) => {
       }
     }
 
+    // Build due date filter conditions
+    let dueDateFilter = ''
+    let dueDateParams = []
+    
+    if (data.startDate && data.endDate) {
+      dueDateFilter = 'AND c.dueDate BETWEEN ? AND ?'
+      dueDateParams = [data.startDate, data.endDate]
+    } else if (data.startDate) {
+      dueDateFilter = 'AND c.dueDate >= ?'
+      dueDateParams = [data.startDate]
+    } else if (data.endDate) {
+      dueDateFilter = 'AND c.dueDate <= ?'
+      dueDateParams = [data.endDate]
+    }
+
     let query
     let params = []
 
@@ -1147,10 +1227,11 @@ const getGanttChartData = async (data) => {
         AND c.status = 'done'
         AND c.endDate IS NOT NULL
         ${dateFilter}
+        ${dueDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `
-      params = [data.timeRange, data.timeRange, data.timeRange, data.departmentId]
+      params = [data.timeRange, data.timeRange, data.timeRange, data.departmentId, ...dueDateParams]
     } else if (user.type === 'staff') {
       query = `
         SELECT 
@@ -1168,10 +1249,11 @@ const getGanttChartData = async (data) => {
         AND c.status = 'done'
         AND c.endDate IS NOT NULL
         ${dateFilter}
+        ${dueDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `
-      params = [data.timeRange, data.timeRange, data.timeRange, data.userId]
+      params = [data.timeRange, data.timeRange, data.timeRange, data.userId, ...dueDateParams]
     } else if (user.type === 'manager') {
       query = `
         SELECT 
@@ -1195,10 +1277,11 @@ const getGanttChartData = async (data) => {
         AND c.status = 'done'
         AND c.endDate IS NOT NULL
         ${dateFilter}
+        ${dueDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `
-      params = [data.timeRange, data.timeRange, data.timeRange, data.userId, user.departmentId]
+      params = [data.timeRange, data.timeRange, data.timeRange, data.userId, user.departmentId, ...dueDateParams]
     } else if (user.type === 'boss') {
       query = `
         SELECT 
@@ -1217,10 +1300,11 @@ const getGanttChartData = async (data) => {
         AND c.status = 'done'
         AND c.endDate IS NOT NULL
         ${dateFilter}
+        ${dueDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `
-      params = [data.timeRange, data.timeRange, data.timeRange, user.companyId]
+      params = [data.timeRange, data.timeRange, data.timeRange, user.companyId, ...dueDateParams]
     } else {
       query = `
         SELECT 
@@ -1238,10 +1322,11 @@ const getGanttChartData = async (data) => {
         AND c.status = 'done'
         AND c.endDate IS NOT NULL
         ${dateFilter}
+        ${dueDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `
-      params = [data.timeRange, data.timeRange, data.timeRange, data.userId]
+      params = [data.timeRange, data.timeRange, data.timeRange, data.userId, ...dueDateParams]
     }
 
     const result = await db.query(query, params)

@@ -29,8 +29,15 @@ export class GanttService {
 
     constructor(private http: HttpClient) {}
 
-    getGanttData(boardId: string): Observable<GanttTask[]> {
-        return this.http.get<GanttTask[]>(`${this.apiUrl}/boards/${boardId}/gantt`);
+    getGanttData(boardId: string, dueDateRange?: { startDate: Date | null; endDate: Date | null }): Observable<GanttTask[]> {
+        const params: any = {};
+        if (dueDateRange?.startDate) {
+            params.startDate = dueDateRange.startDate.toISOString();
+        }
+        if (dueDateRange?.endDate) {
+            params.endDate = dueDateRange.endDate.toISOString();
+        }
+        return this.http.get<GanttTask[]>(`${this.apiUrl}/boards/${boardId}/gantt`, { params });
     }
 
     updateTask(taskId: string, taskData: Partial<GanttTask>): Observable<any> {

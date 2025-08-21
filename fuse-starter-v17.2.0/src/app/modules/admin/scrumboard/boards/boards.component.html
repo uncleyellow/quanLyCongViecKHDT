@@ -4,12 +4,103 @@
     <div class="flex flex-col flex-auto items-center p-6 sm:p-10">
 
         <!-- Title -->
-        <div class="mt-4 md:mt-24 text-3xl md:text-6xl font-extrabold tracking-tight leading-7 sm:leading-10">
+        <div class="mt-4 text-3xl md:text-6xl font-extrabold tracking-tight leading-7 sm:leading-10">
             Các bảng công việc hàng ngày
+        </div>
+
+        <!-- Filters -->
+        <div class="w-full max-w-7xl mt-8 md:mt-12">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+                    <!-- Date Filter -->
+                    <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Từ ngày</label>
+                            <mat-form-field appearance="outline" class="w-full sm:w-48">
+                                <input matInput [matDatepicker]="fromPicker" 
+                                       [formControl]="filterForm.get('fromDate')"
+                                       placeholder="Chọn ngày bắt đầu">
+                                <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+                                <mat-datepicker #fromPicker></mat-datepicker>
+                            </mat-form-field>
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Đến ngày</label>
+                            <mat-form-field appearance="outline" class="w-full sm:w-48">
+                                <input matInput [matDatepicker]="toPicker" 
+                                       [formControl]="filterForm.get('toDate')"
+                                       placeholder="Chọn ngày kết thúc">
+                                <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+                                <mat-datepicker #toPicker></mat-datepicker>
+                            </mat-form-field>
+                        </div>
+                    </div>
+
+                    <!-- Task Type Filter -->
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại công việc</label>
+                        <mat-form-field appearance="outline" class="w-full sm:w-64">
+                            <mat-select [formControl]="filterForm.get('taskType')" placeholder="Chọn loại công việc">
+                                <mat-option value="all">Tất cả công việc</mat-option>
+                                <mat-option value="daily">Công việc hàng ngày</mat-option>
+                                <mat-option value="adhoc">Công việc đột xuất/được giao</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+
+                    <!-- Clear Filters Button -->
+                    <div class="flex flex-col justify-end">
+                        <button mat-stroked-button 
+                                color="warn" 
+                                (click)="clearFilters()"
+                                class="h-12 px-4">
+                            <mat-icon class="mr-2">clear</mat-icon>
+                            Xóa bộ lọc
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Summary -->
+                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <mat-icon class="mr-2 text-gray-500">filter_list</mat-icon>
+                        <span>
+                            Hiển thị {{filteredBoards?.length || 0}} / {{allBoards?.length || 0}} bảng công việc
+                            <span *ngIf="getMyBoardsCount() > 0 || getEmployeeBoardsCount() > 0">
+                                ({{getMyBoardsCount()}} của bạn, {{getEmployeeBoardsCount()}} của nhân viên)
+                            </span>
+                            <span *ngIf="filterForm.get('fromDate')?.value || filterForm.get('toDate')?.value">
+                                • Khoảng thời gian: 
+                                <span *ngIf="filterForm.get('fromDate')?.value">{{filterForm.get('fromDate')?.value | date:'dd/MM/yyyy'}}</span>
+                                <span *ngIf="filterForm.get('fromDate')?.value && filterForm.get('toDate')?.value"> - </span>
+                                <span *ngIf="filterForm.get('toDate')?.value">{{filterForm.get('toDate')?.value | date:'dd/MM/yyyy'}}</span>
+                            </span>
+                            <span *ngIf="filterForm.get('taskType')?.value !== 'all'">
+                                • Loại: {{filterForm.get('taskType')?.value === 'daily' ? 'Công việc hàng ngày' : 'Công việc đột xuất/được giao'}}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Manager/Boss View: Grouped by Staff -->
         <ng-container *ngIf="isManagerOrBoss && boardGroups.length > 0">
+            <!-- No results message -->
+            <div *ngIf="filteredBoards.length === 0 && allBoards.length > 0" 
+                 class="w-full max-w-7xl mt-8 text-center py-12">
+                <mat-icon class="text-gray-400 text-6xl mb-4">search_off</mat-icon>
+                <h3 class="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Không tìm thấy bảng công việc nào
+                </h3>
+                <p class="text-gray-500 dark:text-gray-500 mb-4">
+                    Không có bảng công việc nào phù hợp với bộ lọc hiện tại
+                </p>
+                <button mat-stroked-button color="primary" (click)="clearFilters()">
+                    <mat-icon class="mr-2">clear</mat-icon>
+                    Xóa bộ lọc
+                </button>
+            </div>
             <div class="w-full max-w-7xl mt-8 md:mt-16">
                 <!-- Board Groups -->
                 <ng-container *ngFor="let group of boardGroups; trackBy: trackByGroupFn">
@@ -105,6 +196,21 @@
 
         <!-- Staff View: Regular Grid -->
         <ng-container *ngIf="!isManagerOrBoss || boardGroups.length === 0">
+            <!-- No results message -->
+            <div *ngIf="filteredBoards.length === 0 && allBoards.length > 0" 
+                 class="w-full max-w-7xl mt-8 text-center py-12">
+                <mat-icon class="text-gray-400 text-6xl mb-4">search_off</mat-icon>
+                <h3 class="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Không tìm thấy bảng công việc nào
+                </h3>
+                <p class="text-gray-500 dark:text-gray-500 mb-4">
+                    Không có bảng công việc nào phù hợp với bộ lọc hiện tại
+                </p>
+                <button mat-stroked-button color="primary" (click)="clearFilters()">
+                    <mat-icon class="mr-2">clear</mat-icon>
+                    Xóa bộ lọc
+                </button>
+            </div>
             <!-- Boards Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8 md:mt-16 w-full max-w-7xl"
                 cdkDropList [cdkDropListData]="boards" [cdkDropListOrientation]="'mixed'"

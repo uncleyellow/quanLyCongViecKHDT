@@ -2,6 +2,34 @@
   "currentVersion": "1.0.6",
   "versions": [
     {
+      "version": "1.0.8",
+      "releaseDate": "2025-08-20",
+      "type": "feature",
+      "title": "Thêm tính năng lọc phòng ban cho boss",
+      "description": "Thêm tính năng lọc phòng ban cho boss",
+      "changes": [
+        "Bổ sung thêm các tag lọc theo phòng ban bên trái dashboard",
+        "Tự động lọc các công việc ngày hôm nay",
+        "Đẩy bộ lọc từ ngày đến ngày ra ngoài màn hình",
+        "Bỏ các route tạm thời chưa dùng đến (chat, lịch, file)",
+        "Bật tự động sinh công việc hàng ngày"
+
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.7",
+      "releaseDate": "2025-08-20",
+      "type": "feature",
+      "title": "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+      "description": "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+      "changes": [
+        "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+        "Thêm chức năng phân quyền, gán thêm người khác vào board, card để cùng thực hiện"
+      ],
+      "author": "Development Team"
+    },
+    {
       "version": "1.0.6",
       "releaseDate": "2025-08-18",
       "type": "feature",

@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -67,7 +67,8 @@ import { FilterDialogComponent } from './board/filter-dialog.component';
         MatSnackBarModule,
         SharedModule,
         MatOptionModule,
-        FormsModule
+        FormsModule,
+        ReactiveFormsModule
     ],
     providers   : [
         {

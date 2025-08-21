@@ -102,37 +102,46 @@
         
         <!-- Filter Controls -->
         <div class="flex flex-wrap items-center space-x-4">
-            <!-- Quick Filters -->
-            <mat-form-field appearance="outline" class="w-48">
-                <mat-label>Loại công việc</mat-label>
-                <mat-select [(ngModel)]="selectedTaskType" (selectionChange)="applyFilters()">
-                    <mat-option value="">Tất cả</mat-option>
-                    <mat-option value="development">Phát triển</mat-option>
-                    <mat-option value="testing">Kiểm thử</mat-option>
-                    <mat-option value="design">Thiết kế</mat-option>
-                    <mat-option value="documentation">Tài liệu</mat-option>
-                </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-48">
-                <mat-label>Tác giả</mat-label>
-                <mat-select [(ngModel)]="selectedAuthor" (selectionChange)="applyFilters()">
-                    <mat-option value="">Tất cả</mat-option>
-                    <mat-option *ngFor="let member of teamMembers" [value]="member.id">
-                        {{member.name}}
-                    </mat-option>
-                </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-48">
-                <mat-label>Trạng thái</mat-label>
-                <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
-                    <mat-option value="">Tất cả</mat-option>
-                    <mat-option value="todo">Chờ xử lý</mat-option>
-                    <mat-option value="in_progress">Đang thực hiện</mat-option>
-                    <mat-option value="completed">Hoàn thành</mat-option>
-                </mat-select>
-            </mat-form-field>
+            <!-- Due Date Filter -->
+            <div class="flex flex-col space-y-2">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Ngày hết hạn</div>
+                <div class="flex space-x-2">
+                    <mat-form-field appearance="outline" class="w-42">
+                        <mat-label>Từ ngày</mat-label>
+                        <input matInput 
+                               [matDatepicker]="dueDateStartPicker"
+                               [(ngModel)]="dueDateRange.startDate" 
+                               (ngModelChange)="onDueDateRangeChange()"
+                               placeholder="Từ ngày"
+                               [max]="dueDateRange.endDate">
+                        <mat-datepicker-toggle matSuffix [for]="dueDateStartPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #dueDateStartPicker></mat-datepicker>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="w-42">
+                        <mat-label>Đến ngày</mat-label>
+                        <input matInput 
+                               [matDatepicker]="dueDateEndPicker"
+                               [(ngModel)]="dueDateRange.endDate" 
+                               (ngModelChange)="onDueDateRangeChange()"
+                               placeholder="Đến ngày"
+                               [min]="dueDateRange.startDate">
+                        <mat-datepicker-toggle matSuffix [for]="dueDateEndPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #dueDateEndPicker></mat-datepicker>
+                    </mat-form-field>
+                    <button mat-icon-button 
+                            (click)="clearDueDateRange()"
+                            [matTooltip]="'Xóa bộ lọc ngày'"
+                            *ngIf="dueDateRange.startDate || dueDateRange.endDate"
+                            class="text-red-500">
+                        <mat-icon>clear</mat-icon>
+                    </button>
+                </div>
+                <!-- Date range validation message -->
+                <div class="text-xs text-red-500" 
+                     *ngIf="dueDateRange.startDate && dueDateRange.endDate && isInvalidDueDateRange()">
+                    Ngày bắt đầu phải trước hoặc bằng ngày kết thúc
+                </div>
+            </div>
 
             <!-- Advanced Filter Button -->
             <button
