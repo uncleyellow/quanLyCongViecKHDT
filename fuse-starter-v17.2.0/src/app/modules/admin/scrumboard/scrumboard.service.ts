@@ -99,7 +99,7 @@ export class ScrumboardService {
                     }
                     // Unexpected format
                     console.error('Unexpected board response format:', response);
-                    return new Board({ title: 'Unknown Board' });
+                    return new Board({ title: 'Unknown Board', isAssigned: false });
                 }),
                 tap(board => {
                     this._board.next(board)
@@ -132,7 +132,7 @@ export class ScrumboardService {
             }
             // Unexpected format
             console.error('Unexpected create board response format:', response);
-            return new Board({ title: 'Unknown Board' });
+            return new Board({ title: 'Unknown Board', isAssigned: false });
         }));
     }
 
@@ -155,7 +155,7 @@ export class ScrumboardService {
                 }
                 // Unexpected format
                 console.error('Unexpected update board response format:', response);
-                return new Board({ title: 'Unknown Board' });
+                return new Board({ title: 'Unknown Board', isAssigned: false });
             }));
     }
 
@@ -188,7 +188,7 @@ export class ScrumboardService {
                     }
                     // Unexpected format
                     console.error('Unexpected update view config response format:', response);
-                    return new Board({ title: 'Unknown' });
+                    return new Board({ title: 'Unknown', isAssigned: false });
                 }),
                 tap(board => {
                     // Update the current board if it matches
@@ -221,7 +221,40 @@ export class ScrumboardService {
                     }
                     // Unexpected format
                     console.error('Unexpected update recurring config response format:', response);
-                    return new Board({ title: 'Unknown' });
+                    return new Board({ title: 'Unknown', isAssigned: false });
+                }),
+                tap(board => {
+                    // Update the current board if it matches
+                    this._board.pipe(take(1)).subscribe(currentBoard => {
+                        if (currentBoard && currentBoard.id === id) {
+                            this._board.next(board);
+                        }
+                    });
+                })
+            );
+    }
+
+    /**
+     * Update board assigned config
+     *
+     * @param id
+     * @param isAssigned
+     */
+    updateBoardAssignedConfig(id: string, isAssigned: boolean): Observable<Board> {
+        return this._httpClient.patch<Board>(`${environment.apiBaseUrl}/boards/${id}/assigned-config`, { isAssigned })
+            .pipe(
+                map((response: any) => {
+                    // Handle API response with { data: {...} }
+                    if (response && response.data) {
+                        return new Board(response.data);
+                    }
+                    // Fallback: if response itself is the board data
+                    if (response && response.id) {
+                        return new Board(response);
+                    }
+                    // Unexpected format
+                    console.error('Unexpected update assigned config response format:', response);
+                    return new Board({ title: 'Unknown', isAssigned: false });
                 }),
                 tap(board => {
                     // Update the current board if it matches
@@ -659,7 +692,8 @@ export class ScrumboardService {
                     recurringConfig: {
                         isRecurring: false,
                         completedListId: null
-                    }
+                    },
+                    isAssigned: false
                 });
             })
         );

@@ -42,7 +42,13 @@ const createNew = async (req, res, next) => {
 
 const getDetail = async (req, res, next) => {
     try {
+        console.log('=== DEBUG: getDetail controller called ===')
+        console.log('req.user:', req.user)
+        console.log('req.params:', req.params)
+        
         const { userId } = req.user
+        console.log('=== DEBUG: userId extracted ===', userId)
+        
         const boardDetail = await boardService.getDetail({ ...req.params, userId: userId })
         const responseObject = {
             code: StatusCodes.OK,
@@ -140,6 +146,20 @@ const updateRecurringConfig = async (req, res, next) => {
     } catch (error) { next(error) }
 }
 
+const updateAssignedConfig = async (req, res, next) => {
+    try {
+        const { userId } = req.user
+        const { isAssigned } = req.body
+        const updatedBoard = await boardService.updateAssignedConfig({ ...req.params, userId: userId }, { isAssigned })
+        const responseObject = {
+            code: StatusCodes.OK,
+            status: 'success',
+            message: 'Board assigned config updated successfully',
+            data: updatedBoard
+        }
+        res.status(StatusCodes.OK).json(responseObject)
+    } catch (error) { next(error) }
+}
 
 
 const getFilteredBoard = async (req, res, next) => {
@@ -222,5 +242,6 @@ export const boardController = {
     reorder,
     updateViewConfig,
     updateRecurringConfig,
+    updateAssignedConfig,
     getFilteredBoard
 }

@@ -15,6 +15,7 @@ export class Board implements Required<IBoard>
     members: Member[];
     viewConfig: ViewConfig;
     recurringConfig: RecurringConfig;
+    isAssigned: boolean;
     // Owner information
     ownerId: string;
     ownerName: string;
@@ -52,6 +53,8 @@ export class Board implements Required<IBoard>
             isRecurring: false,
             completedListId: null
         };
+
+        this.isAssigned = board.isAssigned || false;
 
         // Owner information
         this.ownerId = board.ownerId || '';

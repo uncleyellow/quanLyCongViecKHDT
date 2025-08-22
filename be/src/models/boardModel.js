@@ -29,6 +29,7 @@ const BOARD_TABLE_SCHEMA = Joi.object({
     isRecurring: Joi.boolean().default(false),
     completedListId: Joi.string().uuid().allow(null).default(null)
   }).allow(null).default(null),
+  isAssigned: Joi.boolean().default(false),
   createdBy: Joi.string().uuid().allow(null).default(null),
   updatedBy: Joi.string().uuid().allow(null).default(null),
   deletedBy: Joi.string().uuid().allow(null).default(null),
@@ -358,6 +359,24 @@ const updateRecurringConfig = async (data, dataUpdate) => {
   } catch (error) { throw new Error(error) }
 }
 
+const updateAssignedConfig = async (data, dataUpdate) => {
+  try {
+    const { isAssigned } = dataUpdate
+    const query = `UPDATE ${BOARD_TABLE_NAME} SET isAssigned = ?, updatedAt = NOW() WHERE id = ? AND ownerId = ? AND deletedAt IS NULL`
+    const updatedBoard = await db.query(query, [isAssigned, data.id, data.userId])
+
+    // Return the updated board details
+    const getUpdatedBoard = `
+      SELECT b.*, u.name as ownerName 
+      FROM ${BOARD_TABLE_NAME} b
+      LEFT JOIN users u ON b.ownerId = u.id
+      WHERE b.id = ? AND b.ownerId = ? AND b.deletedAt IS NULL
+    `
+    const boardDetail = await db.query(getUpdatedBoard, [data.id, data.userId])
+    return boardDetail[0][0]
+  } catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_TABLE_NAME,
   BOARD_TABLE_SCHEMA,
@@ -369,5 +388,6 @@ export const boardModel = {
   deleteNote,
   reorder,
   updateViewConfig,
-  updateRecurringConfig
+  updateRecurringConfig,
+  updateAssignedConfig
 }

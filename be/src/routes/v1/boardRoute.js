@@ -487,6 +487,64 @@ Router.route('/:id/view-config')
 Router.route('/:id/recurring-config')
   .patch(verifyToken, boardController.updateRecurringConfig) // update board recurring config
 
+/**
+ * @swagger
+ * /boards/{id}/assigned-config:
+ *   patch:
+ *     summary: Update board assigned configuration
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Board ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isAssigned
+ *             properties:
+ *               isAssigned:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether this board is for assigned tasks
+ *     responses:
+ *       200:
+ *         description: Assigned configuration updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Board not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+Router.route('/:id/assigned-config')
+  .patch(verifyToken, boardController.updateAssignedConfig) // update board assigned config
+
 // Get filtered board
 Router.route('/:boardId/filter')
   .get(verifyToken, boardController.getFilteredBoard) // get filtered board

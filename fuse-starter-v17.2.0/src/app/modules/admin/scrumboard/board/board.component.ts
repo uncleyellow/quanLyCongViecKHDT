@@ -42,7 +42,8 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
         recurringConfig: {
             isRecurring: false,
             completedListId: null
-        }
+        },
+        isAssigned: false
     });
     listTitleForm: UntypedFormGroup;
     members: Member[] = [];
@@ -148,26 +149,31 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
                     isRecurring: false,
                     completedListId: null
                 },
+                isAssigned: this.board?.isAssigned || false,
                 lists: this.board?.lists || []
             },
             width: '600px',
             maxHeight: '80vh'
         });
 
-        dialogRef.afterClosed().subscribe((result: { viewConfig: ViewConfig; recurringConfig: RecurringConfig }) => {
+        dialogRef.afterClosed().subscribe((result: { viewConfig: ViewConfig; recurringConfig: RecurringConfig; isAssigned: boolean }) => {
             if (result && this.board) {
-                // Update view config
+                // Update all configs in sequence to avoid conflicts
                 this._scrumboardService.updateBoardViewConfig(this.board.id, result.viewConfig).subscribe((updatedBoard) => {
-                    // Update the board with the complete data returned from backend
                     this.board = updatedBoard;
                     this._changeDetectorRef.markForCheck();
-                });
-
-                // Update recurring config
-                this._scrumboardService.updateBoardRecurringConfig(this.board.id, result.recurringConfig).subscribe((updatedBoard) => {
-                    // Update the board with the complete data returned from backend
-                    this.board = updatedBoard;
-                    this._changeDetectorRef.markForCheck();
+                    
+                    // Update recurring config after view config
+                    this._scrumboardService.updateBoardRecurringConfig(this.board.id, result.recurringConfig).subscribe((updatedBoard2) => {
+                        this.board = updatedBoard2;
+                        this._changeDetectorRef.markForCheck();
+                        
+                        // Update assigned config after recurring config
+                        this._scrumboardService.updateBoardAssignedConfig(this.board.id, result.isAssigned).subscribe((updatedBoard3) => {
+                            this.board = updatedBoard3;
+                            this._changeDetectorRef.markForCheck();
+                        });
+                    });
                 });
             }
         });
@@ -567,6 +573,27 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
                     duration: 3000
                 });
             });
+    }
+
+    /**
+     * Refresh assigned board - reload to get latest assigned tasks
+     */
+    refreshAssignedBoard(): void {
+        if (!this.board.isAssigned) {
+            return;
+        }
+
+        // Show loading message
+        this.snackBar.open('Đang làm mới công việc được giao...', 'Đóng', {
+            duration: 2000
+        });
+
+        // Reload board to get latest assigned tasks
+        this.reloadBoard();
+        
+        this.snackBar.open('Đã làm mới công việc được giao thành công!', 'Đóng', {
+            duration: 3000
+        });
     }
 
     /**

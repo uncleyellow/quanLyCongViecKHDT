@@ -339,6 +339,7 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                             isRecurring: false,
                             completedListId: null
                         },
+                        isAssigned: false,
                         ownerId: user.id,
                         ownerName: user.name,
                         ownerEmail: user.email,

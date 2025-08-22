@@ -10,6 +10,7 @@ export interface IBoard
     members?: IMember[];
     viewConfig?: ViewConfig;
     recurringConfig?: RecurringConfig;
+    isAssigned?: boolean;
     // Owner information for grouping
     ownerId?: string;
     ownerName?: string;
