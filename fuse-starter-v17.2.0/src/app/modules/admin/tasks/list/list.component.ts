@@ -53,6 +53,9 @@ export class TasksListComponent implements OnInit, OnDestroy
     userCards: UserCard[];
     boardGroups: BoardGroup[] = [];
     isReordering: boolean = false;
+    hasRecurringBoards: boolean = false;
+    // Store collapse state for each board group
+    private boardCollapseStates: Map<string, boolean> = new Map();
     tasksCount: any = {
         completed : 0,
         incomplete: 0,
@@ -378,23 +381,34 @@ export class TasksListComponent implements OnInit, OnDestroy
     private groupTasksByBoard(cards: UserCard[]): BoardGroup[]
     {
         if (!cards || cards.length === 0) {
+            this.hasRecurringBoards = false;
             return [];
         }
+
+        // Check if there are any recurring boards
+        this.hasRecurringBoards = cards.some(card => card.board?.recurringConfig?.isRecurring);
+
+        // Filter cards for recurring boards
+        const filteredCards = this.filterCardsForRecurringBoards(cards);
 
         // Group cards by boardId
         const groupsMap = new Map<string, BoardGroup>();
         
-        cards.forEach(card => {
+        filteredCards.forEach(card => {
             // Handle cases where boardId or boardTitle might be missing
             const boardId = card.boardId || 'unknown';
             const boardTitle = card.boardTitle || 'Unknown Board';
             
             if (!groupsMap.has(boardId)) {
+                // Get saved collapse state or default to false (expanded)
+                const savedCollapsedState = this.boardCollapseStates.get(boardId);
+                const isCollapsed = savedCollapsedState !== undefined ? savedCollapsedState : false;
+                
                 groupsMap.set(boardId, {
                     boardId: boardId,
                     boardTitle: boardTitle,
                     cards: [],
-                    collapsed: false // Default to expanded
+                    collapsed: isCollapsed
                 });
             }
             
@@ -403,9 +417,18 @@ export class TasksListComponent implements OnInit, OnDestroy
         });
 
         // Convert map to array and sort by board title
-        const groups = Array.from(groupsMap.values()).sort((a, b) => 
-            a.boardTitle.localeCompare(b.boardTitle)
-        );
+        const groups = Array.from(groupsMap.values()).sort((a, b) => {
+            // First, check if either board is recurring
+            const aIsRecurring = a.cards.some(card => card.board?.recurringConfig?.isRecurring);
+            const bIsRecurring = b.cards.some(card => card.board?.recurringConfig?.isRecurring);
+            
+            // If one is recurring and the other is not, recurring comes first
+            if (aIsRecurring && !bIsRecurring) return -1;
+            if (!aIsRecurring && bIsRecurring) return 1;
+            
+            // If both are recurring or both are not recurring, sort by title
+            return a.boardTitle.localeCompare(b.boardTitle);
+        });
 
         // Sort cards within each group (completed cards to the end)
         groups.forEach(group => {
@@ -423,6 +446,33 @@ export class TasksListComponent implements OnInit, OnDestroy
     }
 
     /**
+     * Filter cards for recurring boards - only show cards with due date today
+     *
+     * @param cards
+     */
+    private filterCardsForRecurringBoards(cards: UserCard[]): UserCard[]
+    {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        return cards.filter(card => {
+            // If board has recurringConfig and isRecurring is true
+            if (card.board?.recurringConfig?.isRecurring) {
+                // Only show cards with due date today
+                if (card.dueDate) {
+                    const dueDate = new Date(card.dueDate);
+                    dueDate.setHours(0, 0, 0, 0);
+                    return dueDate.getTime() === today.getTime();
+                }
+                return false; // No due date, don't show
+            }
+            
+            // For non-recurring boards, show all cards
+            return true;
+        });
+    }
+
+    /**
      * Toggle collapse state of a board group
      *
      * @param group
@@ -430,6 +480,10 @@ export class TasksListComponent implements OnInit, OnDestroy
     toggleBoardCollapse(group: BoardGroup): void
     {
         group.collapsed = !group.collapsed;
+        
+        // Save the collapse state
+        this.boardCollapseStates.set(group.boardId, group.collapsed);
+        
         this._changeDetectorRef.markForCheck();
     }
 
@@ -440,6 +494,8 @@ export class TasksListComponent implements OnInit, OnDestroy
     {
         this.boardGroups.forEach(group => {
             group.collapsed = false;
+            // Save the collapse state
+            this.boardCollapseStates.set(group.boardId, false);
         });
         this._changeDetectorRef.markForCheck();
     }
@@ -451,6 +507,8 @@ export class TasksListComponent implements OnInit, OnDestroy
     {
         this.boardGroups.forEach(group => {
             group.collapsed = true;
+            // Save the collapse state
+            this.boardCollapseStates.set(group.boardId, true);
         });
         this._changeDetectorRef.markForCheck();
     }

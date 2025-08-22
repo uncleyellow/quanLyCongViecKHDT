@@ -2,7 +2,7 @@ import Joi from 'joi'
 import db from '../config/db'
 
 // Define Collection (Name & Schema)
-const CARD_MEMBER_TABLE_NAME = 'cardMembers'
+const CARD_MEMBER_TABLE_NAME = 'cardmembers'
 const CARD_MEMBER_TABLE_SCHEMA = Joi.object({
   cardId: Joi.string().uuid().required(),
   memberId: Joi.string().uuid().required(),
@@ -137,6 +137,16 @@ const removeMember = async (cardId, memberId) => {
   }
 }
 
+const removeAllCardMembers = async (cardId) => {
+  try {
+    const query = `DELETE FROM ${CARD_MEMBER_TABLE_NAME} WHERE cardId = ?`
+    const deletedCardMembers = await db.query(query, [cardId])
+    return deletedCardMembers[0]
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const addMember = async (cardId, memberId, role = 'member') => {
   try {
     const data = {
@@ -256,6 +266,7 @@ export const cardMemberModel = {
   getCardMember,
   updateMemberRole,
   removeMember,
+  removeAllCardMembers,
   addMember,
   isMemberOfCard,
   getMemberRole,

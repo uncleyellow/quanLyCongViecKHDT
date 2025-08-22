@@ -15,6 +15,11 @@ export class Board implements Required<IBoard>
     members: Member[];
     viewConfig: ViewConfig;
     recurringConfig: RecurringConfig;
+    // Owner information
+    ownerId: string;
+    ownerName: string;
+    ownerEmail: string;
+    ownerRole: string;
 
     /**
      * Constructor
@@ -44,6 +49,12 @@ export class Board implements Required<IBoard>
             isRecurring: false,
             completedListId: null
         };
+
+        // Owner information
+        this.ownerId = board.ownerId || '';
+        this.ownerName = board.ownerName || '';
+        this.ownerEmail = board.ownerEmail || '';
+        this.ownerRole = board.ownerRole || 'staff';
 
         // Lists
         if ( board.lists )

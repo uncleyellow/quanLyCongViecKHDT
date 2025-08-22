@@ -207,25 +207,43 @@
             <input matInput [(ngModel)]="newLabels" name="newLabels" [ngModelOptions]="{standalone: true}">
         </mat-form-field>
 
-        <div class="font-medium">Thành viên phụ trách</div>
-        <mat-select [(ngModel)]="selectedMember" name="selectedMember" [ngModelOptions]="{standalone: true}">
-
-            <mat-option *ngIf="card.members.length === 0" value="">Không có</mat-option>
-            <mat-option *ngFor="let member of card.members" [value]="member.id">
-                <div class="flex items-center">
-                    <ng-container *ngIf="member.avatar; else noAvatar">
-                        <img [src]="member.avatar" alt="{{member.name}}"
-                            class="w-6 h-6 rounded-full mr-2 object-cover" />
-                    </ng-container>
-                    <ng-template #noAvatar>
-                        <span class="w-6 h-6 rounded-full mr-2 bg-gray-300 flex items-center justify-center text-xs">
-                            {{ member.name.charAt(0).toUpperCase() }}
-                        </span>
-                    </ng-template>
-                    {{ member.name }}
+        <!-- Thành viên phụ trách -->
+        <div class="w-full">
+            <div class="font-medium mb-3">Thành viên phụ trách</div>
+            
+            <!-- Hiển thị thành viên hiện tại -->
+            <div *ngIf="card.members && card.members.length > 0" class="mb-4">
+                <div class="text-sm text-gray-600 mb-2">Thành viên hiện tại:</div>
+                <div class="flex flex-wrap gap-2">
+                    <div *ngFor="let member of card.members" class="flex items-center space-x-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
+                        <img 
+                            *ngIf="member.avatar" 
+                            [src]="member.avatar" 
+                            [alt]="member.name" 
+                            class="w-5 h-5 rounded-full object-cover">
+                        <span class="font-medium">{{member.name}}</span>
+                        <button 
+                            type="button"
+                            (click)="removeMember(member)"
+                            class="text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-100">
+                            <mat-icon class="text-sm">close</mat-icon>
+                        </button>
+                    </div>
                 </div>
-            </mat-option>
-        </mat-select>
+            </div>
+            
+            <!-- User Select Component để thêm thành viên mới -->
+            <app-user-select
+                label="Thêm thành viên mới"
+                placeholder="Tìm kiếm và chọn thành viên..."
+                [required]="false"
+                [multiple]="false"
+                [showAvatar]="true"
+                [showEmail]="true"
+                [showUserType]="true"
+                (userSelected)="onNewMemberSelected($event)">
+            </app-user-select>
+        </div>
 
 
     </form>
@@ -233,18 +251,20 @@
 
 <!-- Member ngoài form -->
 <div class="w-full flex justify-between items-end mt-4 bg-white">
-    <div *ngFor="let member of card.members" [value]="member.id" class="relative group">
-        <ng-container *ngIf="member.avatar; else noAvatarOverview">
-            <img [src]="member.avatar" alt="{{member.name}}" class="w-6 h-6 rounded-full mr-2 object-cover cursor-pointer" />
-        </ng-container>
-        <ng-template #noAvatarOverview>
-            <span class="w-6 h-6 rounded-full mr-2 bg-gray-300 flex items-center justify-center text-xs cursor-pointer">
-                {{ member.name.charAt(0).toUpperCase() }}
-            </span>
-        </ng-template>
-        <!-- Tooltip -->
-        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-            {{ member.name }}
+    <div *ngIf="card.members && card.members.length > 0" class="flex gap-2">
+        <div *ngFor="let member of card.members" [value]="member.id" class="relative group">
+            <ng-container *ngIf="member.avatar; else noAvatarOverview">
+                <img [src]="member.avatar" alt="{{member.name}}" class="w-6 h-6 rounded-full mr-2 object-cover cursor-pointer" />
+            </ng-container>
+            <ng-template #noAvatarOverview>
+                <span class="w-6 h-6 rounded-full mr-2 bg-gray-300 flex items-center justify-center text-xs cursor-pointer">
+                    {{ member.name.charAt(0).toUpperCase() }}
+                </span>
+            </ng-template>
+            <!-- Tooltip -->
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                {{ member.name }}
+            </div>
         </div>
     </div>
 

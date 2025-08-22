@@ -189,6 +189,68 @@ Router.route('/me')
 
 /**
  * @swagger
+ * /users/basic-list:
+ *   get:
+ *     summary: Get basic user list for selection
+ *     description: Retrieve list of users with basic information (id, name, email, avatar, userType) for dropdown/selection purposes. Access is role-based.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Basic user list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Basic user list retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: User ID
+ *                         example: "04c0e666-6f53-11f0-be72-089798dd3038"
+ *                       name:
+ *                         type: string
+ *                         description: User full name
+ *                         example: "Nguyễn Văn A"
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         description: User email
+ *                         example: "user@example.com"
+ *                       avatar:
+ *                         type: string
+ *                         nullable: true
+ *                         description: User avatar URL
+ *                         example: "https://example.com/avatar.jpg"
+ *                       userType:
+ *                         type: string
+ *                         description: User role type
+ *                         example: "staff"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
+Router.route('/basic-list')
+  .get(verifyToken, userController.getBasicUserList)
+
+/**
+ * @swagger
  * /users/change-password:
  *   post:
  *     summary: Change password for first-time login users

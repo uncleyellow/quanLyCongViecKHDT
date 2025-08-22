@@ -1,5 +1,6 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { GanttService, GanttTask } from './gantt.service';
+import { DashboardService, WorkStatistics, ActiveMember } from './dashboard.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
@@ -33,6 +34,9 @@ export type PieChartOptions = {
     labels: string[];
     colors: string[];
     responsive: ApexResponsive[];
+    legend?: any;
+    tooltip?: any;
+    dataLabels?: any;
 };
 
 export interface Widget {
@@ -58,6 +62,7 @@ export interface ProgressData {
     completedCount: number;
     inProgress: number;
     pending: number;
+    overdue: number;
 }
 
 export interface TeamMember {
@@ -76,6 +81,10 @@ export interface ProjectMember {
     role: string;
     status: 'online' | 'offline' | 'away';
     tasksCount: number;
+    doneTasks?: number;
+    inProgressTasks?: number;
+    overdueTasks?: number;
+    todoTasks?: number;
 }
 
 export interface WidgetSize {
@@ -116,8 +125,11 @@ export class ExampleComponent implements OnInit, OnDestroy
         completed: 0,
         completedCount: 0,
         inProgress: 0,
-        pending: 0
+        pending: 0,
+        overdue: 0
     };
+    workStatistics: WorkStatistics | null = null;
+    activeMembers: ActiveMember[] = [];
     teamMembers: TeamMember[] = [];
     projectMembers: ProjectMember[] = [];
     
@@ -188,8 +200,8 @@ export class ExampleComponent implements OnInit, OnDestroy
         {
             id: 'members',
             type: 'members',
-            title: 'Thành viên dự án',
-            description: 'Danh sách thành viên và trạng thái hoạt động',
+            title: 'Thành viên hoạt động',
+            description: 'Hiển thị danh sách thành viên đang hoạt động và thống kê công việc',
             icon: 'people',
             defaultSize: '1x2'
         },
@@ -237,7 +249,8 @@ export class ExampleComponent implements OnInit, OnDestroy
      * Constructor
      */
     constructor(
-        private ganttService: GanttService
+        private ganttService: GanttService,
+        private dashboardService: DashboardService
     )
     {
 
@@ -248,7 +261,11 @@ export class ExampleComponent implements OnInit, OnDestroy
             this.loadGanttData();
         }
         this.initializeWidgets();
-        this.loadMockData();
+        
+        // Initialize chart options first
+        this.prepareStatusChartData();
+        
+        this.loadDashboardData();
         this.prepareDynamicChartData();
     }
 
@@ -325,7 +342,18 @@ export class ExampleComponent implements OnInit, OnDestroy
                 this.loadGanttData();
                 break;
             case 'status':
-                this.prepareStatusChartData();
+                // Reload dashboard data to get fresh statistics
+                this.dashboardService.getWorkStatistics()
+                    .pipe(takeUntil(this._unsubscribeAll))
+                    .subscribe({
+                        next: (response) => {
+                            this.workStatistics = response.data;
+                            this.prepareStatusChartData();
+                        },
+                        error: (error) => {
+                            console.error('Error refreshing status widget:', error);
+                        }
+                    });
                 break;
             case 'activities':
                 this.loadRecentActivities();
@@ -343,11 +371,11 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     refreshAllWidgets(): void {
+        // Reload dashboard data from API
+        this.loadDashboardData();
+        
+        // Refresh other widgets
         this.refreshWidget('gantt');
-        this.refreshWidget('status');
-        this.refreshWidget('activities');
-        this.refreshWidget('progress');
-        this.refreshWidget('members');
         this.refreshWidget('chart');
     }
 
@@ -446,6 +474,53 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.prepareStatusChartData();
     }
 
+    loadDashboardData(): void {
+        console.log('loadDashboardData called');
+        this.loading = true;
+        this.error = '';
+
+        this.dashboardService.getWorkStatistics()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    console.log('Dashboard API response:', response);
+                    console.log('Response data:', response.data);
+                    this.workStatistics = response.data;
+                    console.log('workStatistics set to:', this.workStatistics);
+                    
+                    // Update progress data
+                    this.progressData = {
+                        total: this.workStatistics.total,
+                        completed: this.workStatistics.done > 0 ? (this.workStatistics.done / this.workStatistics.total) * 100 : 0,
+                        completedCount: this.workStatistics.done,
+                        inProgress: this.workStatistics.inProgress,
+                        pending: this.workStatistics.todo,
+                        overdue: this.workStatistics.overdue
+                    };
+                    console.log('progressData updated:', this.progressData);
+
+                    // Update status chart with real data
+                    this.prepareStatusChartData();
+                    
+                    // Load other mock data
+                    this.loadRecentActivities();
+                    this.loadTeamMembers();
+                    this.loadProjectMembers();
+                    
+                    this.loading = false;
+                    console.log('loadDashboardData completed');
+                },
+                error: (error) => {
+                    console.error('Error loading dashboard data:', error);
+                    this.error = 'Không thể tải dữ liệu dashboard';
+                    this.loading = false;
+                    
+                    // Fallback to mock data
+                    this.loadMockData();
+                }
+            });
+    }
+
     loadTeamMembers(): void {
         this.teamMembers = [
             { id: '1', name: 'Nguyễn Văn A', avatar: 'assets/images/avatars/male-01.jpg', role: 'Developer', status: 'online', tasksCount: 5 },
@@ -456,13 +531,30 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadProjectMembers(): void {
-        this.projectMembers = [
-            { id: '1', name: 'Nguyễn Văn A', avatar: 'assets/images/avatars/male-01.jpg', role: 'Frontend Dev', status: 'online', tasksCount: 8 },
-            { id: '2', name: 'Trần Thị B', avatar: 'assets/images/avatars/female-01.jpg', role: 'UI/UX Designer', status: 'online', tasksCount: 4 },
-            { id: '3', name: 'Giang IT', avatar: 'assets/images/avatars/male-03.jpg', role: 'Backend Dev', status: 'away', tasksCount: 12 },
-            { id: '4', name: 'Huyen', avatar: 'assets/images/avatars/female-01.jpg', role: 'Project Manager', status: 'offline', tasksCount: 3 },
-            { id: '5', name: 'Tuan Anh', avatar: 'assets/images/avatars/male-02.jpg', role: 'QA Engineer', status: 'online', tasksCount: 6 }
-        ];
+        this.dashboardService.getActiveMembers()
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    // Map ActiveMember data to ProjectMember format
+                    this.projectMembers = response.data.map(member => ({
+                        id: member.id,
+                        name: member.name,
+                        avatar: member.avatar || 'assets/images/avatars/male-01.jpg', // Default avatar if none provided
+                        role: member.userType || 'Member',
+                        status: 'online' as const, // Default status since API doesn't provide it
+                        tasksCount: member.totalTasks,
+                        doneTasks: member.doneTasks,
+                        inProgressTasks: member.inProgressTasks,
+                        overdueTasks: member.overdueTasks,
+                        todoTasks: member.todoTasks
+                    }));
+                    console.log('Project members loaded:', this.projectMembers);
+                },
+                error: (error) => {
+                    console.error('Error loading project members:', error);
+                    this.projectMembers = []; // Clear on error
+                }
+            });
     }
 
     loadRecentActivities(): void {
@@ -500,7 +592,8 @@ export class ExampleComponent implements OnInit, OnDestroy
             completed: 68,
             completedCount: 17,
             inProgress: 5,
-            pending: 3
+            pending: 3,
+            overdue: 2
         };
     }
 
@@ -511,14 +604,77 @@ export class ExampleComponent implements OnInit, OnDestroy
 
     // Chart Preparation Methods
     prepareStatusChartData(): void {
+        console.log('prepareStatusChartData called');
+        console.log('workStatistics:', this.workStatistics);
+        
+        // Use real data from API if available, otherwise use mock data
+        let series: number[];
+        let labels: string[];
+        let colors: string[];
+
+        if (this.workStatistics) {
+            // Use real data from API
+            series = [
+                this.workStatistics.done || 0,        // Hoàn thành
+                this.workStatistics.inProgress || 0,  // Đang thực hiện
+                this.workStatistics.todo || 0,        // Chờ xử lý
+                this.workStatistics.overdue || 0,     // Quá hạn
+                0                                     // Tạm dừng (không có trong API)
+            ];
+            labels = ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý', 'Quá hạn', 'Tạm dừng'];
+            colors = ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'];
+            console.log('Using real data from API:', { series, labels, colors });
+        } else {
+            // Fallback to mock data
+            series = [44, 55, 13, 8, 43];
+            labels = ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý', 'Quá hạn', 'Tạm dừng'];
+            colors = ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'];
+            console.log('Using mock data:', { series, labels, colors });
+        }
+
+        // Ensure we have valid data
+        if (!series || series.length === 0) {
+            series = [1]; // At least one value to show chart
+            labels = ['No Data'];
+            colors = ['#9e9e9e'];
+        }
+
         this.statusChartOptions = {
-            series: [44, 55, 13, 43],
+            series: series,
             chart: {
                 type: 'pie',
-                height: 250
+                height: 250,
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800,
+                    animateGradually: {
+                        enabled: true,
+                        delay: 150
+                    },
+                    dynamicAnimation: {
+                        enabled: true,
+                        speed: 350
+                    }
+                }
             },
-            labels: ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý', 'Tạm dừng'],
-            colors: ['#4caf50', '#2196f3', '#ff9800', '#f44336'],
+            labels: labels,
+            colors: colors,
+            legend: {
+                position: 'bottom',
+                fontSize: '12px',
+                fontFamily: 'inherit'
+            },
+            tooltip: {
+                enabled: true,
+                theme: 'light'
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val: any, opts: any) {
+                    return opts.w.globals.seriesTotals[opts.seriesIndex] || 0;
+                }
+            },
             responsive: [
                 {
                     breakpoint: 480,
@@ -533,6 +689,8 @@ export class ExampleComponent implements OnInit, OnDestroy
                 }
             ]
         };
+        
+        console.log('Final statusChartOptions:', this.statusChartOptions);
     }
 
     prepareDynamicChartData(): void {

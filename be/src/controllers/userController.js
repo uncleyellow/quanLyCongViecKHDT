@@ -184,6 +184,20 @@ const createUser = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getBasicUserList = async (req, res, next) => {
+  try {
+    const { userId } = req.user
+    const users = await userService.getBasicUserList({ userId })
+    const responseObject = {
+      code: StatusCodes.OK,
+      status: 'success',
+      message: 'Basic user list retrieved successfully',
+      data: users
+    }
+    res.status(StatusCodes.OK).json(responseObject)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   getMe,
   changePassword,
@@ -194,5 +208,6 @@ export const userController = {
   getUserById,
   updateUser,
   deleteUser,
-  createUser
+  createUser,
+  getBasicUserList
 }

@@ -7,7 +7,7 @@ const createNew = async (req, res, next) => {
     const correctCondition = Joi.object({
         boardId: Joi.string().uuid().required(),
         listId: Joi.string().uuid().required(),
-        title: Joi.string().required().min(3).max(50).trim().strict(),
+        title: Joi.string().required().min(3).max(255).trim().strict(),
         description: Joi.string().allow(null, '').optional(),
         dueDate: Joi.date().allow(null, '').optional(),
         type: Joi.string().valid('normal', 'emergency', 'low').optional(),
@@ -17,9 +17,12 @@ const createNew = async (req, res, next) => {
         ).optional(),
         startDate: Joi.date().allow(null, '').optional(),
         endDate: Joi.date().allow(null, '').optional(),
-        members: Joi.string().allow(null, '').optional(),
         dependencies: Joi.string().allow(null, '').optional(),
-        status: Joi.string().valid('todo', 'in_progress', 'completed', 'done', 'blocked', 'cancelled').optional()
+        status: Joi.string().valid('todo', 'in_progress', 'completed', 'done', 'blocked', 'cancelled').optional(),
+        // Allow these fields but they will be filtered out in controller
+        labels: Joi.any().optional(),
+        members: Joi.any().optional(),
+        metadata: Joi.any().optional()
     })
 
     try {
@@ -49,14 +52,10 @@ const update = async (req, res, next) => {
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)
         ).default(null).optional(),
-        labels: Joi.alternatives().try(
-            Joi.string().allow(null),
-            Joi.array().items(Joi.string().uuid().allow(null))
-        ).default(null),
-        members: Joi.alternatives().try(
-            Joi.string().allow(null),
-            Joi.array().items(Joi.object().allow(null))
-        ).default(null)
+        // Allow these fields but they will be filtered out in controller
+        labels: Joi.any().optional(),
+        members: Joi.any().optional(),
+        metadata: Joi.any().optional()
     })
 
     try {
@@ -88,7 +87,10 @@ const updatePartial = async (req, res, next) => {
             Joi.array().items(Joi.object()).allow(null),
             Joi.valid(null)
         ).default(null).optional(),
-        metadata: Joi.object().optional()
+        // Allow these fields but they will be filtered out in controller
+        labels: Joi.any().optional(),
+        members: Joi.any().optional(),
+        metadata: Joi.any().optional()
     })
 
     try {

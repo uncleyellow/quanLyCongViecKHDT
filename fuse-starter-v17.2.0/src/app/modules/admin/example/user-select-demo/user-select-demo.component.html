@@ -1,0 +1,170 @@
+<div class="user-select-demo-container p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                User Select Component Demo
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                This demo showcases the various features and usage scenarios of the User Select Component.
+            </p>
+        </div>
+
+        <!-- Demo Form -->
+        <form [formGroup]="demoForm" (ngSubmit)="onFormSubmit()" class="space-y-6">
+            
+            <!-- Single User Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Single User Selection
+                </h2>
+                <div class="space-y-4">
+                    <app-user-select
+                        formControlName="singleUser"
+                        label="Chọn người dùng"
+                        placeholder="Tìm kiếm người dùng..."
+                        [required]="true"
+                        [multiple]="false"
+                        [showAvatar]="true"
+                        [showEmail]="true"
+                        [showUserType]="true">
+                    </app-user-select>
+                    
+                    <div *ngIf="selectedSingleUser" class="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>Selected User ID:</strong> {{selectedSingleUser}}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multiple User Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Multiple User Selection
+                </h2>
+                <div class="space-y-4">
+                    <app-user-select
+                        formControlName="multipleUsers"
+                        label="Chọn nhiều người dùng"
+                        placeholder="Tìm kiếm và chọn người dùng..."
+                        [required]="true"
+                        [multiple]="true"
+                        [showAvatar]="true"
+                        [showEmail]="true"
+                        [showUserType]="true">
+                    </app-user-select>
+                    
+                    <div *ngIf="selectedMultipleUsers.length > 0" class="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <p class="text-sm text-green-800 dark:text-green-200">
+                            <strong>Selected User IDs:</strong> {{selectedMultipleUsers.join(', ')}}
+                        </p>
+                        <p class="text-sm text-green-700 dark:text-green-300 mt-1">
+                            Total selected: {{selectedMultipleUsers.length}}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional User Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Optional User Selection
+                </h2>
+                <div class="space-y-4">
+                    <app-user-select
+                        formControlName="optionalUser"
+                        label="Người dùng (tùy chọn)"
+                        placeholder="Có thể để trống..."
+                        [required]="false"
+                        [multiple]="false"
+                        [showAvatar]="true"
+                        [showEmail]="false"
+                        [showUserType]="true">
+                    </app-user-select>
+                </div>
+            </div>
+
+            <!-- Disabled User Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Disabled User Selection
+                </h2>
+                <div class="space-y-4">
+                    <app-user-select
+                        formControlName="disabledUser"
+                        label="Người dùng (bị vô hiệu hóa)"
+                        placeholder="Không thể chọn..."
+                        [required]="false"
+                        [multiple]="false"
+                        [disabled]="true"
+                        [showAvatar]="true"
+                        [showEmail]="true"
+                        [showUserType]="true">
+                    </app-user-select>
+                </div>
+            </div>
+
+            <!-- Custom Configuration -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Custom Configuration
+                </h2>
+                <div class="space-y-4">
+                    <app-user-select
+                        label="Chỉ hiển thị tên và vai trò"
+                        placeholder="Tìm kiếm theo tên hoặc vai trò..."
+                        [required]="false"
+                        [multiple]="true"
+                        [showAvatar]="false"
+                        [showEmail]="false"
+                        [showUserType]="true">
+                    </app-user-select>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4">
+                <button
+                    type="button"
+                    (click)="resetForm()"
+                    class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    Reset Form
+                </button>
+                <button
+                    type="submit"
+                    [disabled]="!demoForm.valid"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    Submit Form
+                </button>
+            </div>
+        </form>
+
+        <!-- Usage Instructions -->
+        <div class="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                Usage Instructions
+            </h3>
+            <div class="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                <p><strong>Single Selection:</strong> Click on a user to select them. Only one user can be selected at a time.</p>
+                <p><strong>Multiple Selection:</strong> Click on multiple users to select them. Selected users appear as chips above the input.</p>
+                <p><strong>Search:</strong> Type in the input field to filter users by name, email, or user type.</p>
+                <p><strong>Remove Selection:</strong> Click the 'x' button on user chips to remove them from selection.</p>
+                <p><strong>Clear All:</strong> Click the 'clear_all' button to remove all selected users.</p>
+            </div>
+        </div>
+
+        <!-- API Information -->
+        <div class="mt-6 bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                API Information
+            </h3>
+            <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <p><strong>Endpoint:</strong> <code class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">GET /api/v1/users/basic-list</code></p>
+                <p><strong>Authentication:</strong> Requires Bearer token</p>
+                <p><strong>Role-based Access:</strong> Users see different lists based on their role and department</p>
+                <p><strong>Response Format:</strong> Returns basic user information (id, name, email, avatar, userType)</p>
+            </div>
+        </div>
+    </div>
+</div>

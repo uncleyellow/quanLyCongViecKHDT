@@ -50,4 +50,13 @@ export interface UserCard
     listTitle: string;
     listColor: string;
     metadata?: { [key: string]: CustomField };
+    // Board information for recurring filtering
+    board?: {
+        id: string;
+        title: string;
+        recurringConfig?: {
+            isRecurring: boolean;
+            completedListId?: string;
+        };
+    };
 }

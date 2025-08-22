@@ -1,0 +1,24 @@
+import { dashboardModel } from '../models/dashboardModel.js'
+
+const getWorkStatistics = async (data) => {
+  try {
+    const statistics = await dashboardModel.getWorkStatisticsByStatus(data)
+    return statistics
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getActiveMembers = async (data) => {
+  try {
+    const members = await dashboardModel.getActiveMembers(data)
+    return members
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+export const dashboardService = {
+  getWorkStatistics,
+  getActiveMembers
+}

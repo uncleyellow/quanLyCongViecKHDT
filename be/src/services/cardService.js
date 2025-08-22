@@ -30,6 +30,11 @@ const createNew = async (reqBody) => {
       reqBody.endDate = formatDateTimeForMySQL(reqBody.endDate)
     }
 
+    // Handle JSON fields
+    if (reqBody.checklistItems !== undefined) {
+      reqBody.checklistItems = JSON.stringify(reqBody.checklistItems)
+    }
+
     const newCard = await cardModel.createNew(reqBody)
     const newCardMember = await cardMemberModel.addMemberIfNotExists(reqBody.id, reqBody.createdBy, 'member')
     return newCard
@@ -39,6 +44,18 @@ const createNew = async (reqBody) => {
 const getDetail = async (reqBody) => {
   try {
     const listDetail = await cardModel.getDetail(reqBody)
+    
+    // Get card members if card exists
+    if (listDetail && listDetail.id) {
+      try {
+        const members = await cardMemberModel.getCardMembers(listDetail.id)
+        listDetail.members = members
+      } catch (memberError) {
+        console.error('Error fetching card members:', memberError)
+        listDetail.members = []
+      }
+    }
+    
     return listDetail
   } catch (error) { throw error }
 }
@@ -56,20 +73,7 @@ const update = async (reqBody, reqBodyUpdate) => {
   if (reqBodyUpdate.endDate) {
     reqBodyUpdate.endDate = formatDateTimeForMySQL(reqBodyUpdate.endDate)
   }
-  const labels = JSON.stringify(reqBodyUpdate.labels)
-  delete reqBodyUpdate.labels
-  // Xử lý danh sách members
-  const members = reqBodyUpdate.members
-  delete reqBodyUpdate.members
-
-  const newMembers = members.map(member => ({
-    cardId: reqBody.id,
-    memberId: member.memberId,
-    role: 'member'
-  }))
-
-  // Sử dụng hàm mới để kiểm tra trước khi thêm
-  const newCardMember = await cardMemberModel.addMembersIfNotExists(newMembers)
+  
   try {
     const updatedList = await cardModel.update(reqBody, reqBodyUpdate)
     return updatedList
@@ -96,15 +100,7 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
     reqBodyUpdate.trackingStartTime = formatDateTimeForMySQL(reqBodyUpdate.trackingStartTime)
   }
 
-  // Only process labels if it exists
-  if (reqBodyUpdate.labels !== undefined) {
-    reqBodyUpdate.labels = JSON.stringify(reqBodyUpdate.labels)
-  }
 
-  // Handle metadata field
-  if (reqBodyUpdate.metadata !== undefined) {
-    reqBodyUpdate.metadata = JSON.stringify(reqBodyUpdate.metadata)
-  }
   
   try {
     const updatedList = await cardModel.updatePartial(reqBody, reqBodyUpdate)
@@ -112,129 +108,9 @@ const updatePartial = async (reqBody, reqBodyUpdate) => {
   } catch (error) { throw error }
 }
 
-// Add custom field to card metadata
-const addCustomField = async (cardId, fieldName, fieldValue, fieldType = 'string') => {
-  try {
-    // Get current card data
-    const card = await cardModel.getDetail({ id: cardId })
-    if (!card) {
-      throw new Error('Card not found')
-    }
 
-    // Parse existing metadata or create new
-    let metadata = {}
-    if (card.metadata) {
-      try {
-        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
-      } catch (e) {
-        metadata = {}
-      }
-    }
 
-    // Add new field to metadata
-    metadata[fieldName] = {
-      value: fieldValue,
-      type: fieldType,
-      createdAt: new Date().toISOString()
-    }
 
-    // Update card with new metadata
-    const updateData = { metadata: JSON.stringify(metadata) }
-    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
-    return updatedCard
-  } catch (error) { throw error }
-}
-
-// Update custom field in card metadata
-const updateCustomField = async (cardId, fieldName, fieldValue) => {
-  try {
-    // Get current card data
-    const card = await cardModel.getDetail({ id: cardId })
-    if (!card) {
-      throw new Error('Card not found')
-    }
-
-    // Parse existing metadata
-    let metadata = {}
-    if (card.metadata) {
-      try {
-        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
-      } catch (e) {
-        metadata = {}
-      }
-    }
-
-    // Check if field exists
-    if (!metadata[fieldName]) {
-      throw new Error('Custom field not found')
-    }
-
-    // Update field value
-    metadata[fieldName].value = fieldValue
-    metadata[fieldName].updatedAt = new Date().toISOString()
-
-    // Update card with new metadata
-    const updateData = { metadata: JSON.stringify(metadata) }
-    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
-    return updatedCard
-  } catch (error) { throw error }
-}
-
-// Remove custom field from card metadata
-const removeCustomField = async (cardId, fieldName) => {
-  try {
-    // Get current card data
-    const card = await cardModel.getDetail({ id: cardId })
-    if (!card) {
-      throw new Error('Card not found')
-    }
-
-    // Parse existing metadata
-    let metadata = {}
-    if (card.metadata) {
-      try {
-        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
-      } catch (e) {
-        metadata = {}
-      }
-    }
-
-    // Check if field exists
-    if (!metadata[fieldName]) {
-      throw new Error('Custom field not found')
-    }
-
-    // Remove field
-    delete metadata[fieldName]
-
-    // Update card with new metadata
-    const updateData = { metadata: JSON.stringify(metadata) }
-    const updatedCard = await cardModel.updatePartial({ id: cardId }, updateData)
-    return updatedCard
-  } catch (error) { throw error }
-}
-
-// Get all custom fields from card metadata
-const getCustomFields = async (cardId) => {
-  try {
-    const card = await cardModel.getDetail({ id: cardId })
-    if (!card) {
-      throw new Error('Card not found')
-    }
-
-    // Parse metadata
-    let metadata = {}
-    if (card.metadata) {
-      try {
-        metadata = typeof card.metadata === 'string' ? JSON.parse(card.metadata) : card.metadata
-      } catch (e) {
-        metadata = {}
-      }
-    }
-
-    return metadata
-  } catch (error) { throw error }
-}
 
 const deleteItem = async (reqBody) => {
   try {
@@ -316,36 +192,7 @@ const getAllUserCards = async (userId) => {
         card.checklistItems = []
       }
 
-      if (card.labels && typeof card.labels === 'string') {
-        try {
-          card.labels = JSON.parse(card.labels)
-        } catch (e) {
-          card.labels = []
-        }
-      } else {
-        card.labels = []
-      }
 
-      if (card.members && typeof card.members === 'string') {
-        try {
-          card.members = JSON.parse(card.members)
-        } catch (e) {
-          card.members = []
-        }
-      } else {
-        card.members = []
-      }
-
-      // Parse metadata if it exists
-      if (card.metadata && typeof card.metadata === 'string') {
-        try {
-          card.metadata = JSON.parse(card.metadata)
-        } catch (e) {
-          card.metadata = {}
-        }
-      } else if (!card.metadata) {
-        card.metadata = {}
-      }
 
       return card
     })
@@ -405,9 +252,5 @@ export const cardService = {
   getListsByBoard,
   updateCardOrder,
   pushCardOrderIds,
-  getAllUserCards,
-  addCustomField,
-  updateCustomField,
-  removeCustomField,
-  getCustomFields
+  getAllUserCards
 }

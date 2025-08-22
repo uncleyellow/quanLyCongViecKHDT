@@ -10,6 +10,11 @@ export interface IBoard
     members?: IMember[];
     viewConfig?: ViewConfig;
     recurringConfig?: RecurringConfig;
+    // Owner information for grouping
+    ownerId?: string;
+    ownerName?: string;
+    ownerEmail?: string;
+    ownerRole?: string;
 }
 
 export interface ViewConfig

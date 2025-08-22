@@ -157,6 +157,13 @@ const createUser = async (userData) => {
   } catch (error) { throw error }
 }
 
+const getBasicUserList = async (data) => {
+  try {
+    const users = await userModel.getBasicUserList(data)
+    return users
+  } catch (error) { throw error }
+}
+
 export const userService = {
   getMe,
   changePassword,
@@ -166,5 +173,6 @@ export const userService = {
   updateUser,
   deleteUser,
   getUserById,
-  createUser
+  createUser,
+  getBasicUserList
 }
