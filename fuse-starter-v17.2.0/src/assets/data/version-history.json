@@ -1,6 +1,18 @@
 {
-  "currentVersion": "1.0.6",
+  "currentVersion": "1.0.9",
   "versions": [
+    {
+      "version": "1.0.9",
+      "releaseDate": "2025-08-21",
+      "type": "feature",
+      "title": "Thêm bộ lọc từ ngày đến ngày trên dashboard và thêm bộ lọc cho bảng Kanban của trưởng phòng",
+      "description": "Bổ sung bộ lọc từ ngày đến ngày trên dashboard và thêm bộ lọc cho bảng Kanban của trưởng phòng, giúp việc quản lý và theo dõi công việc hiệu quả hơn.",
+      "changes": [
+        "Thêm bộ lọc từ ngày đến ngày trong dashboard",
+        "Bảng Kanban cho trưởng phòng có thêm bộ lọc"
+      ],
+      "author": "Development Team"
+    },
     {
       "version": "1.0.8",
       "releaseDate": "2025-08-20",
