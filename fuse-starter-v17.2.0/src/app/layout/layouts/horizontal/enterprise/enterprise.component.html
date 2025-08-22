@@ -55,12 +55,12 @@
                     <!-- <shortcuts></shortcuts> -->
                     <messages></messages>
                     <notifications></notifications>
-                    <button
+                    <!-- <button
                         class="lg:hidden"
                         mat-icon-button
                         (click)="quickChat.toggle()">
                         <mat-icon [svgIcon]="'heroicons_outline:chat-alt-2'"></mat-icon>
-                    </button>
+                    </button> -->
                     <user></user>
                 </div>
             </div>
@@ -88,15 +88,24 @@
     </div>
 
     <!-- Footer -->
-    <div class="relative flex flex-0 justify-center w-full px-6 md:px-8 z-49 border-t bg-card print:hidden justify-center items-center">
-        <div class="flex items-center w-full max-w-360 h-14 sm:h-20">
-            <span class="font-medium text-secondary">Quản Lý công việc Ratraco {{currentYear}}</span>
+    <div class="relative flex flex-0 justify-center w-full px-6 md:px-8 z-49 border-t bg-card print:hidden">
+        <div class="flex items-center justify-between w-full max-w-360 h-14 sm:h-12">
+            <div class="flex items-center space-x-16">
+                <span class="font-medium text-secondary">Quản Lý công việc Ratraco {{currentYear}}</span>
+                <button 
+                    class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors cursor-pointer"
+                    (click)="openVersionHistory()">
+                    v{{ currentVersion }}
+                </button>
+            </div>
+            <div class="flex items-center space-x-16">
+                <span class="font-medium text-secondary">Hỗ trợ Zalo: 0985363602</span>
+                <span class="font-medium text-secondary">Email: kiniemboquenjerry&#64;gmail.com</span>
+            </div>
         </div>
-        <span class="font-medium text-secondary">Hỗ trợ Zalo: 0985363602</span>
-        <span class="font-medium text-secondary">Email: kiniemboquenjerry&#64;gmail.com</span>
     </div>
 
 </div>
 
 <!-- Quick chat -->
-<quick-chat #quickChat="quickChat"></quick-chat>
+<!-- <quick-chat #quickChat="quickChat"></quick-chat> -->

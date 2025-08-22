@@ -22,3 +22,6 @@ CREATE TABLE IF NOT EXISTS card_time_tracking (
 CREATE INDEX idx_card_time_tracking_card_id ON card_time_tracking(cardId);
 CREATE INDEX idx_card_time_tracking_user_id ON card_time_tracking(userId);
 CREATE INDEX idx_card_time_tracking_start_time ON card_time_tracking(startTime);
+
+
+ALTER TABLE cards ADD COLUMN priority ENUM('low', 'medium', 'high') DEFAULT 'medium' AFTER status; UPDATE cards SET priority = 'medium' WHERE priority IS NULL

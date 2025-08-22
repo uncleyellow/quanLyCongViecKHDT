@@ -20,6 +20,9 @@ export class Board implements Required<IBoard>
     ownerName: string;
     ownerEmail: string;
     ownerRole: string;
+    // Timestamps
+    createdAt: string | null;
+    updatedAt: string | null;
 
     /**
      * Constructor
@@ -55,6 +58,10 @@ export class Board implements Required<IBoard>
         this.ownerName = board.ownerName || '';
         this.ownerEmail = board.ownerEmail || '';
         this.ownerRole = board.ownerRole || 'staff';
+
+        // Timestamps
+        this.createdAt = board.createdAt || null;
+        this.updatedAt = board.updatedAt || null;
 
         // Lists
         if ( board.lists )

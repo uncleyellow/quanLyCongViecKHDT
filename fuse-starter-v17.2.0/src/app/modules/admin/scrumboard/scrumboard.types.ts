@@ -15,6 +15,9 @@ export interface IBoard
     ownerName?: string;
     ownerEmail?: string;
     ownerRole?: string;
+    // Timestamps
+    createdAt?: string | null;
+    updatedAt?: string | null;
 }
 
 export interface ViewConfig

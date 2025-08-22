@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatLuxonDateModule, MAT_LUXON_DATE_FORMATS } from '@angular/material-luxon-adapter';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { SharedModule } from 'app/shared/shared.module';
@@ -61,11 +62,13 @@ import { FilterDialogComponent } from './board/filter-dialog.component';
         MatLuxonDateModule,
         MatMenuModule,
         MatProgressBarModule,
+        MatProgressSpinnerModule,
         MatSelectModule,
         MatSnackBarModule,
         SharedModule,
         MatOptionModule,
-        FormsModule
+        FormsModule,
+        ReactiveFormsModule
     ],
     providers   : [
         {

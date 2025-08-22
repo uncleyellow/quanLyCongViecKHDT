@@ -146,7 +146,7 @@ const getFilteredBoard = async (req, res, next) => {
     try {
         const { boardId } = req.params;
         const { userId } = req.user;
-        const filterCriteria = req.query;
+        const { search, filters } = req.query;
 
         // Get the board with basic info
         const board = await boardModel.getDetail({ id: boardId, userId: userId });
@@ -157,62 +157,20 @@ const getFilteredBoard = async (req, res, next) => {
         // Get all lists for this board
         const lists = await listModel.getList({ boardId });
 
-        // Apply filters to cards in each list
+        // Get filtered cards using optimized database-level filtering
+        const filterCriteria = {
+            search: search,
+            filters: filters ? JSON.parse(filters) : []
+        };
+
+        const allFilteredCards = await cardService.getFilteredCards(boardId, filterCriteria);
+
+        // Group cards by list
         for (let list of lists) {
-            let cards = await cardModel.getList({ boardId: boardId, listId: list.id });
-            console.log(cards)
-            // Apply member filter
-            if (filterCriteria.member && filterCriteria.member !== '') {
-                cards = cards.filter(card => {
-                    if (!card.members || !Array.isArray(card.members)) return false;
-                    return card.members.some(member => member.memberId === filterCriteria.member);
-                });
-            }
-
-            // Apply title filter
-            if (filterCriteria.title && filterCriteria.title.trim() !== '') {
-                const titleLower = filterCriteria.title.toLowerCase();
-                cards = cards.filter(card =>
-                    card.title && card.title.toLowerCase().includes(titleLower)
-                );
-            }
-
-            // Apply description filter
-            if (filterCriteria.description && filterCriteria.description.trim() !== '') {
-                const descLower = filterCriteria.description.toLowerCase();
-                cards = cards.filter(card =>
-                    card.description && card.description.toLowerCase().includes(descLower)
-                );
-            }
-
-            // Apply status filter
-            if (filterCriteria.status && filterCriteria.status !== '') {
-                cards = cards.filter(card => card.status === filterCriteria.status);
-            }
-
-            // Apply date range filter
-            if (filterCriteria.startDate || filterCriteria.endDate) {
-                cards = cards.filter(card => {
-                    const cardDate = new Date(card.createdAt);
-
-                    if (filterCriteria.startDate) {
-                        const startDate = new Date(filterCriteria.startDate);
-                        startDate.setHours(0, 0, 0, 0);
-                        if (cardDate < startDate) return false;
-                    }
-
-                    if (filterCriteria.endDate) {
-                        const endDate = new Date(filterCriteria.endDate);
-                        endDate.setHours(23, 59, 59, 999);
-                        if (cardDate > endDate) return false;
-                    }
-
-                    return true;
-                });
-            }
-
+            const listCards = allFilteredCards.filter(card => card.listId === list.id);
+            
             // Ensure all cards have required properties
-            for (let card of cards) {
+            for (let card of listCards) {
                 // Ensure labels array exists
                 if (!card.labels) {
                     card.labels = [];
@@ -229,7 +187,7 @@ const getFilteredBoard = async (req, res, next) => {
                 }
             }
 
-            list.cards = cards;
+            list.cards = listCards;
         }
 
         // Get board members
