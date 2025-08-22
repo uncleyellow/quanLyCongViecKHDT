@@ -1,6 +1,8 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { GanttService, GanttTask } from './gantt.service';
 import { DashboardService, WorkStatistics, ActiveMember } from './dashboard.service';
+import { DepartmentService, Department } from './department.service';
+import { UserService } from 'app/core/user/user.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
@@ -26,6 +28,19 @@ export type ChartOptions = {
     tooltip: ApexTooltip;
     title: ApexTitleSubtitle;
     colors?: string[];
+};
+
+export type DynamicChartOptions = {
+    series: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart: ApexChart;
+    xaxis?: ApexXAxis;
+    yaxis?: ApexYAxis;
+    dataLabels?: ApexDataLabels;
+    plotOptions?: ApexPlotOptions;
+    tooltip?: ApexTooltip;
+    title?: ApexTitleSubtitle;
+    colors?: string[];
+    labels?: string[];
 };
 
 export type PieChartOptions = {
@@ -83,8 +98,11 @@ export interface ProjectMember {
     tasksCount: number;
     doneTasks?: number;
     inProgressTasks?: number;
-    overdueTasks?: number;
-    todoTasks?: number;
+}
+
+export interface DueDateRange {
+    startDate: Date | null;
+    endDate: Date | null;
 }
 
 export interface WidgetSize {
@@ -115,7 +133,7 @@ export class ExampleComponent implements OnInit, OnDestroy
     // Chart options
     chartOptions: Partial<ChartOptions> = {};
     statusChartOptions: Partial<PieChartOptions> = {};
-    dynamicChartOptions: Partial<ChartOptions> = {};
+    dynamicChartOptions: Partial<DynamicChartOptions> = {};
     
     // Data
     tasks: GanttTask[] = [];
@@ -134,9 +152,10 @@ export class ExampleComponent implements OnInit, OnDestroy
     projectMembers: ProjectMember[] = [];
     
     // Filter properties
-    selectedTaskType: string = '';
-    selectedAuthor: string = '';
-    selectedStatus: string = '';
+    dueDateRange: DueDateRange = {
+        startDate: null,
+        endDate: null
+    };
     dateRange: string = '';
     selectedPriority: string = '';
     completionRate: string = '';
@@ -149,7 +168,9 @@ export class ExampleComponent implements OnInit, OnDestroy
     showAdvancedFilters = false;
     showWidgetConfig = false;
     configuringWidget: Widget | null = null;
-    selectedChartType: string = 'bar';
+    selectedChartType: string = 'status';
+    selectedTimeRange: string = 'month';
+    selectedGanttTimeRange: string = 'month';
     selectedWidgetSize: string = '1x1';
     selectedDataSource: string = 'all';
     refreshInterval: string = '0';
@@ -161,7 +182,8 @@ export class ExampleComponent implements OnInit, OnDestroy
         activities: { cols: 'span 1', rows: 'span 2' },
         progress: { cols: 'span 1', rows: 'span 1' },
         members: { cols: 'span 1', rows: 'span 2' },
-        chart: { cols: 'span 2', rows: 'span 1' }
+        chart: { cols: 'span 2', rows: 'span 1' },
+        'role-summary': { cols: 'span 2', rows: 'span 1' }
     };
     
     availableWidgets: Widget[] = [
@@ -169,7 +191,7 @@ export class ExampleComponent implements OnInit, OnDestroy
             id: 'gantt',
             type: 'gantt',
             title: 'Biểu đồ Gantt',
-            description: 'Hiển thị tiến độ công việc theo thời gian',
+            description: 'Hiển thị số công việc hoàn thành theo thời gian',
             icon: 'timeline',
             defaultSize: '2x2'
         },
@@ -212,16 +234,23 @@ export class ExampleComponent implements OnInit, OnDestroy
             description: 'Biểu đồ có thể thay đổi loại (cột, đường, radar...)',
             icon: 'bar_chart',
             defaultSize: '2x1'
+        },
+        {
+            id: 'role-summary',
+            type: 'role-summary',
+            title: 'Tổng quan theo vai trò',
+            description: 'Thống kê tổng quan dựa trên vai trò người dùng',
+            icon: 'admin_panel_settings',
+            defaultSize: '2x1'
         }
     ];
     
     chartTypes: ChartType[] = [
-        { value: 'bar', label: 'Biểu đồ cột' },
-        { value: 'line', label: 'Biểu đồ đường' },
-        { value: 'pie', label: 'Biểu đồ tròn' },
-        { value: 'radar', label: 'Biểu đồ radar' },
-        { value: 'area', label: 'Biểu đồ vùng' },
-        { value: 'column', label: 'Biểu đồ cột dọc' }
+        { value: 'status', label: 'Trạng thái công việc' },
+        { value: 'timeline', label: 'Timeline công việc' },
+        { value: 'member', label: 'Thành viên' },
+        { value: 'priority', label: 'Độ ưu tiên' },
+        { value: 'department', label: 'Phòng ban' }
     ];
     
     widgetSizeOptions: WidgetSizeOption[] = [
@@ -232,10 +261,28 @@ export class ExampleComponent implements OnInit, OnDestroy
         { value: '2x3', label: 'Rất cao' },
         { value: '3x2', label: 'Rất rộng' }
     ];
+
+    timeRangeOptions: WidgetSizeOption[] = [
+        { value: 'day', label: 'Ngày' },
+        { value: 'week', label: 'Tuần' },
+        { value: 'month', label: 'Tháng' },
+        { value: 'quarter', label: 'Quý' }
+    ];
     
     // UI state
     loading = false;
+    ganttLoading = false;
     error = '';
+    userRole: string = '';
+    userDepartment: string = '';
+    userCompanyId: string = '';
+    
+    // Department sidebar properties
+    departments: Department[] = [];
+    selectedDepartmentId: string = '';
+    showDepartmentSidebar = false;
+    departmentSidebarLoading = false;
+    
     private _unsubscribeAll = new Subject<void>();
 
     // Gantt chart properties
@@ -250,7 +297,9 @@ export class ExampleComponent implements OnInit, OnDestroy
      */
     constructor(
         private ganttService: GanttService,
-        private dashboardService: DashboardService
+        private dashboardService: DashboardService,
+        private departmentService: DepartmentService,
+        private userService: UserService
     )
     {
 
@@ -265,8 +314,8 @@ export class ExampleComponent implements OnInit, OnDestroy
         // Initialize chart options first
         this.prepareStatusChartData();
         
-        this.loadDashboardData();
-        this.prepareDynamicChartData();
+        // Load user information first, then load dashboard data
+        this.loadUserInfo();
     }
 
     ngOnDestroy(): void {
@@ -277,11 +326,33 @@ export class ExampleComponent implements OnInit, OnDestroy
     // Filter Methods
     applyFilters(): void {
         console.log('Applying filters:', {
-            taskType: this.selectedTaskType,
-            author: this.selectedAuthor,
-            status: this.selectedStatus
+            dueDateRange: this.dueDateRange,
+            startDate: this.dueDateRange.startDate?.toISOString(),
+            endDate: this.dueDateRange.endDate?.toISOString()
         });
         this.refreshAllWidgets();
+    }
+
+    onDueDateRangeChange(): void {
+        if (this.isInvalidDueDateRange()) {
+            return; // Don't apply filters if date range is invalid
+        }
+        this.applyFilters();
+    }
+
+    clearDueDateRange(): void {
+        this.dueDateRange = {
+            startDate: null,
+            endDate: null
+        };
+        this.applyFilters();
+    }
+
+    isInvalidDueDateRange(): boolean {
+        if (!this.dueDateRange.startDate || !this.dueDateRange.endDate) {
+            return false;
+        }
+        return this.dueDateRange.startDate > this.dueDateRange.endDate;
     }
 
     openAdvancedFilters(): void {
@@ -343,7 +414,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'status':
                 // Reload dashboard data to get fresh statistics
-                this.dashboardService.getWorkStatistics()
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
                     .pipe(takeUntil(this._unsubscribeAll))
                     .subscribe({
                         next: (response) => {
@@ -366,6 +437,20 @@ export class ExampleComponent implements OnInit, OnDestroy
                 break;
             case 'chart':
                 this.prepareDynamicChartData();
+                break;
+            case 'role-summary':
+                // Reload dashboard data to get fresh statistics for role summary
+                this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
+                    .pipe(takeUntil(this._unsubscribeAll))
+                    .subscribe({
+                        next: (response) => {
+                            this.workStatistics = response.data;
+                            this.updateProgressData();
+                        },
+                        error: (error) => {
+                            console.error('Error refreshing role summary widget:', error);
+                        }
+                    });
                 break;
         }
     }
@@ -393,6 +478,31 @@ export class ExampleComponent implements OnInit, OnDestroy
     selectChartType(chartType: string): void {
         this.selectedChartType = chartType;
         this.prepareDynamicChartData();
+    }
+
+    selectTimeRange(timeRange: string): void {
+        this.selectedTimeRange = timeRange;
+        this.prepareDynamicChartData();
+    }
+
+    selectGanttTimeRange(timeRange: string): void {
+        this.selectedGanttTimeRange = timeRange;
+        this.loadGanttData();
+    }
+
+    getTimeRangeLabel(timeRange: string): string {
+        switch (timeRange) {
+            case 'day':
+                return 'ngày';
+            case 'week':
+                return 'tuần';
+            case 'month':
+                return 'tháng';
+            case 'quarter':
+                return 'quý';
+            default:
+                return 'tháng';
+        }
     }
 
     selectWidgetSize(size: string): void {
@@ -444,24 +554,117 @@ export class ExampleComponent implements OnInit, OnDestroy
 
     // Data Loading Methods
     loadGanttData(): void {
-        this.loading = true;
+        this.ganttLoading = true;
         this.error = '';
 
-        this.ganttService.getGanttData(this.boardId)
+        this.dashboardService.getGanttChartData(this.selectedGanttTimeRange as any, this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
-                next: (tasks) => {
-                    this.tasks = tasks.filter(task =>
-                        task.start_date && task.end_date
-                    );
-                    this.calculateTimeline();
-                    this.prepareApexChartData();
-                    this.loading = false;
+                next: (response) => {
+                    console.log('Gantt chart data response:', response);
+                    const ganttData = response.data;
+                    
+                    // Cập nhật chart options cho Gantt chart
+                    this.chartOptions = {
+                        series: ganttData.series,
+                        chart: {
+                            type: 'bar',
+                            height: 400,
+                            toolbar: {
+                                show: true,
+                                tools: {
+                                    download: true,
+                                    selection: false,
+                                    zoom: false,
+                                    zoomin: false,
+                                    zoomout: false,
+                                    pan: false,
+                                    reset: false
+                                }
+                            }
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '70%',
+                                borderRadius: 4
+                            }
+                        },
+                        xaxis: {
+                            categories: ganttData.categories,
+                            labels: {
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số công việc hoàn thành'
+                            },
+                            labels: {
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            formatter: function (val: any) {
+                                return val || 0;
+                            },
+                            style: {
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                            }
+                        },
+                        colors: ['#4caf50'],
+                        tooltip: {
+                            y: {
+                                formatter: function (val: any) {
+                                    return val + ' công việc';
+                                }
+                            }
+                        },
+                        title: {
+                            text: `Số công việc hoàn thành theo ${this.getTimeRangeLabel(this.selectedGanttTimeRange)}`,
+                            align: 'center',
+                            style: {
+                                fontSize: '16px',
+                                fontWeight: 'bold'
+                            }
+                        }
+                    };
+                    
+                    this.ganttLoading = false;
                 },
                 error: (err) => {
-                    this.error = 'Failed to load Gantt data';
-                    this.loading = false;
-                    console.error('Gantt data error:', err);
+                    this.error = 'Không thể tải dữ liệu Gantt chart';
+                    this.ganttLoading = false;
+                    console.error('Gantt chart data error:', err);
+                    
+                    // Fallback to empty chart
+                    this.chartOptions = {
+                        series: [{
+                            name: 'Công việc hoàn thành',
+                            data: []
+                        }],
+                        chart: {
+                            type: 'bar',
+                            height: 400
+                        },
+                        xaxis: {
+                            categories: []
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số công việc hoàn thành'
+                            }
+                        },
+                        title: {
+                            text: 'Không có dữ liệu'
+                        }
+                    };
                 }
             });
     }
@@ -479,7 +682,7 @@ export class ExampleComponent implements OnInit, OnDestroy
         this.loading = true;
         this.error = '';
 
-        this.dashboardService.getWorkStatistics()
+        this.dashboardService.getWorkStatistics(this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -489,14 +692,7 @@ export class ExampleComponent implements OnInit, OnDestroy
                     console.log('workStatistics set to:', this.workStatistics);
                     
                     // Update progress data
-                    this.progressData = {
-                        total: this.workStatistics.total,
-                        completed: this.workStatistics.done > 0 ? (this.workStatistics.done / this.workStatistics.total) * 100 : 0,
-                        completedCount: this.workStatistics.done,
-                        inProgress: this.workStatistics.inProgress,
-                        pending: this.workStatistics.todo,
-                        overdue: this.workStatistics.overdue
-                    };
+                    this.updateProgressData();
                     console.log('progressData updated:', this.progressData);
 
                     // Update status chart with real data
@@ -531,7 +727,7 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     loadProjectMembers(): void {
-        this.dashboardService.getActiveMembers()
+        this.dashboardService.getActiveMembers(this.selectedDepartmentId, this.dueDateRange)
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe({
                 next: (response) => {
@@ -595,6 +791,19 @@ export class ExampleComponent implements OnInit, OnDestroy
             pending: 3,
             overdue: 2
         };
+    }
+
+    updateProgressData(): void {
+        if (this.workStatistics) {
+            this.progressData = {
+                total: this.workStatistics.total,
+                completed: this.workStatistics.done > 0 ? (this.workStatistics.done / this.workStatistics.total) * 100 : 0,
+                completedCount: this.workStatistics.done,
+                inProgress: this.workStatistics.inProgress,
+                pending: this.workStatistics.todo,
+                overdue: this.workStatistics.overdue
+            };
+        }
     }
 
     initializeWidgets(): void {
@@ -694,38 +903,118 @@ export class ExampleComponent implements OnInit, OnDestroy
     }
 
     prepareDynamicChartData(): void {
-        const data = [30, 40, 35, 50, 49, 60, 70, 91, 125];
-        const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+        // Load chart data from API based on selected chart type
+        this.loading = true;
+        
+        this.dashboardService.getChartData(this.selectedChartType as any, this.selectedTimeRange as any, this.selectedDepartmentId, this.dueDateRange)
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    console.log('Chart data response:', response);
+                    const chartData = response.data;
+                    
+                    // Determine chart type based on selected chart type
+                    let chartType: any = 'bar';
+                    if (this.selectedChartType === 'status') {
+                        chartType = 'pie';
+                    } else if (this.selectedChartType === 'timeline') {
+                        chartType = 'line';
+                    } else if (this.selectedChartType === 'member' || this.selectedChartType === 'priority' || this.selectedChartType === 'department') {
+                        chartType = 'bar';
+                    }
+                    
+                    if (chartType === 'pie') {
+                        // For pie charts, use series as array of numbers
+                        this.dynamicChartOptions = {
+                            series: chartData.series as ApexNonAxisChartSeries,
+                            chart: {
+                                type: chartType,
+                                height: 250
+                            },
+                            labels: chartData.labels || [],
+                            colors: ['#4caf50', '#2196f3', '#ff9800', '#f44336', '#9c27b0'],
+                            dataLabels: {
+                                enabled: true,
+                                formatter: function (val: any, opts: any) {
+                                    return opts.w.globals.seriesTotals[opts.seriesIndex] || 0;
+                                }
+                            },
+                            plotOptions: {
+                                pie: {
+                                    donut: {
+                                        size: '70%'
+                                    }
+                                }
+                            }
+                        };
+                    } else {
+                        // For other chart types, use series as array of objects
+                        this.dynamicChartOptions = {
+                            series: chartData.series as ApexAxisChartSeries,
+                            chart: {
+                                type: chartType,
+                                height: 250
+                            },
+                            xaxis: {
+                                categories: chartData.categories || chartData.labels || []
+                            },
+                            yaxis: {
+                                title: {
+                                    text: 'Số lượng'
+                                }
+                            },
+                            colors: ['#2196f3', '#4caf50', '#ff9800', '#f44336'],
+                            dataLabels: {
+                                enabled: false
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: false
+                                }
+                            }
+                        };
+                    }
+                    
+                    this.loading = false;
+                },
+                error: (error) => {
+                    console.error('Error loading chart data:', error);
+                    // Fallback to mock data
+                    const data = [30, 40, 35, 50, 49, 60, 70, 91, 125];
+                    const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
 
-        this.dynamicChartOptions = {
-            series: [
-                {
-                    name: 'Công việc',
-                    data: data
+                    this.dynamicChartOptions = {
+                        series: [
+                            {
+                                name: 'Công việc',
+                                data: data
+                            }
+                        ] as ApexAxisChartSeries,
+                        chart: {
+                            type: 'bar',
+                            height: 250
+                        },
+                        xaxis: {
+                            categories: categories
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Số lượng'
+                            }
+                        },
+                        colors: ['#2196f3'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false
+                            }
+                        }
+                    };
+                    this.loading = false;
                 }
-            ],
-            chart: {
-                type: this.selectedChartType as any,
-                height: 250
-            },
-            xaxis: {
-                categories: categories
-            },
-            yaxis: {
-                title: {
-                    text: 'Số lượng'
-                }
-            },
-            colors: ['#2196f3'],
-            dataLabels: {
-                enabled: false
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: false
-                }
-            }
-        };
+            });
     }
 
     calculateTimeline(): void {
@@ -806,6 +1095,84 @@ export class ExampleComponent implements OnInit, OnDestroy
             return JSON.parse(task.dependencies);
         } catch {
             return [];
+        }
+    }
+
+    loadUserInfo(): void {
+        // Get user information from UserService
+        this.userService.user$.subscribe(user => {
+            if (user) {
+                this.userRole = user.type || 'staff';
+                this.userDepartment = user.departmentName || '';
+                this.userCompanyId = user.companyId || '';
+                
+                // If user is boss, load departments and show sidebar
+                if (this.userRole === 'boss' && this.userCompanyId) {
+                    this.loadDepartments();
+                    this.showDepartmentSidebar = true;
+                }
+                
+                // Load dashboard data after user info is loaded
+                this.loadDashboardData();
+                this.prepareDynamicChartData();
+            }
+        });
+    }
+
+    loadDepartments(): void {
+        if (!this.userCompanyId) return;
+        
+        this.departmentSidebarLoading = true;
+        this.departmentService.getDepartmentsByCompany(this.userCompanyId)
+            .pipe(takeUntil(this._unsubscribeAll))
+            .subscribe({
+                next: (response) => {
+                    this.departments = response.data || [];
+                    this.departmentSidebarLoading = false;
+                },
+                error: (error) => {
+                    console.error('Error loading departments:', error);
+                    this.departmentSidebarLoading = false;
+                }
+            });
+    }
+
+    selectDepartment(departmentId: string): void {
+        this.selectedDepartmentId = departmentId;
+        
+        // Reload all dashboard data with department filter
+        this.loadDashboardData();
+        this.loadGanttData();
+        this.prepareDynamicChartData();
+    }
+
+    clearDepartmentFilter(): void {
+        this.selectedDepartmentId = '';
+        
+        // Reload all dashboard data without department filter
+        this.loadDashboardData();
+        this.loadGanttData();
+        this.prepareDynamicChartData();
+    }
+
+    getSelectedDepartmentName(): string {
+        if (!this.selectedDepartmentId) {
+            return 'Tất cả phòng ban';
+        }
+        const department = this.departments.find(d => d.id === this.selectedDepartmentId);
+        return department?.name || 'Phòng ban';
+    }
+
+    getRoleDisplayName(role: string): string {
+        switch (role) {
+            case 'boss':
+                return 'Giám đốc';
+            case 'manager':
+                return 'Quản lý';
+            case 'staff':
+                return 'Nhân viên';
+            default:
+                return role;
         }
     }
 

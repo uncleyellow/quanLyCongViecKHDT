@@ -18,6 +18,60 @@ interface BoardGroup {
     collapsed?: boolean;
 }
 
+// Interface for filter configuration
+interface FilterField {
+    key: string;
+    label: string;
+    type: 'string' | 'number' | 'date' | 'select';
+    options?: { value: any; label: string }[];
+}
+
+// Interface for filter
+interface Filter {
+    id: string;
+    field: string;
+    operator: string;
+    value: any;
+    startDate?: Date; // For date range filters
+    endDate?: Date;   // For date range filters
+}
+
+// Available operators for different field types
+const STRING_OPERATORS = [
+    { value: 'contains', label: 'Chứa' },
+    { value: 'not_contains', label: 'Không chứa' },
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'starts_with', label: 'Bắt đầu bằng' },
+    { value: 'ends_with', label: 'Kết thúc bằng' }
+];
+
+const NUMBER_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'greater_than', label: 'Lớn hơn' },
+    { value: 'greater_than_or_equal', label: 'Lớn hơn hoặc bằng' },
+    { value: 'less_than', label: 'Nhỏ hơn' },
+    { value: 'less_than_or_equal', label: 'Nhỏ hơn hoặc bằng' }
+];
+
+const DATE_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'greater_than', label: 'Sau ngày' },
+    { value: 'greater_than_or_equal', label: 'Từ ngày' },
+    { value: 'less_than', label: 'Trước ngày' },
+    { value: 'less_than_or_equal', label: 'Đến ngày' },
+    { value: 'between', label: 'Trong khoảng' }
+];
+
+const SELECT_OPERATORS = [
+    { value: 'equals', label: 'Bằng' },
+    { value: 'not_equals', label: 'Không bằng' },
+    { value: 'in', label: 'Trong danh sách' },
+    { value: 'not_in', label: 'Không trong danh sách' }
+];
+
 @Component({
     selector       : 'tasks-list',
     templateUrl    : './list.component.html',
@@ -54,6 +108,14 @@ export class TasksListComponent implements OnInit, OnDestroy
     boardGroups: BoardGroup[] = [];
     isReordering: boolean = false;
     hasRecurringBoards: boolean = false;
+    searchTerm: string = '';
+    filteredBoardGroups: BoardGroup[] = [];
+    // Filter properties
+    filters: Filter[] = [];
+    availableFields: FilterField[] = [];
+    showFilterPanel: boolean = false;
+    // Quick date range filter
+    quickDateRange: { startDate: Date | null; endDate: Date | null } = { startDate: null, endDate: null };
     // Store collapse state for each board group
     private boardCollapseStates: Map<string, boolean> = new Map();
     tasksCount: any = {
@@ -87,6 +149,15 @@ export class TasksListComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
+        // Initialize filtered board groups
+        this.filteredBoardGroups = [];
+
+        // Initialize filter fields
+        this.initializeFilterFields();
+
+        // Auto-set date range to today (this will also load cards with today's filter)
+        this.autoSetDateRangeToToday();
+
         // Get the tags
         this._tasksService.tags$
             .pipe(takeUntil(this._unsubscribeAll))
@@ -97,22 +168,8 @@ export class TasksListComponent implements OnInit, OnDestroy
                 this._changeDetectorRef.markForCheck();
             });
 
-        // Get the user cards
-        this._tasksService.getUserCards()
-            .pipe(takeUntil(this._unsubscribeAll))
-            .subscribe((userCards: UserCard[]) => {
-                this.userCards = userCards;
-                this.boardGroups = this.groupTasksByBoard(userCards);
-
-                // Update the counts based on user cards
-                this.updateTasksCount();
-
-                // Mark for check
-                this._changeDetectorRef.markForCheck();
-
-                // Update the count on the navigation
-                this.updateNavigationCount();
-            });
+        // Note: getUserCards is now called by autoSetDateRangeToToday() with today's filter
+        // No need to call it again here as it would override the filtered results
 
         // Subscribe to user cards changes
         this._tasksService.userCards$
@@ -121,7 +178,7 @@ export class TasksListComponent implements OnInit, OnDestroy
                 if (userCards) {
                     console.log('TasksListComponent received updated userCards:', userCards.length);
                     this.userCards = userCards;
-                    this.boardGroups = this.groupTasksByBoard(userCards);
+                    this.updateBoardGroupsWithSearch();
                     this.updateTasksCount();
                     this.updateNavigationCount();
                     this._changeDetectorRef.markForCheck();
@@ -497,6 +554,8 @@ export class TasksListComponent implements OnInit, OnDestroy
             // Save the collapse state
             this.boardCollapseStates.set(group.boardId, false);
         });
+        // Update filtered groups to reflect the changes
+        this.filteredBoardGroups = [...this.boardGroups];
         this._changeDetectorRef.markForCheck();
     }
 
@@ -510,6 +569,8 @@ export class TasksListComponent implements OnInit, OnDestroy
             // Save the collapse state
             this.boardCollapseStates.set(group.boardId, true);
         });
+        // Update filtered groups to reflect the changes
+        this.filteredBoardGroups = [...this.boardGroups];
         this._changeDetectorRef.markForCheck();
     }
 
@@ -522,6 +583,38 @@ export class TasksListComponent implements OnInit, OnDestroy
     trackByFn(index: number, item: any): any
     {
         return item.id || index;
+    }
+
+    /**
+     * Get priority icon
+     */
+    getPriorityIcon(priority: string): string {
+        switch (priority) {
+            case 'high':
+                return 'heroicons_solid:arrow-up';
+            case 'medium':
+                return 'heroicons_solid:minus';
+            case 'low':
+                return 'heroicons_solid:arrow-down';
+            default:
+                return 'heroicons_solid:minus';
+        }
+    }
+
+    /**
+     * Get priority color class
+     */
+    getPriorityColor(priority: string): string {
+        switch (priority) {
+            case 'high':
+                return 'text-red-500';
+            case 'medium':
+                return 'text-yellow-500';
+            case 'low':
+                return 'text-green-500';
+            default:
+                return 'text-gray-500';
+        }
     }
 
     /**
@@ -614,5 +707,492 @@ export class TasksListComponent implements OnInit, OnDestroy
                     });
             }
         }, 100);
+    }
+
+    /**
+     * Handle search term change
+     *
+     * @param searchTerm
+     */
+    onSearchChange(searchTerm: string): void
+    {
+        this.searchTerm = searchTerm;
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear search
+     */
+    clearSearch(): void
+    {
+        this.searchTerm = '';
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+
+
+    /**
+     * Update board groups (no need to apply search since it's handled by backend)
+     */
+    private updateBoardGroupsWithSearch(): void
+    {
+        this.boardGroups = this.groupTasksByBoard(this.userCards);
+        this.filteredBoardGroups = [...this.boardGroups];
+    }
+
+    /**
+     * Get filtered tasks count
+     */
+    getFilteredTasksCount(): number
+    {
+        return this.filteredBoardGroups.reduce((total, group) => total + group.cards.length, 0);
+    }
+
+    /**
+     * Get operators for a field type
+     */
+    getOperatorsForFieldType(fieldType: string): any[]
+    {
+        switch (fieldType) {
+            case 'string':
+                return STRING_OPERATORS;
+            case 'number':
+                return NUMBER_OPERATORS;
+            case 'date':
+                return DATE_OPERATORS;
+            case 'select':
+                return SELECT_OPERATORS;
+            default:
+                return STRING_OPERATORS;
+        }
+    }
+
+    /**
+     * Get field configuration by key
+     */
+    getFieldConfig(fieldKey: string): FilterField | undefined
+    {
+        return this.availableFields.find(field => field.key === fieldKey);
+    }
+
+    /**
+     * Add a new filter
+     */
+    addFilter(): void
+    {
+        const newFilter: Filter = {
+            id: Date.now().toString(),
+            field: '',
+            operator: '',
+            value: null
+        };
+        this.filters.push(newFilter);
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Remove a filter
+     */
+    removeFilter(filterId: string): void
+    {
+        const filterToRemove = this.filters.find(f => f.id === filterId);
+        this.filters = this.filters.filter(f => f.id !== filterId);
+        
+        // If removing a due date filter, also clear the quick date range
+        if (filterToRemove && filterToRemove.field === 'dueDate') {
+            this.quickDateRange = { startDate: null, endDate: null };
+        }
+        
+        // Sync advanced filters with quick date range
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear all filters
+     */
+    clearAllFilters(): void
+    {
+        this.filters = [];
+        this.quickDateRange = { startDate: null, endDate: null };
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Toggle filter panel
+     */
+    toggleFilterPanel(): void
+    {
+        this.showFilterPanel = !this.showFilterPanel;
+        this._changeDetectorRef.markForCheck();
+    }
+
+
+
+
+
+    /**
+     * Load cards with current filters and search
+     */
+    private loadCardsWithFilters(): void
+    {
+        const options: any = {};
+        
+        if (this.searchTerm && this.searchTerm.trim()) {
+            options.searchTerm = this.searchTerm.trim();
+        }
+        
+        if (this.filters && this.filters.length > 0) {
+            // Only include filters that have all required fields
+            const validFilters = this.filters.filter(filter => {
+                const hasBasicFields = filter.field && filter.operator && filter.value !== null && filter.value !== undefined;
+                
+                // Additional validation for date range filters
+                if (filter.field === 'dueDate' && filter.operator === 'between') {
+                    return hasBasicFields && filter.value.startDate && filter.value.endDate;
+                }
+                
+                return hasBasicFields;
+            });
+            
+            console.log('Valid filters before processing:', validFilters);
+            
+            // Process date values for date fields
+            const processedFilters = validFilters.map(filter => {
+                if (filter.field === 'dueDate') {
+                    if (filter.operator === 'between' && filter.value && filter.value.startDate && filter.value.endDate) {
+                        // Handle date range filter
+                        const startYear = filter.value.startDate.getFullYear();
+                        const startMonth = String(filter.value.startDate.getMonth() + 1).padStart(2, '0');
+                        const startDay = String(filter.value.startDate.getDate()).padStart(2, '0');
+                        const startDateString = `${startYear}-${startMonth}-${startDay}`;
+                        
+                        const endYear = filter.value.endDate.getFullYear();
+                        const endMonth = String(filter.value.endDate.getMonth() + 1).padStart(2, '0');
+                        const endDay = String(filter.value.endDate.getDate()).padStart(2, '0');
+                        const endDateString = `${endYear}-${endMonth}-${endDay}`;
+                        
+                        const dateRangeFilter = {
+                            ...filter,
+                            value: {
+                                startDate: startDateString,
+                                endDate: endDateString
+                            }
+                        };
+                        console.log('Processing date range filter:', {
+                            startDate: dateRangeFilter.value.startDate,
+                            endDate: dateRangeFilter.value.endDate,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                        return dateRangeFilter;
+                    } else if (filter.value instanceof Date) {
+                        // Handle single date filter
+                        const year = filter.value.getFullYear();
+                        const month = String(filter.value.getMonth() + 1).padStart(2, '0');
+                        const day = String(filter.value.getDate()).padStart(2, '0');
+                        const localDateString = `${year}-${month}-${day}`;
+                        
+                        const dateFilter = {
+                            ...filter,
+                            value: localDateString // YYYY-MM-DD format using local date
+                        };
+                        console.log('Processing date filter:', {
+                            original: filter.value,
+                            originalLocal: `${filter.value.getFullYear()}-${String(filter.value.getMonth() + 1).padStart(2, '0')}-${String(filter.value.getDate()).padStart(2, '0')}`,
+                            processed: dateFilter.value,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                        return dateFilter;
+                    }
+                }
+                return filter;
+            });
+            
+            if (processedFilters.length > 0) {
+                options.filters = processedFilters;
+                console.log('Sending filters to API:', JSON.stringify(processedFilters, null, 2));
+            }
+        }
+        
+        this._tasksService.getUserCards(options).subscribe((userCards: UserCard[]) => {
+            this.userCards = userCards;
+            this.updateBoardGroupsWithSearch();
+            this.updateTasksCount();
+            this.updateNavigationCount();
+            this._changeDetectorRef.markForCheck();
+        });
+    }
+
+    /**
+     * Update filter and apply
+     */
+    onFilterChange(): void
+    {
+        // Handle operator changes for date fields
+        this.filters.forEach(filter => {
+            if (filter.field === 'dueDate') {
+                if (filter.operator === 'between') {
+                    // Initialize date range fields if switching to 'between'
+                    if (!filter.startDate && !filter.endDate) {
+                        filter.startDate = null;
+                        filter.endDate = null;
+                        filter.value = null;
+                    }
+                } else {
+                    // Clear date range fields if switching away from 'between'
+                    if (filter.startDate || filter.endDate) {
+                        filter.startDate = null;
+                        filter.endDate = null;
+                        filter.value = null;
+                    }
+                }
+            }
+        });
+        
+        // Sync quick date range with advanced filters
+        this.syncQuickDateRangeWithFilters();
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Handle date range change for 'between' operator
+     */
+    onDateRangeChange(filter: Filter): void
+    {
+        // Validate date range
+        if (filter.startDate && filter.endDate) {
+            const startDate = new Date(filter.startDate);
+            const endDate = new Date(filter.endDate);
+            
+            // Set both dates to start of day for comparison
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(0, 0, 0, 0);
+            
+            if (startDate > endDate) {
+                // If start date is after end date, swap them
+                const temp = filter.startDate;
+                filter.startDate = filter.endDate;
+                filter.endDate = temp;
+            }
+            
+            filter.value = {
+                startDate: filter.startDate,
+                endDate: filter.endDate
+            };
+        } else {
+            filter.value = null;
+        }
+        
+        // Sync quick date range with advanced filters
+        this.syncQuickDateRangeWithFilters();
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Check if date range is invalid
+     */
+    isInvalidDateRange(filter: Filter): boolean
+    {
+        if (!filter.startDate || !filter.endDate) {
+            return false;
+        }
+        
+        const startDate = new Date(filter.startDate);
+        const endDate = new Date(filter.endDate);
+        
+        // Set both dates to start of day for comparison
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        
+        return startDate > endDate;
+    }
+
+    /**
+     * Handle quick date range change
+     */
+    onQuickDateRangeChange(): void
+    {
+        // Sync advanced filters with quick date range
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear quick date range filter
+     */
+    clearQuickDateRange(): void
+    {
+        this.quickDateRange = { startDate: null, endDate: null };
+        
+        // Remove any existing due date filters
+        this.filters = this.filters.filter(filter => filter.field !== 'dueDate');
+        
+        this.loadCardsWithFilters();
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Check if quick date range is invalid
+     */
+    isInvalidQuickDateRange(): boolean
+    {
+        if (!this.quickDateRange.startDate || !this.quickDateRange.endDate) {
+            return false;
+        }
+        
+        const startDate = new Date(this.quickDateRange.startDate);
+        const endDate = new Date(this.quickDateRange.endDate);
+        
+        // Set both dates to start of day for comparison
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        
+        return startDate > endDate;
+    }
+
+    /**
+     * Sync quick date range with advanced filters
+     */
+    private syncQuickDateRangeWithFilters(): void
+    {
+        const dueDateFilter = this.filters.find(filter => filter.field === 'dueDate');
+        
+        if (dueDateFilter) {
+            if (dueDateFilter.operator === 'between' && dueDateFilter.startDate && dueDateFilter.endDate) {
+                // Both dates in range filter
+                this.quickDateRange = {
+                    startDate: dueDateFilter.startDate,
+                    endDate: dueDateFilter.endDate
+                };
+            } else if (dueDateFilter.operator === 'greater_than_or_equal' && dueDateFilter.value) {
+                // Only start date (from date)
+                this.quickDateRange = {
+                    startDate: dueDateFilter.value,
+                    endDate: null
+                };
+            } else if (dueDateFilter.operator === 'less_than_or_equal' && dueDateFilter.value) {
+                // Only end date (to date)
+                this.quickDateRange = {
+                    startDate: null,
+                    endDate: dueDateFilter.value
+                };
+            } else {
+                this.quickDateRange = { startDate: null, endDate: null };
+            }
+        } else {
+            this.quickDateRange = { startDate: null, endDate: null };
+        }
+    }
+
+    /**
+     * Sync advanced filters with quick date range
+     */
+    private syncAdvancedFiltersWithQuickDateRange(): void
+    {
+        // Remove any existing due date filters
+        this.filters = this.filters.filter(filter => filter.field !== 'dueDate');
+        
+        // Add new filter if at least one date is selected
+        if (this.quickDateRange.startDate || this.quickDateRange.endDate) {
+            let newFilter: Filter;
+            
+            if (this.quickDateRange.startDate && this.quickDateRange.endDate) {
+                // Both dates selected - use 'between' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'between',
+                    value: {
+                        startDate: this.quickDateRange.startDate,
+                        endDate: this.quickDateRange.endDate
+                    },
+                    startDate: this.quickDateRange.startDate,
+                    endDate: this.quickDateRange.endDate
+                };
+                
+                console.log('Created between filter:', newFilter);
+            } else if (this.quickDateRange.startDate) {
+                // Only start date selected - use 'greater_than_or_equal' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'greater_than_or_equal',
+                    value: this.quickDateRange.startDate,
+                    startDate: null,
+                    endDate: null
+                };
+            } else {
+                // Only end date selected - use 'less_than_or_equal' operator
+                newFilter = {
+                    id: Date.now().toString(),
+                    field: 'dueDate',
+                    operator: 'less_than_or_equal',
+                    value: this.quickDateRange.endDate,
+                    startDate: null,
+                    endDate: null
+                };
+            }
+            
+            this.filters.push(newFilter);
+        }
+    }
+
+    /**
+     * Auto-set date range to today
+     */
+    private autoSetDateRangeToToday(): void
+    {
+        const today = new Date();
+        console.log('Setting date range to today:', today);
+        
+        this.quickDateRange = {
+            startDate: today,
+            endDate: today
+        };
+        
+        // Sync with advanced filters
+        this.syncAdvancedFiltersWithQuickDateRange();
+        
+        console.log('Filters after sync:', this.filters);
+        
+        // Load cards with the today filter
+        this.loadCardsWithFilters();
+        
+        // Mark for check to update the UI
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Initialize filter fields
+     */
+    private initializeFilterFields(): void
+    {
+        this.availableFields = [
+            { key: 'title', label: 'Tiêu đề', type: 'string' },
+            { key: 'description', label: 'Mô tả', type: 'string' },
+            { key: 'dueDate', label: 'Ngày hết hạn', type: 'date' },
+            { key: 'status', label: 'Trạng thái', type: 'select', options: [
+                { value: 'todo', label: 'Chưa làm' },
+                { value: 'in-progress', label: 'Đang thực hiện' },
+                { value: 'doing', label: 'Đang làm' },
+                { value: 'completed', label: 'Đã hoàn thành' },
+                { value: 'done', label: 'Đã làm' }
+            ] },
+            { key: 'recurring', label: 'Lặp lại', type: 'select', options: [
+                { value: true, label: 'Có' },
+                { value: false, label: 'Không' }
+            ] }
+        ];
     }
 }

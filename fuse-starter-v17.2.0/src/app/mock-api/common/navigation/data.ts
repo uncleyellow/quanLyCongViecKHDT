@@ -4,7 +4,7 @@ import { FuseNavigationItem } from '@fuse/components/navigation';
 export const defaultNavigation: FuseNavigationItem[] = [
     {
         id   : 'example',
-        title: 'Dash Board công việc',
+        title: 'Dashboard công việc',
         type : 'basic',
         icon : 'heroicons_outline:chart-pie',
         link : '/example'
@@ -13,28 +13,28 @@ export const defaultNavigation: FuseNavigationItem[] = [
         id   : 'apps.scrumboard',
         title: 'Bảng Kanban quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:view-columns',
         link : '/scrumboard'
     },
     {
         id   : 'apps.tasks',
         title: 'Công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:clipboard-list',
         link : '/tasks'
     },
     {
         id   : 'apps.files-manager',
         title: 'Dữ liệu',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:document-text',
         link : '/files-manager'
     },
     {
         id   : 'apps.calender-events',
         title: 'Lịch quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:calendar',
         link : '/calender-events'
     },
 ];
@@ -50,35 +50,35 @@ export const compactNavigation: FuseNavigationItem[] = [
         id   : 'apps.scrumboard',
         title: 'Bảng Kanban quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:view-columns',
         link : '/scrumboard'
     },
     {
         id   : 'apps.tasks',
         title: 'Công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:clipboard-list',
         link : '/tasks'
     },
     {
         id   : 'apps.files-manager',
         title: 'Dữ liệu',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:document-text',
         link : '/files-manager'
     },
     {
         id   : 'apps.calender-events',
         title: 'Lịch quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:calendar',
         link : '/calender-events'
     },
     {
         id   : 'apps.admin',
         title: 'Quản trị Web',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:cog',
         link : '/admin-config'
     },
 ];
@@ -94,35 +94,35 @@ export const futuristicNavigation: FuseNavigationItem[] = [
         id   : 'apps.scrumboard',
         title: 'Bảng Kanban quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:view-columns',
         link : '/scrumboard'
     },
     {
         id   : 'apps.tasks',
         title: 'Công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:clipboard-list',
         link : '/tasks'
     },
     {
         id   : 'apps.files-manager',
         title: 'Dữ liệu',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:document-text',
         link : '/files-manager'
     },
     {
         id   : 'apps.calender-events',
         title: 'Lịch quản lý công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:calendar',
         link : '/calender-events'
     },
     {
         id   : 'apps.admin',
         title: 'Quản trị Web',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:cog',
         link : '/admin-config'
     },
 ];
@@ -145,28 +145,28 @@ export const horizontalNavigation: FuseNavigationItem[] = [
         id   : 'apps.tasks',
         title: 'Công việc',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:clipboard-list',
         link : '/tasks'
     },
-    {
-        id   : 'apps.files-manager',
-        title: 'Dữ liệu',
-        type : 'basic',
-        icon : 'heroicons_outline:view-boards',
-        link : '/files-manager'
-    },
-    {
-        id   : 'apps.calender-events',
-        title: 'Lịch quản lý công việc',
-        type : 'basic',
-        icon : 'heroicons_outline:view-boards',
-        link : '/calender-events'
-    },
+    // {
+    //     id   : 'apps.files-manager',
+    //     title: 'Dữ liệu',
+    //     type : 'basic',
+    //     icon : 'heroicons_outline:document-text',
+    //     link : '/files-manager'
+    // },
+    // {
+    //     id   : 'apps.calender-events',
+    //     title: 'Lịch quản lý công việc',
+    //     type : 'basic',
+    //     icon : 'heroicons_outline:calendar',
+    //     link : '/calender-events'
+    // },
     {
         id   : 'apps.admin',
         title: 'Quản trị Web',
         type : 'basic',
-        icon : 'heroicons_outline:view-boards',
+        icon : 'heroicons_outline:cog',
         link : '/admin-config'
     },
 ];

@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { AddBoardDialogComponent } from './add-board-dialog.compoment';
 import { ShareBoardDialogComponent } from './share-board-dialog.compoment';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 // Interface for grouped boards by staff
 interface BoardGroup {
@@ -34,6 +35,12 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
     currentUser: any = null;
     isManagerOrBoss: boolean = false;
 
+    // Filter properties
+    filterForm: FormGroup;
+    allBoards: Board[] = []; // Store all boards before filtering
+    filteredBoards: Board[] = []; // Store filtered boards
+    filteredBoardGroups: BoardGroup[] = []; // Store filtered board groups
+
     // Private
     private _unsubscribeAll: Subject<any> = new Subject<any>();
 
@@ -44,9 +51,16 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
         private _changeDetectorRef: ChangeDetectorRef,
         private _scrumboardService: ScrumboardService,
         private _userService: UserService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private _formBuilder: FormBuilder
     )
     {
+        // Initialize filter form
+        this.filterForm = this._formBuilder.group({
+            fromDate: [null],
+            toDate: [null],
+            taskType: ['all'] // 'all', 'daily', 'adhoc'
+        });
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -58,6 +72,13 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
      */
     ngOnInit(): void
     {
+        // Subscribe to filter changes
+        this.filterForm.valueChanges.pipe(
+            takeUntil(this._unsubscribeAll)
+        ).subscribe(() => {
+            this.applyFilters();
+        });
+
         // Get current user info
         this._userService.user$.pipe(takeUntil(this._unsubscribeAll)).subscribe(user => {
             console.log('UserService user:', user);
@@ -79,6 +100,80 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                 }
             }
             this.fetch(email);
+        });
+    }
+
+    /**
+     * Apply filters to boards
+     */
+    private applyFilters(): void {
+        if (!this.allBoards) {
+            this.filteredBoards = [];
+            this.filteredBoardGroups = [];
+            return;
+        }
+
+        const { fromDate, toDate, taskType } = this.filterForm.value;
+
+        this.filteredBoards = this.allBoards.filter(board => {
+            // Date filter
+            if (fromDate || toDate) {
+                // Use createdAt if available, otherwise fallback to lastActivity
+                const boardDate = board.createdAt || board.lastActivity || '';
+                if (!boardDate) return true; // If no date available, include the board
+                
+                try {
+                    const boardCreatedAt = new Date(boardDate);
+                    const from = fromDate ? new Date(fromDate) : null;
+                    const to = toDate ? new Date(toDate) : null;
+
+                    // Reset time to start of day for comparison
+                    if (from) {
+                        from.setHours(0, 0, 0, 0);
+                    }
+                    if (to) {
+                        to.setHours(23, 59, 59, 999);
+                    }
+                    boardCreatedAt.setHours(0, 0, 0, 0);
+
+                    if (from && boardCreatedAt < from) return false;
+                    if (to && boardCreatedAt > to) return false;
+                } catch (error) {
+                    console.warn('Error parsing date for board:', board.title, error);
+                    return true; // Include board if date parsing fails
+                }
+            }
+
+            // Task type filter
+            if (taskType !== 'all') {
+                const isDailyTask = board.recurringConfig?.isRecurring === true;
+                if (taskType === 'daily' && !isDailyTask) return false;
+                if (taskType === 'adhoc' && isDailyTask) return false;
+            }
+
+            return true;
+        });
+
+        // Update board groups if manager/boss view
+        if (this.isManagerOrBoss) {
+            this.filteredBoardGroups = this.groupBoardsByStaff(this.filteredBoards);
+        }
+
+        // Update the displayed boards
+        this.boards = this.filteredBoards;
+        this.boardGroups = this.filteredBoardGroups;
+
+        this._changeDetectorRef.markForCheck();
+    }
+
+    /**
+     * Clear all filters
+     */
+    clearFilters(): void {
+        this.filterForm.patchValue({
+            fromDate: null,
+            toDate: null,
+            taskType: 'all'
         });
     }
 
@@ -168,17 +263,11 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                     console.log('Fetched boards:', boards?.length);
                     console.log('isManagerOrBoss:', this.isManagerOrBoss);
                     
-                    this.boards = boards;
+                    // Store all boards for filtering
+                    this.allBoards = boards;
                     
-                    // Group boards by staff if current user is manager or boss
-                    if (this.isManagerOrBoss) {
-                        console.log('Creating board groups for manager/boss');
-                        this.boardGroups = this.groupBoardsByStaff(boards);
-                        console.log('Board groups created:', this.boardGroups.length);
-                    } else {
-                        console.log('Not manager/boss, using regular view');
-                        this.boardGroups = [];
-                    }
+                    // Apply filters to get filtered boards
+                    this.applyFilters();
                     
                     this._changeDetectorRef.markForCheck();
                 });
@@ -253,7 +342,9 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
                         ownerId: user.id,
                         ownerName: user.name,
                         ownerEmail: user.email,
-                        ownerRole: user.type || 'staff'
+                        ownerRole: user.type || 'staff',
+                        createdAt: null,
+                        updatedAt: null
                     }, user.email).subscribe((newBoard) => {
                         if(newBoard){
                             this.fetch(user.email);
@@ -310,6 +401,26 @@ export class ScrumboardBoardsComponent implements OnInit, OnDestroy
             // Thông báo thành công
             console.log('Member added to board successfully');
         });
+    }
+
+    /**
+     * Get count of boards owned by current user
+     */
+    getMyBoardsCount(): number {
+        if (!this.filteredBoards || !this.currentUser) {
+            return 0;
+        }
+        return this.filteredBoards.filter(board => board.ownerId === this.currentUser.id).length;
+    }
+
+    /**
+     * Get count of boards owned by employees (not current user)
+     */
+    getEmployeeBoardsCount(): number {
+        if (!this.filteredBoards || !this.currentUser) {
+            return 0;
+        }
+        return this.filteredBoards.filter(board => board.ownerId !== this.currentUser.id).length;
     }
 
     /**

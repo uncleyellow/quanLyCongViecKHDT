@@ -11,6 +11,7 @@ import { roleRoute } from './roleRoute.js'
 import { permissionRoute } from './permissionRoute.js'
 import cardTimeTrackingRoute from './cardTimeTrackingRoute'
 import dashboardRoute from './dashboardRoute.js'
+import cronRoute from './cronRoute.js'
 
 const Router = express.Router()
 
@@ -51,5 +52,8 @@ Router.use('/permissions', permissionRoute)
 
 // Dashboard APIs
 Router.use('/dashboard', dashboardRoute)
+
+// Cron APIs
+Router.use('/cron', cronRoute)
 
 export const APIs_V1 = Router

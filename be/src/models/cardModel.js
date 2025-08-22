@@ -36,6 +36,7 @@ const CARD_TABLE_SCHEMA = Joi.object({
     archived: Joi.number().integer().valid(0, 1).default(0),
     dependencies: Joi.string().allow(null).default(null),
     status: Joi.string().max(50).default('todo'),
+    priority: Joi.string().valid('low', 'medium', 'high').default('medium'),
     // Tracking time fields
     totalTimeSpent: Joi.number().integer().default(0), // Total time in seconds
     isTracking: Joi.number().integer().valid(0, 1).default(0), // 0: not tracking, 1: tracking

@@ -1,0 +1,70 @@
+{
+  "currentVersion": "1.0.9",
+  "versions": [
+    {
+      "version": "1.0.9",
+      "releaseDate": "2025-08-21",
+      "type": "feature",
+      "title": "Thêm bộ lọc từ ngày đến ngày trên dashboard và thêm bộ lọc cho bảng Kanban của trưởng phòng",
+      "description": "Bổ sung bộ lọc từ ngày đến ngày trên dashboard và thêm bộ lọc cho bảng Kanban của trưởng phòng, giúp việc quản lý và theo dõi công việc hiệu quả hơn.",
+      "changes": [
+        "Thêm bộ lọc từ ngày đến ngày trong dashboard",
+        "Bảng Kanban cho trưởng phòng có thêm bộ lọc"
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.8",
+      "releaseDate": "2025-08-20",
+      "type": "feature",
+      "title": "Thêm tính năng lọc phòng ban cho boss",
+      "description": "Thêm tính năng lọc phòng ban cho boss",
+      "changes": [
+        "Bổ sung thêm các tag lọc theo phòng ban bên trái dashboard",
+        "Tự động lọc các công việc ngày hôm nay",
+        "Đẩy bộ lọc từ ngày đến ngày ra ngoài màn hình",
+        "Bỏ các route tạm thời chưa dùng đến (chat, lịch, file)",
+        "Bật tự động sinh công việc hàng ngày"
+
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.7",
+      "releaseDate": "2025-08-20",
+      "type": "feature",
+      "title": "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+      "description": "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+      "changes": [
+        "Hoàn thành toàn bộ các tiêu chí lọc trong màn quản lý công việc Kanban",
+        "Thêm chức năng phân quyền, gán thêm người khác vào board, card để cùng thực hiện"
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.6",
+      "releaseDate": "2025-08-18",
+      "type": "feature",
+      "title": "Tính năng lọc và tìm kiếm nâng cao",
+      "description": "Thêm tính năng lọc và tìm kiếm công việc với nhiều tiêu chí khác nhau",
+      "changes": [
+        "Thêm bộ lọc cho màn quản lý công việc cá nhân",
+        "Thêm bộ lọc nâng cao với các operator: chứa, bằng, lớn hơn, nhỏ hơn...",
+        "Hoàn thành các thông số thống kê cho màn dashboard"        
+      ],
+      "author": "Development Team"
+    },
+    {
+      "version": "1.0.5",
+      "releaseDate": "2025-08-13",
+      "type": "feature",
+      "title": "Thêm màn tương tác với công việc cho từng cá nhân",
+      "description": "Thêm màn tương tác với công việc cho từng cá nhân và các màn quản trị cho admin",
+      "changes": [
+        "Thêm màn tương tác với công việc cho từng cá nhân",
+        "Thêm các màn quản trị cho admin"
+      ],
+      "author": "Development Team"
+    }
+  ]
+}

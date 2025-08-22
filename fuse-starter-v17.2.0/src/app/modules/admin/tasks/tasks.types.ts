@@ -42,6 +42,7 @@ export interface UserCard
     members: any[];
     createdAt: string;
     status: string;
+    priority: 'low' | 'medium' | 'high';
     totalTimeSpent: number;
     isTracking: number;
     trackingStartTime: string | null;

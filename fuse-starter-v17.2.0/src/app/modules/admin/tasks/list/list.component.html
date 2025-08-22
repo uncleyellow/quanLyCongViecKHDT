@@ -29,8 +29,92 @@
                                 <span>Kéo thả để sắp xếp lại thứ tự công việc</span>
                             </div>
                         </div>
+
+                        <!-- Search Box -->
+                        <div class="mt-4 sm:mt-0 flex-1 max-w-md mx-4 space-y-2">
+                            <div class="text-sm font-medium text-secondary">Tìm kiếm công việc</div>
+                            <mat-form-field class="w-full" appearance="outline" floatLabel="always">
+                                <mat-label>Công việc</mat-label>
+                                <input matInput 
+                                       [(ngModel)]="searchTerm" 
+                                       (ngModelChange)="onSearchChange($event)"
+                                       placeholder="Tìm theo tên hoặc mô tả..."
+                                       [matTooltip]="'Tìm kiếm theo tên hoặc mô tả công việc'">
+                                <mat-icon matSuffix [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+                                <button mat-icon-button matSuffix 
+                                        *ngIf="searchTerm" 
+                                        (click)="clearSearch()"
+                                        [matTooltip]="'Xóa tìm kiếm'">
+                                    <mat-icon [svgIcon]="'heroicons_outline:x'"></mat-icon>
+                                </button>
+                            </mat-form-field>
+                            <!-- Search results count -->
+                            <!-- <div class="text-xs text-secondary mt-1" *ngIf="searchTerm || filters.length > 0">
+                                <span *ngIf="searchTerm && filters.length > 0">
+                                    Tìm thấy {{getFilteredTasksCount()}} công việc (tìm kiếm + bộ lọc)
+                                </span>
+                                <span *ngIf="searchTerm && filters.length === 0">
+                                    Tìm thấy {{getFilteredTasksCount()}} công việc
+                                </span>
+                                <span *ngIf="!searchTerm && filters.length > 0">
+                                    Hiển thị {{getFilteredTasksCount()}} công việc (bộ lọc)
+                                </span>
+                            </div> -->
+                        </div>
+
+                        <!-- Quick Date Range Filter -->
+                        <div class="mt-4 sm:mt-0 flex flex-col space-y-2">
+                            <div class="text-sm font-medium text-secondary">Ngày hết hạn</div>
+                            <div class="flex space-x-2">
+                                <mat-form-field appearance="outline" class="w-28 sm:w-32">
+                                    <mat-label>Từ ngày</mat-label>
+                                    <input matInput 
+                                           [matDatepicker]="quickStartPicker"
+                                           [(ngModel)]="quickDateRange.startDate" 
+                                           (ngModelChange)="onQuickDateRangeChange()"
+                                           placeholder="Từ ngày"
+                                           [max]="quickDateRange.endDate">
+                                    <mat-datepicker-toggle matSuffix [for]="quickStartPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #quickStartPicker></mat-datepicker>
+                                </mat-form-field>
+                                <mat-form-field appearance="outline" class="w-28 sm:w-32">
+                                    <mat-label>Đến ngày</mat-label>
+                                    <input matInput 
+                                           [matDatepicker]="quickEndPicker"
+                                           [(ngModel)]="quickDateRange.endDate" 
+                                           (ngModelChange)="onQuickDateRangeChange()"
+                                           placeholder="Đến ngày"
+                                           [min]="quickDateRange.startDate">
+                                    <mat-datepicker-toggle matSuffix [for]="quickEndPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #quickEndPicker></mat-datepicker>
+                                </mat-form-field>
+                                <button mat-icon-button 
+                                        (click)="clearQuickDateRange()"
+                                        [matTooltip]="'Xóa bộ lọc ngày'"
+                                        *ngIf="quickDateRange.startDate || quickDateRange.endDate"
+                                        class="text-red-500">
+                                    <mat-icon [svgIcon]="'heroicons_outline:x'"></mat-icon>
+                                </button>
+                            </div>
+                            <!-- Date range validation message -->
+                            <div class="text-xs text-red-500" 
+                                 *ngIf="quickDateRange.startDate && quickDateRange.endDate && isInvalidQuickDateRange()">
+                                Ngày bắt đầu phải trước hoặc bằng ngày kết thúc
+                            </div>
+                        </div>
+
                         <!-- Actions -->
                         <div class="mt-4 sm:mt-0 flex space-x-2">
+                                                         <!-- Filter button -->
+                             <button mat-stroked-button 
+                                     (click)="toggleFilterPanel()" 
+                                     [matTooltip]="showFilterPanel ? 'Đóng bộ lọc' : 'Bộ lọc nâng cao'"
+                                     [class.mat-primary]="filters.length > 0">
+                                 <mat-icon [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                                 <span class="ml-2">{{ showFilterPanel ? 'Đóng bộ lọc' : 'Bộ lọc' }}</span>
+                                 <span class="ml-1 px-2 py-0.5 bg-primary text-white text-xs rounded-full" 
+                                       *ngIf="filters.length > 0">{{filters.length}}</span>
+                             </button>
                             <!-- Expand/Collapse buttons -->
                             <button mat-stroked-button (click)="expandAllBoards()" [matTooltip]="'Mở rộng tất cả'">
                                 <mat-icon [svgIcon]="'heroicons_outline:arrows-expand'"></mat-icon>
@@ -50,13 +134,161 @@
                     </div>
                 </div>
 
+                <!-- Filter Panel -->
+                <div class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" 
+                     *ngIf="showFilterPanel">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Bộ lọc nâng cao</h3>
+                            <div class="flex space-x-2">
+                                <button mat-stroked-button 
+                                        (click)="addFilter()" 
+                                        [matTooltip]="'Thêm bộ lọc'">
+                                    <mat-icon [svgIcon]="'heroicons_outline:plus'"></mat-icon>
+                                    <span class="ml-2">Thêm bộ lọc</span>
+                                </button>
+                                <button mat-stroked-button 
+                                        (click)="clearAllFilters()" 
+                                        [matTooltip]="'Xóa tất cả bộ lọc'"
+                                        *ngIf="filters.length > 0">
+                                    <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                    <span class="ml-2">Xóa tất cả</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter list -->
+                        <div class="space-y-4" *ngIf="filters.length > 0">
+                            <div class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4" 
+                                 *ngFor="let filter of filters; trackBy: trackByFn">
+                                <div class="flex items-center space-x-4">
+                                    <!-- Field selection -->
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                        <mat-label>Trường</mat-label>
+                                        <mat-select [(ngModel)]="filter.field" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   placeholder="Chọn trường">
+                                            <mat-option *ngFor="let field of availableFields" 
+                                                       [value]="field.key">
+                                                {{field.label}}
+                                            </mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+
+                                    <!-- Operator selection -->
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                        <mat-label>Điều kiện</mat-label>
+                                        <mat-select [(ngModel)]="filter.operator" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   placeholder="Chọn điều kiện"
+                                                   [disabled]="!filter.field">
+                                            <mat-option *ngFor="let op of getOperatorsForFieldType(getFieldConfig(filter.field)?.type || 'string')" 
+                                                       [value]="op.value">
+                                                {{op.label}}
+                                            </mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+
+                                    <!-- Value input -->
+                                    <div class="flex-1">
+                                        <!-- String/Number input -->
+                                        <mat-form-field appearance="outline" class="w-full" 
+                                                       *ngIf="getFieldConfig(filter.field)?.type === 'string' || getFieldConfig(filter.field)?.type === 'number'">
+                                            <mat-label>Giá trị</mat-label>
+                                            <input matInput 
+                                                   [(ngModel)]="filter.value" 
+                                                   (ngModelChange)="onFilterChange()"
+                                                   [type]="getFieldConfig(filter.field)?.type === 'number' ? 'number' : 'text'"
+                                                   placeholder="Nhập giá trị">
+                                        </mat-form-field>
+
+                                        <!-- Date picker -->
+                                        <div class="w-full" *ngIf="getFieldConfig(filter.field)?.type === 'date'">
+                                            <!-- Single date picker for non-range operators -->
+                                            <mat-form-field appearance="outline" class="w-full" 
+                                                           *ngIf="filter.operator !== 'between'">
+                                                <mat-label>Ngày</mat-label>
+                                                <input matInput 
+                                                       [matDatepicker]="picker"
+                                                       [(ngModel)]="filter.value" 
+                                                       (ngModelChange)="onFilterChange()"
+                                                       placeholder="Chọn ngày">
+                                                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                                                <mat-datepicker #picker></mat-datepicker>
+                                            </mat-form-field>
+
+                                            <!-- Date range picker for 'between' operator -->
+                                            <div class="flex space-x-2" *ngIf="filter.operator === 'between'">
+                                                <mat-form-field appearance="outline" class="flex-1">
+                                                    <mat-label>Từ ngày</mat-label>
+                                                    <input matInput 
+                                                           [matDatepicker]="startPicker"
+                                                           [(ngModel)]="filter.startDate" 
+                                                           (ngModelChange)="onDateRangeChange(filter)"
+                                                           placeholder="Từ ngày">
+                                                    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                                                    <mat-datepicker #startPicker></mat-datepicker>
+                                                </mat-form-field>
+                                                <mat-form-field appearance="outline" class="flex-1">
+                                                    <mat-label>Đến ngày</mat-label>
+                                                    <input matInput 
+                                                           [matDatepicker]="endPicker"
+                                                           [(ngModel)]="filter.endDate" 
+                                                           (ngModelChange)="onDateRangeChange(filter)"
+                                                           placeholder="Đến ngày">
+                                                    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                                                    <mat-datepicker #endPicker></mat-datepicker>
+                                                </mat-form-field>
+                                            </div>
+                                            
+                                            <!-- Date range validation message -->
+                                            <div class="text-xs text-red-500 mt-1" 
+                                                 *ngIf="filter.operator === 'between' && filter.startDate && filter.endDate && isInvalidDateRange(filter)">
+                                                Ngày bắt đầu phải trước hoặc bằng ngày kết thúc
+                                            </div>
+                                        </div>
+
+                                        <!-- Select dropdown -->
+                                        <mat-form-field appearance="outline" class="w-full" 
+                                                       *ngIf="getFieldConfig(filter.field)?.type === 'select'">
+                                            <mat-label>Giá trị</mat-label>
+                                            <mat-select [(ngModel)]="filter.value" 
+                                                       (ngModelChange)="onFilterChange()"
+                                                       placeholder="Chọn giá trị">
+                                                <mat-option *ngFor="let option of getFieldConfig(filter.field)?.options" 
+                                                           [value]="option.value">
+                                                    {{option.label}}
+                                                </mat-option>
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
+
+                                    <!-- Remove filter button -->
+                                    <button mat-icon-button 
+                                            (click)="removeFilter(filter.id)"
+                                            [matTooltip]="'Xóa bộ lọc'"
+                                            class="text-red-500">
+                                        <mat-icon [svgIcon]="'heroicons_outline:trash'"></mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No filters message -->
+                        <div class="text-center text-gray-500 py-8" *ngIf="filters.length === 0">
+                            <mat-icon class="icon-size-16 mb-2" [svgIcon]="'heroicons_outline:cog'"></mat-icon>
+                            <p>Chưa có bộ lọc nào. Nhấn "Thêm bộ lọc" để bắt đầu.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Scrollable Content -->
                 <div class="flex-1 overflow-y-auto">
                     <!-- User Cards list -->
-                    <ng-container *ngIf="boardGroups && boardGroups.length > 0; else noTasks">
+                    <ng-container *ngIf="filteredBoardGroups && filteredBoardGroups.length > 0; else noTasks">
                         <div class="space-y-6">
                             <!-- Board Group -->
-                            <ng-container *ngFor="let group of boardGroups; trackBy: trackByFn">
+                            <ng-container *ngFor="let group of filteredBoardGroups; trackBy: trackByFn">
                                 <!-- Board Header -->
                                 <div class="board-group" [class.collapsed]="group.collapsed">
                                     <div class="flex items-center space-x-3 board-header cursor-pointer" (click)="toggleBoardCollapse(group)">
@@ -150,22 +382,30 @@
                                                             {{card.status | titlecase}}
                                                         </div>
 
-                                                        <!-- Time tracking info -->
-                                                        <div class="flex items-center space-x-1" *ngIf="card.totalTimeSpent > 0">
-                                                            <mat-icon class="icon-size-4 text-blue-500">access_time</mat-icon>
-                                                            <span class="text-xs">{{formatTimeSpent(card.totalTimeSpent)}}</span>
-                                                        </div>
+                                                                                                                 <!-- Priority indicator -->
+                                                         <div class="flex items-center space-x-1" *ngIf="card.priority">
+                                                             <mat-icon class="icon-size-4" 
+                                                                      [svgIcon]="getPriorityIcon(card.priority)"
+                                                                      [ngClass]="getPriorityColor(card.priority)">
+                                                             </mat-icon>
+                                                         </div>
 
-                                                        <!-- Due date -->
-                                                        <div class="text-xs whitespace-nowrap" *ngIf="card.dueDate">
-                                                            <span [ngClass]="{
-                                                            'text-red-600': isOverdue(card.dueDate),
-                                                            'text-yellow-600': isDueSoon(card.dueDate),
-                                                            'text-secondary': !isOverdue(card.dueDate) && !isDueSoon(card.dueDate)
-                                                        }">
-                                                                {{card.dueDate | date:'MMM dd'}}
-                                                            </span>
-                                                        </div>
+                                                         <!-- Time tracking info -->
+                                                         <div class="flex items-center space-x-1" *ngIf="card.totalTimeSpent > 0">
+                                                             <mat-icon class="icon-size-4 text-blue-500">access_time</mat-icon>
+                                                             <span class="text-xs">{{formatTimeSpent(card.totalTimeSpent)}}</span>
+                                                         </div>
+
+                                                         <!-- Due date -->
+                                                         <div class="text-xs whitespace-nowrap" *ngIf="card.dueDate">
+                                                             <span [ngClass]="{
+                                                             'text-red-600': isOverdue(card.dueDate),
+                                                             'text-yellow-600': isDueSoon(card.dueDate),
+                                                             'text-secondary': !isOverdue(card.dueDate) && !isDueSoon(card.dueDate)
+                                                         }">
+                                                                 {{card.dueDate | date:'MMM dd'}}
+                                                             </span>
+                                                         </div>
                                                     </div>
                                                 </a>
                                             </div>
@@ -179,9 +419,14 @@
                     <ng-template #noTasks>
                         <div class="flex flex-auto flex-col items-center justify-center bg-gray-100 dark:bg-transparent">
                             <mat-icon class="icon-size-24" [svgIcon]="'heroicons_outline:clipboard-list'"></mat-icon>
-                            <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">Chưa có công việc nào
-                                được giao!</div>
-                            <div class="mt-2 text-secondary">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</div>
+                            <div class="mt-4 text-2xl font-semibold tracking-tight text-secondary">
+                                <span *ngIf="searchTerm || filters.length > 0">Không tìm thấy công việc nào phù hợp!</span>
+                                <span *ngIf="!searchTerm && filters.length === 0">Chưa có công việc nào được giao!</span>
+                            </div>
+                            <div class="mt-2 text-secondary">
+                                <span *ngIf="searchTerm || filters.length > 0">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc.</span>
+                                <span *ngIf="!searchTerm && filters.length === 0">Tất cả các card được giao cho bạn sẽ hiển thị ở đây.</span>
+                            </div>
                         </div>
                     </ng-template>
                 </div>

@@ -362,12 +362,33 @@ export class TasksService
     }
 
     /**
-     * Get user cards
+     * Get user cards with optional filtering
      */
-    getUserCards(): Observable<UserCard[]>
+    getUserCards(options?: {
+        searchTerm?: string;
+        filters?: any[];
+        page?: number;
+        limit?: number;
+    }): Observable<UserCard[]>
     {
-        console.log('getUserCards - calling API');
-        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/user/all`).pipe(
+        console.log('getUserCards - calling API with options:', options);
+        
+        // Build query parameters
+        const params: any = {};
+        if (options?.searchTerm) {
+            params.searchTerm = options.searchTerm;
+        }
+        if (options?.filters && options.filters.length > 0) {
+            params.filters = JSON.stringify(options.filters);
+        }
+        if (options?.page) {
+            params.page = options.page.toString();
+        }
+        if (options?.limit) {
+            params.limit = options.limit.toString();
+        }
+        
+        return this._httpClient.get<any>(`${environment.apiBaseUrl}/cards/user/all`, { params }).pipe(
             map((response: any) => {
                 // Handle API response format
                 const cards = response.data || response;
@@ -484,6 +505,9 @@ export class TasksService
                             }
                             if (updateData.checklistItems !== undefined) {
                                 updatedCard.checklistItems = updateData.checklistItems;
+                            }
+                            if (updateData.priority !== undefined) {
+                                updatedCard.priority = updateData.priority;
                             }
                             
                             console.log('Updated card in local state:', updatedCard);

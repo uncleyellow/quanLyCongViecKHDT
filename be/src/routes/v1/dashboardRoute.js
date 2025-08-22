@@ -141,4 +141,210 @@ router.get('/work-statistics', verifyToken, dashboardController.getWorkStatistic
  */
 router.get('/active-members', verifyToken, dashboardController.getActiveMembers)
 
+/**
+ * @swagger
+ * /api/v1/dashboard/chart-data:
+ *   get:
+ *     summary: Get chart data for different chart types
+ *     description: Retrieve chart data based on chart type and time range
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: chartType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [status, timeline, member, priority, department]
+ *         description: Type of chart data to retrieve
+ *       - in: query
+ *         name: timeRange
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [week, month, quarter]
+ *           default: month
+ *         description: Time range for the chart data
+ *     responses:
+ *       200:
+ *         description: Chart data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Chart data retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     series:
+ *                       type: array
+ *                       description: Chart series data
+ *                     labels:
+ *                       type: array
+ *                       description: Chart labels
+ *                     categories:
+ *                       type: array
+ *                       description: Chart categories (for timeline charts)
+ *       400:
+ *         description: Bad request - Invalid chart type
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/chart-data', verifyToken, dashboardController.getChartData)
+
+/**
+ * @swagger
+ * /api/v1/dashboard/overview:
+ *   get:
+ *     summary: Get dashboard overview statistics
+ *     description: Retrieve comprehensive dashboard overview including total boards, cards, members, completion rate, and recent activity
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard overview retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Dashboard overview retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBoards:
+ *                       type: integer
+ *                       description: Total number of boards
+ *                       example: 5
+ *                     totalCards:
+ *                       type: integer
+ *                       description: Total number of cards/tasks
+ *                       example: 25
+ *                     totalMembers:
+ *                       type: integer
+ *                       description: Total number of members
+ *                       example: 12
+ *                     completionRate:
+ *                       type: integer
+ *                       description: Task completion rate percentage
+ *                       example: 75
+ *                     recentActivity:
+ *                       type: array
+ *                       description: Recent card activities
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           title:
+ *                             type: string
+ *                             description: Card title
+ *                           status:
+ *                             type: string
+ *                             description: Card status
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Last update time
+ *                           updatedBy:
+ *                             type: string
+ *                             description: Name of user who updated the card
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/overview', verifyToken, dashboardController.getDashboardOverview)
+
+router.get('/gantt-chart', verifyToken, dashboardController.getGanttChartData)
+
+/**
+ * @swagger
+ * /api/v1/dashboard/gantt-chart:
+ *   get:
+ *     summary: Get Gantt chart data for completed tasks
+ *     description: Retrieve data for Gantt chart showing completed tasks over time (day/week/month)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month]
+ *           default: month
+ *         description: Time range for the chart data
+ *         example: month
+ *     responses:
+ *       200:
+ *         description: Gantt chart data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Gantt chart data retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     series:
+ *                       type: array
+ *                       description: Chart series data
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             description: Series name
+ *                             example: Công việc hoàn thành
+ *                           data:
+ *                             type: array
+ *                             description: Data points
+ *                             items:
+ *                               type: integer
+ *                               example: 5
+ *                     categories:
+ *                       type: array
+ *                       description: Chart categories (time periods)
+ *                       items:
+ *                         type: string
+ *                         example: Tháng 1 2024
+ *                     timeRange:
+ *                       type: string
+ *                       description: Selected time range
+ *                       example: month
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
+
 export default router

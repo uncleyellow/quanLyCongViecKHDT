@@ -11,7 +11,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ViewConfigDialogComponent } from './view-config-dialog.component';
 import { ChangeColorDialogComponent } from './change-color-dialog.component';
-import { FilterDialogComponent } from './filter-dialog.component';
 
 @Component({
     selector: 'scrumboard-board',
@@ -48,16 +47,24 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     listTitleForm: UntypedFormGroup;
     members: Member[] = [];
 
-    // Filter properties
-    isFilterApplied: boolean = false;
-    filterCriteria: any = {
-        member: '',
-        title: '',
-        description: '',
-        status: '',
-        startDate: null,
-        endDate: null
-    };
+    // Search and Filter properties
+    searchTerm: string = '';
+    showFilterPanel: boolean = false;
+    filters: any[] = [];
+    availableFields: any[] = [
+        { key: 'title', label: 'Tiêu đề', type: 'string' },
+        { key: 'description', label: 'Mô tả', type: 'string' },
+        { key: 'dueDate', label: 'Ngày hết hạn', type: 'date' },
+        { key: 'status', label: 'Trạng thái', type: 'select', options: [
+            { value: 'todo', label: 'Chưa làm' },
+            { value: 'in-progress', label: 'Đang làm' },
+            { value: 'done', label: 'Hoàn thành' }
+        ] },
+        { key: 'type', label: 'Loại', type: 'select', options: [
+            { value: 'task', label: 'Công việc' },
+            { value: 'section', label: 'Phần' }
+        ] }
+    ];
 
     // Private
     private readonly _positionStep: number = 65536;
@@ -648,38 +655,90 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Open filter dialog
+     * Toggle filter panel
      */
-    openFilterDialog(): void {
-        const dialogRef = this._matDialog.open(FilterDialogComponent, {
-            data: {
-                members: this.members,
-                currentFilters: this.filterCriteria
-            },
-            width: '600px',
-            maxHeight: '80vh'
-        });
-
-        dialogRef.afterClosed().subscribe((filterData) => {
-            if (filterData) {
-                this.applyFilters(filterData);
-            }
-        });
+    toggleFilterPanel(): void {
+        this.showFilterPanel = !this.showFilterPanel;
+        this._changeDetectorRef.markForCheck();
     }
 
     /**
-     * Apply filters using backend API
+     * Search methods
      */
-    applyFilters(filterData?: any): void {
-        if (filterData) {
-            this.filterCriteria = filterData;
+    onSearchChange(term: string): void {
+        this.searchTerm = term;
+        this.loadCardsWithFilters();
+    }
+
+    clearSearch(): void {
+        this.searchTerm = '';
+        this.loadCardsWithFilters();
+    }
+
+    /**
+     * Filter methods
+     */
+    addFilter(): void {
+        const newFilter = {
+            id: Date.now().toString(),
+            field: '',
+            operator: '',
+            value: ''
+        };
+        this.filters.push(newFilter);
+        this._changeDetectorRef.markForCheck();
+    }
+
+    removeFilter(filterId: string): void {
+        this.filters = this.filters.filter(f => f.id !== filterId);
+        this.onFilterChange();
+    }
+
+    clearAllFilters(): void {
+        this.filters = [];
+        this.onFilterChange();
+    }
+
+    onFilterChange(): void {
+        this.loadCardsWithFilters();
+    }
+
+    /**
+     * Load cards with search and filters
+     */
+    private loadCardsWithFilters(): void {
+        const options: any = {};
+        
+        // Add search term
+        if (this.searchTerm && this.searchTerm.trim()) {
+            options.search = this.searchTerm.trim();
+        }
+        
+        // Add filters
+        const validFilters = this.filters.filter(f => f.field && f.operator && f.value !== undefined && f.value !== '');
+        if (validFilters.length > 0) {
+            // Process date values for date fields
+            const processedFilters = validFilters.map(filter => {
+                if (filter.field === 'dueDate' && filter.value instanceof Date) {
+                    const year = filter.value.getFullYear();
+                    const month = String(filter.value.getMonth() + 1).padStart(2, '0');
+                    const day = String(filter.value.getDate()).padStart(2, '0');
+                    const localDateString = `${year}-${month}-${day}`;
+                    
+                    return {
+                        ...filter,
+                        value: localDateString
+                    };
+                }
+                return filter;
+            });
+            options.filters = processedFilters;
         }
 
         // Call backend API to get filtered data
-        this._scrumboardService.getFilteredBoard(this.board.id, this.filterCriteria).subscribe({
+        this._scrumboardService.getFilteredBoard(this.board.id, options).subscribe({
             next: (filteredBoard) => {
                 this.board = filteredBoard;
-                this.isFilterApplied = true;
                 this._changeDetectorRef.markForCheck();
             },
             error: (error) => {
@@ -692,30 +751,41 @@ export class ScrumboardBoardComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Clear all filters and restore original data
+     * Get filtered cards count
      */
-    clearFilters(): void {
-        // Reset filter criteria
-        this.filterCriteria = {
-            member: '',
-            title: '',
-            description: '',
-            status: '',
-            startDate: null,
-            endDate: null
-        };
+    getFilteredCardsCount(): number {
+        if (!this.board || !this.board.lists) return 0;
+        return this.board.lists.reduce((total, list) => total + (list.cards ? list.cards.length : 0), 0);
+    }
 
-        // Reload original board data
-        this._scrumboardService.getBoard(this.board.id).subscribe({
-            next: (board) => {
-                this.board = board;
-                this.isFilterApplied = false;
-                this._changeDetectorRef.markForCheck();
-            },
-            error: (error) => {
-                console.error('Error clearing filters:', error);
-            }
-        });
+    /**
+     * Helper methods for filter configuration
+     */
+    getFieldConfig(fieldKey: string): any {
+        return this.availableFields.find(field => field.key === fieldKey);
+    }
+
+    getOperatorsForFieldType(fieldType: string): any[] {
+        const operators = {
+            string: [
+                { value: 'contains', label: 'Chứa' },
+                { value: 'equals', label: 'Bằng' },
+                { value: 'starts_with', label: 'Bắt đầu bằng' },
+                { value: 'ends_with', label: 'Kết thúc bằng' }
+            ],
+            date: [
+                { value: 'equals', label: 'Bằng' },
+                { value: 'greater_than', label: 'Lớn hơn' },
+                { value: 'less_than', label: 'Nhỏ hơn' },
+                { value: 'greater_than_or_equal', label: 'Lớn hơn hoặc bằng' },
+                { value: 'less_than_or_equal', label: 'Nhỏ hơn hoặc bằng' }
+            ],
+            select: [
+                { value: 'equals', label: 'Bằng' },
+                { value: 'not_equals', label: 'Không bằng' }
+            ]
+        };
+        return operators[fieldType] || operators.string;
     }
 
     // -----------------------------------------------------------------------------------------------------

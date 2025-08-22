@@ -6,6 +6,7 @@ import { APIs_V1 } from './src/routes/v1'
 import { errorHandlingMiddleware } from './src/middlewares/errorHandlingMiddleware'
 import { corsOptions } from './src/config/cors'
 import { swaggerUi, specs, swaggerOptions, customSwaggerHtml } from './src/config/swagger'
+import { cronService } from './src/services/cronService.js'
 
 const START_SERVER = () => {
   const app = express()
@@ -50,11 +51,15 @@ const START_SERVER = () => {
     app.listen(process.env.PORT, () => {
       // eslint-disable-next-line no-console
       console.log(`Production: Hello Salad Le, I am running at port: ${process.env.PORT}`)
+      // Initialize cron service
+      cronService.init()
     })
   } else {
     app.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, () => {
       // eslint-disable-next-line no-console
       console.log(`Dev: Hello Salad Le, I am running at http://${env.LOCAL_DEV_APP_HOST}:${env.LOCAL_DEV_APP_PORT}/`)
+      // Initialize cron service
+      cronService.init()
     })
   }
 

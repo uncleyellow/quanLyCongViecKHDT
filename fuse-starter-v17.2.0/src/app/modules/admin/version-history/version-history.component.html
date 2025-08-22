@@ -1,0 +1,85 @@
+<div class="flex flex-col flex-auto min-w-0">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row space-y-16 sm:space-y-0 flex-0 sm:items-center sm:justify-between p-24 sm:py-32 sm:px-40 border-b">
+        <div class="flex flex-col space-y-8">
+            <div>
+                <h2 class="text-3xl font-bold tracking-tight">Lịch sử phiên bản</h2>
+            </div>
+            <div class="flex items-center space-x-8">
+                <div class="flex items-center space-x-4">
+                    <span class="text-secondary">Phiên bản hiện tại:</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        v{{ currentVersion }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-auto p-24 sm:p-40">
+        <div class="max-w-3xl">
+            <!-- Loading -->
+            <div *ngIf="loading" class="flex items-center justify-center py-32">
+                <div class="flex items-center space-x-16">
+                    <div class="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-secondary">Đang tải lịch sử phiên bản...</span>
+                </div>
+            </div>
+
+            <!-- Version List -->
+            <div *ngIf="!loading && versions.length > 0" class="space-y-24">
+                <div *ngFor="let version of versions; trackBy: trackByVersion" class="bg-card rounded-lg border p-24">
+                    <!-- Version Header -->
+                    <div class="flex items-start justify-between mb-16">
+                        <div class="flex items-center space-x-12">
+                            <span class="text-xl font-semibold">v{{ version.version }}</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                  [ngClass]="getVersionTypeColor(version.type)">
+                                {{ getVersionTypeLabel(version.type) }}
+                            </span>
+                        </div>
+                        <span class="text-sm text-secondary">{{ formatDate(version.releaseDate) }}</span>
+                    </div>
+
+                    <!-- Version Title -->
+                    <h3 class="text-lg font-medium mb-8">{{ version.title }}</h3>
+
+                    <!-- Version Description -->
+                    <p class="text-secondary mb-16">{{ version.description }}</p>
+
+                    <!-- Version Changes -->
+                    <div class="space-y-8">
+                        <h4 class="font-medium text-sm uppercase tracking-wide text-secondary">Thay đổi:</h4>
+                        <ul class="space-y-4">
+                            <li *ngFor="let change of version.changes; trackBy: trackByChange" 
+                                class="flex items-start space-x-8">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-2">
+                                    <span class="w-2 h-2 bg-primary rounded-full"></span>
+                                </span>
+                                <span class="text-sm">{{ change }}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Author -->
+                    <div class="mt-16 pt-16 border-t">
+                        <span class="text-xs text-secondary">Tác giả: {{ version.author }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!loading && versions.length === 0" class="text-center py-32">
+                <div class="w-64 h-64 mx-auto mb-16">
+                    <svg class="w-full h-full text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium mb-8">Chưa có lịch sử phiên bản</h3>
+                <p class="text-secondary">Lịch sử phiên bản sẽ được hiển thị ở đây khi có cập nhật mới.</p>
+            </div>
+        </div>
+    </div>
+</div>
